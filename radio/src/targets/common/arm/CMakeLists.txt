@@ -181,6 +181,10 @@ endif()
 
 if(ENABLE_SERIAL_PASSTHROUGH)
   add_definitions(-DENABLE_SERIAL_PASSTHROUGH)
+  set(FIRMWARE_SRC
+    ${FIRMWARE_SRC}
+    esc_bridge.cpp
+  )
 endif()
 
 if(DEBUG)

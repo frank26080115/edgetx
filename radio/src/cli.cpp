@@ -33,6 +33,7 @@
 
 #include "hal/adc_driver.h"
 #include "hal/module_port.h"
+#include "esc_bridge.h"
 
 #include "tasks.h"
 #include "tasks/mixer_task.h"
@@ -1071,13 +1072,8 @@ int cliSerialPassthrough(const char **argv)
     return -1;
   }
 
+  int err;
   int port_n = 0;
-  int err = toInt(argv, 2, &port_n);
-  if (err == -1) return err;
-  if (err == 0) {
-    cliSerialPrint("%s: missing port #", argv[0]);
-    return -1;
-  }
 
   int baudrate = 0;
   err = toInt(argv, 3, &baudrate);
@@ -1093,10 +1089,17 @@ int cliSerialPassthrough(const char **argv)
 
   if (!strcmp("rfmod", port_type)) {
 
+    err = toInt(argv, 2, &port_n);
+    if (err == -1) return err;
+    if (err == 0) {
+      cliSerialPrint("%s: missing port #", argv[0]);
+      return -1;
+    }
+
     if (port_n >= NUM_MODULES
         // only internal module supported for now
         && port_n != INTERNAL_MODULE) {
-      cliSerialPrint("%s: invalid port # '%s'", port_num);
+      cliSerialPrint("%s: invalid port # '%s'", argv[0], port_num);
       return -1;
     }
     
@@ -1172,9 +1175,90 @@ int cliSerialPassthrough(const char **argv)
 
     // suspend RTOS scheduler
     xTaskResumeAll();
-    
+
+  }
+  else if (!strcmp("escbridge", port_type)) {
+
+    etx_serial_init params(spIntmoduleSerialInitParams);
+    params.baudrate = baudrate;
+
+    if (!strcmp("loopback", port_num))
+    {
+      cliSerialPrint("ESC Bridge test in virtual loopback mode");
+    }
+    #if defined(AUX_SERIAL) || defined(AUX2_SERIAL)
+    else if (!memcmp("aux", port_num, 3))
+    {
+      port_n = port_num[3] - '1';
+      if (port_n != SP_AUX1 && port_n != SP_AUX2) {
+        cliSerialPrint("%s: invalid aux port # '%s'", argv[0], port_num);
+        return -1;
+      }
+      escBridgeAuxInit(port_n, &params);
+      cliSerialPrint("ESC Bridge established using AUX%u serial port", port_n + 1);
+    }
+    #endif
+    #if defined(EXTMODULE_USART)
+    else if (!memcmp("ext", port_num, 3))
+    {
+      escBridgeExtModInit(&params);
+      cliSerialPrint("ESC Bridge established using external module serial port");
+    }
+    #endif
+    #if defined(TRAINER_MODULE_SBUS_USART)
+    else if (!memcmp("train", port_num, 5))
+    {
+      escBridgeTrainerInit(&params);
+      cliSerialPrint("ESC Bridge established using trainer serial port");
+    }
+    #endif
+    #if defined(TELEMETRY_USART)
+    else if (!memcmp("sport", port_num, 5))
+    {
+      escBridgeSportInit(&params);
+      cliSerialPrint("ESC Bridge established using S.PORT serial port");
+    }
+    #endif
+    else
+    {
+      cliSerialPrint("%s: invalid port # '%s'", argv[0], port_num);
+      return -1;
+    }
+
+    watchdogSuspend(200/*2s*/);
+    pulsesStop();
+
+    // suspend RTOS scheduler
+    vTaskSuspendAll();
+
+    // swap CLI input
+    cliReceiveCallBack = escBridgeTx;
+
+    // loop until cable disconnected
+    // cdcConnected only reports physical status, so it's ok to virtually close the port
+    while (cdcConnected) {
+
+      int16_t data;
+      if ((data = escBridgeReadByte()) >= 0) { // has data from ESC
+        // pass the data to the VCP if possible
+        uint8_t timeout = 10; // 10 ms
+        while(!usbSerialFreeSpace() && (timeout > 0)) {
+          delay_ms(1);
+          timeout--;
+        }
+        cliSerialPutc((uint8_t)data);
+      }
+
+      // keep us up & running
+      WDG_RESET();
+    }
+
+    // the above serial port take over will mess up settings
+    // it would be way too complicated to cache and restore those settings
+    // so just do a reset on cable disconnection
+    NVIC_SystemReset();
   } else {
-    cliSerialPrint("%s: invalid port type '%s'", port_type);
+    cliSerialPrint("%s: invalid port type '%s'", argv[0], port_type);
     return -1;
   }
   

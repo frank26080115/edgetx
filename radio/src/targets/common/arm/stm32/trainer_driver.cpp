@@ -425,6 +425,11 @@ int trainerModuleSbusGetByte(uint8_t* data)
   return STM32SerialDriver.getByte(_sbus_trainer_ctx, data);
 }
 
+void* trainerGetContext()
+{
+  return _sbus_trainer_ctx;
+}
+
 #else
   #error "No available SBUS trainer implementation"
 #endif
