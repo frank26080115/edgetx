@@ -1181,12 +1181,12 @@ int cliSerialPassthrough(const char **argv)
 
     etx_serial_init params(spIntmoduleSerialInitParams);
     params.baudrate = baudrate;
+    int8_t initerr;
 
     if (!strcmp("loopback", port_num))
     {
       cliSerialPrint("ESC Bridge test in virtual loopback mode");
     }
-    #if defined(AUX_SERIAL) || defined(AUX2_SERIAL)
     else if (!memcmp("aux", port_num, 3))
     {
       port_n = port_num[3] - '1';
@@ -1194,31 +1194,44 @@ int cliSerialPassthrough(const char **argv)
         cliSerialPrint("%s: invalid aux port # '%s'", argv[0], port_num);
         return -1;
       }
-      escBridgeAuxInit(port_n, &params);
-      cliSerialPrint("ESC Bridge established using AUX%u serial port", port_n + 1);
+      initerr = escBridgeAuxInit(port_n, &params);
+      if (initerr == 0) {
+        cliSerialPrint("ESC Bridge established using AUX%u serial port", port_n + 1);
+      }
+      else {
+        cliSerialPrint("ERROR: ESC Bridge using AUX%u failed, err = %d", port_n + 1, initerr);
+      }
     }
-    #endif
-    #if defined(EXTMODULE_USART)
     else if (!memcmp("ext", port_num, 3))
     {
-      escBridgeExtModInit(&params);
-      cliSerialPrint("ESC Bridge established using external module serial port");
+      initerr = escBridgeExtModInit(&params);
+      if (initerr == 0) {
+        cliSerialPrint("ESC Bridge established using external module serial port");
+      }
+      else {
+        cliSerialPrint("ERROR: ESC Bridge using external module failed, err = %d", initerr);
+      }
     }
-    #endif
-    #if defined(TRAINER_MODULE_SBUS_USART)
     else if (!memcmp("train", port_num, 5))
     {
-      escBridgeTrainerInit(&params);
-      cliSerialPrint("ESC Bridge established using trainer serial port");
+      initerr = escBridgeTrainerInit(&params);
+      if (initerr == 0) {
+        cliSerialPrint("ESC Bridge established using trainer serial port");
+      }
+      else {
+        cliSerialPrint("ERROR: ESC Bridge using trainer failed, err = %d", initerr);
+      }
     }
-    #endif
-    #if defined(TELEMETRY_USART)
     else if (!memcmp("sport", port_num, 5))
     {
-      escBridgeSportInit(&params);
-      cliSerialPrint("ESC Bridge established using S.PORT serial port");
+      initerr = escBridgeSportInit((etx_serial_init*)&params);
+      if (initerr == 0) {
+        cliSerialPrint("ESC Bridge established using S.PORT serial port");
+      }
+      else {
+        cliSerialPrint("ERROR: ESC Bridge using S.PORT failed, err = %d", initerr);
+      }
     }
-    #endif
     else
     {
       cliSerialPrint("%s: invalid port # '%s'", argv[0], port_num);

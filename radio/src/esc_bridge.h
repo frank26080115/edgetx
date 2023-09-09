@@ -32,10 +32,10 @@
 void escBridgeTx(uint8_t* buf, uint32_t len); // replacement for the CLI data received callback
 int16_t escBridgeReadByte();  // returns one byte read from UART, or -1 for empty buffer
 
-// various port initializers
-void escBridgeTrainerInit(const etx_serial_init* params);
-void escBridgeExtModInit(const etx_serial_init* params);
-void escBridgeAuxInit(uint8_t port_n, const etx_serial_init* params);
-void escBridgeSportInit(const etx_serial_init* params);
+// various port initializers, returns ESCBRIDGE_INIT_x, 0 on success, negative number for error code
+int8_t escBridgeTrainerInit(const etx_serial_init* params);
+int8_t escBridgeExtModInit(const etx_serial_init* params);
+int8_t escBridgeAuxInit(uint8_t port_n, const etx_serial_init* params);
+int8_t escBridgeSportInit(etx_serial_init* params);
 
 #endif // _ESC_BRIDGE_H_
