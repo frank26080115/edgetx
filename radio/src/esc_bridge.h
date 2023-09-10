@@ -29,6 +29,17 @@
 
 #include "serial.h"
 
+// return values for initialization functions
+enum {
+    ESCBRIDGE_INIT_SUCCESS     =  0,
+    ESCBRIDGE_INIT_ERR_NO_DRV  = -1,
+    ESCBRIDGE_INIT_ERR_NO_CTX  = -2,
+    ESCBRIDGE_INIT_ERR_NO_MOD  = -3,
+    ESCBRIDGE_INIT_ERR_NO_PORT = -4,
+    ESCBRIDGE_INIT_ERR_NO_AUX  = -5,
+    ESCBRIDGE_INIT_ERR_NO_HW   = -6,
+};
+
 void escBridgeTx(uint8_t* buf, uint32_t len); // replacement for the CLI data received callback
 int16_t escBridgeReadByte();  // returns one byte read from UART, or -1 for empty buffer
 

@@ -35,10 +35,11 @@
  * To activate this feature in the firmware build:
  * CLI must be enabled and ENABLE_SERIAL_PASSTHROUGH must be enabled
  * Available ports are auto determined by the target HW definitions
+ * (it helps if Bluetooth is disabled)
  * 
  * To use this feature:
- * Select CLI as the USB-VCP's mode
- * Plug in the USB cable, select VCP mode
+ * Select CLI as the USB-VCP's mode (via the hardware menu)
+ * Plug in the USB cable, select VCP mode (when prompted on the screen)
  * Open a terminal app on the host PC, type in the command
  *     serialpassthrough escbridge <port> <baud>
  * such as
@@ -46,45 +47,38 @@
  * Then close the terminal app and use the ESC's dedicated PC app
 */
 
-#include "hal.h"
-//#include "dataconstants.h" // causes compiler errors
-//#include "myeeprom.h" // causes compiler errors
+#include "hal.h" // for most of the board definitions
+#include "stm32_hal_ll.h"
+#include "dataconstants.h"
+#include "myeeprom.h"
 #include "serial.h"
 #include "hal/module_port.h"
-#include "stm32_usart_driver.h"
-#include "stm32_serial_driver.h"
-#include "stm32_hal.h"
+
+#include "esc_bridge.h"
 
 #include <stdlib.h>
+
+//#define ESCBRIDGE_USE_HALFDUPLEX    // using native half-duplex mode, which means echo is required and some other quirks
 
 #if defined(TRAINER_MODULE_SBUS_USART)
 void* trainerGetContext();
 void init_trainer_module_sbus();
 #endif
 
-// return values for initialization functions
-enum {
-    ESCBRIDGE_INIT_SUCCESS     =  0,
-    ESCBRIDGE_INIT_ERR_NO_DRV  = -1,
-    ESCBRIDGE_INIT_ERR_NO_CTX  = -2,
-    ESCBRIDGE_INIT_ERR_NO_MOD  = -3,
-    ESCBRIDGE_INIT_ERR_NO_PORT = -4,
-    ESCBRIDGE_INIT_ERR_NO_AUX  = -5,
-    ESCBRIDGE_INIT_ERR_NO_HW   = -6,
-};
+extern const etx_serial_driver_t STM32SerialDriver;
 
-etx_serial_port_t* escBridgePort = nullptr;
-etx_serial_driver_t* escBridgeDrv = nullptr;
-etx_module_state_t* escBridgeModState = nullptr;
-void* escBridgeCtx = nullptr;
-uint32_t escBridgeTxPin = 0;
-GPIO_TypeDef* escBridgeTxGpiox = nullptr;
+static etx_serial_port_t* escBridgePort = nullptr;
+static etx_serial_driver_t* escBridgeDrv = nullptr;
+static etx_module_state_t* escBridgeModState = nullptr;
+static void* escBridgeCtx = nullptr;
+static uint32_t escBridgeTxPin = 0;
+static USART_TypeDef* escBridgeTxUsartx = nullptr;
+static GPIO_TypeDef* escBridgeTxGpiox = nullptr;
 // TODO: using raw STM32 items here makes this code not portable to other microcontroller families
-// suggested action is to add a driver->setTxPinDir(bool isOut) function
-// but that change is very invasive, as it would require data structure changes to seperate TX pin and RX pin
 
-bool escBridgeHasDirPin = false;    // indicates that direction change will happen automatically
-bool escBridgeRequireEcho = false;  // implementations of half-duplex will disable RX while TX, so a manual echo is needed
+static bool escBridgeHasDirPin = false;       // indicates that direction change will happen automatically
+static bool escBridgeUsingHalfDuplex = false; // using native half-duplex mode, which means echo is required and some other quirks
+static bool escBridgeRequireEcho = false;     // implementations of half-duplex will disable RX while TX, so a manual echo is needed
 
 // if manual echo is required, then implement a FIFO to store all the bytes to echo out
 #define ESCBRIDGE_FIFO_SIZE    512
@@ -101,13 +95,62 @@ static void escBridgeInitFifo()
 
 static inline void escBridgeTxPinSetDir(bool isOut)
 {
-  // this assumes the pin has its alternate-function already assigned from the serial port initialization
-  if (escBridgeHasDirPin == false) {
-    LL_GPIO_SetPinMode(escBridgeTxGpiox, escBridgeTxPin, isOut ? LL_GPIO_MODE_ALTERNATE : LL_GPIO_MODE_INPUT);
-  }
-  if (isOut == false) {
+  if (isOut == false) { // RX mode
+    if (escBridgeTxGpiox && escBridgeUsingHalfDuplex) {
+      LL_GPIO_SetPinPull(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_PULL_UP);
+    }
+    if (escBridgeHasDirPin == false && escBridgeUsingHalfDuplex == false) {
+      LL_GPIO_SetPinMode(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_MODE_INPUT);
+    }
     escBridgeDrv->enableRx(escBridgeCtx);
+    if (escBridgeUsingHalfDuplex) {
+      LL_USART_DisableDirectionTx(escBridgeTxUsartx);
+    }
   }
+  else { // TX mode
+    if (escBridgeTxGpiox && escBridgeUsingHalfDuplex) {
+      LL_GPIO_SetPinPull(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_PULL_NO);
+    }
+    LL_USART_EnableDirectionTx(escBridgeTxUsartx);
+    LL_USART_DisableDirectionRx(escBridgeTxUsartx);
+    if (escBridgeHasDirPin == false && escBridgeUsingHalfDuplex == false) {
+      LL_GPIO_SetPinMode(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_MODE_ALTERNATE);
+    }
+  }
+}
+
+static void escBridgeCfgUart(USART_TypeDef* usart, GPIO_TypeDef* gpio, uint32_t pin)
+{
+  escBridgeTxUsartx = usart;
+  LL_USART_SetStopBitsLength(escBridgeTxUsartx, LL_USART_STOPBITS_1); 
+  // TODO: what other things do we need to make sure of?
+  #ifdef ESCBRIDGE_USE_HALFDUPLEX
+  LL_USART_EnableHalfDuplex(escBridgeTxUsartx);
+  escBridgeUsingHalfDuplex = true;
+  #else
+  LL_USART_DisableHalfDuplex(escBridgeTxUsartx);
+  escBridgeUsingHalfDuplex = false;
+  #endif
+
+  escBridgeTxGpiox = gpio;
+  escBridgeTxPin = pin;
+  #ifdef ESCBRIDGE_USE_HALFDUPLEX
+  // TODO: make sure all of this is needed
+  // it seemed like half-duplex mode is not working right, and my research pointed to perhaps more strict GPIO configuration
+  // but it turns out, my X9D simply had a inverted AUX TX signal, which made me think something was wrong with the pin
+  LL_GPIO_SetPinMode(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_MODE_ALTERNATE);
+  LL_GPIO_SetPinOutputType(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_OUTPUT_PUSHPULL);
+  LL_GPIO_SetPinSpeed(escBridgeTxGpiox, escBridgeTxPin, 
+    #ifdef LL_GPIO_SPEED_FREQ_VERY_HIGH
+    LL_GPIO_SPEED_FREQ_VERY_HIGH
+    #elif defined(LL_GPIO_SPEED_FREQ_HIGH)
+    LL_GPIO_SPEED_FREQ_HIGH
+    #endif
+    );
+  LL_GPIO_SetPinPull(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_PULL_NO);
+  #else
+  LL_GPIO_SetPinPull(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_PULL_UP);
+  #endif
 }
 
 // replacement for the CLI data received callback
@@ -139,7 +182,12 @@ void escBridgeTx(uint8_t* buf, uint32_t len)
       fifo_w = (fifo_w + 1) % fifo_sz;
     }
   }
-  escBridgeDrv->waitForTxCompleted(escBridgeCtx); // need to wait until all the bytes are sent physically, then the TX pin must be turned into an input
+  // need to wait until all the bytes are sent physically, then the TX pin must be turned into an input
+  //escBridgeDrv->waitForTxCompleted(escBridgeCtx);
+  // waitForTxCompleted seems to be not effective, on_idle callback is also ineffective, both of those are waiting for TXE, we need to wait for TC flag
+  while ((escBridgeTxUsartx->SR & USART_SR_TC) == 0) {
+    // do nothing but wait
+  }
   escBridgeTxPinSetDir(false); // make the pin not drive the line, so that the ESC can reply
 }
 
@@ -177,8 +225,10 @@ int8_t escBridgeTrainerInit(const etx_serial_init* params)
     return ESCBRIDGE_INIT_ERR_NO_CTX;
   }
   escBridgeDrv->setBaudrate(escBridgeCtx, params->baudrate);
-  escBridgeTxPin = TRAINER_MODULE_SBUS_GPIO_PIN;
-  escBridgeTxGpiox = TRAINER_MODULE_SBUS_GPIO;
+  escBridgeCfgUart(TRAINER_MODULE_SBUS_USART, TRAINER_MODULE_SBUS_GPIO, TRAINER_MODULE_SBUS_GPIO_PIN);
+  // TODO: I don't think the pin here is correct, it's mapped to RX, not TX
+  // the TX pin might not actually exist
+  escBridgeInitFifo();
 
   // the trainer port initialization only initializes RX, not TX
   // so TX is assigned AF here
@@ -189,8 +239,7 @@ int8_t escBridgeTrainerInit(const etx_serial_init* params)
   pinInit.Speed = LL_GPIO_SPEED_FREQ_MEDIUM;
   pinInit.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
   pinInit.Pull = LL_GPIO_PULL_UP;
-  pinInit.Alternate = 0x08;//TRAINER_MODULE_SBUS_GPIO_AF;
-  // TODO: use the TRAINER_MODULE_SBUS_GPIO_AF definition after fixing compiler errors
+  pinInit.Alternate = TRAINER_MODULE_SBUS_GPIO_AF;
   LL_GPIO_Init(escBridgeTxGpiox, &pinInit);
   escBridgeTxPinSetDir(false);
   return ESCBRIDGE_INIT_SUCCESS;
@@ -215,16 +264,16 @@ int8_t escBridgeAuxInit(uint8_t port_n, const etx_serial_init* params)
   }
   #ifdef AUX_SERIAL_GPIO_PIN_TX
   if (port_n == SP_AUX1) {
-    escBridgeTxPin = AUX_SERIAL_GPIO_PIN_TX;
-    escBridgeTxGpiox = AUX_SERIAL_GPIO;
+    escBridgeCfgUart(AUX_SERIAL_USART, AUX_SERIAL_GPIO, AUX_SERIAL_GPIO_PIN_TX);
+    escBridgeInitFifo();
     escBridgeTxPinSetDir(false);
     return ESCBRIDGE_INIT_SUCCESS;
   }
   #endif
   #ifdef AUX2_SERIAL_GPIO_PIN_TX
   if (port_n == SP_AUX2) {
-    escBridgeTxPin = AUX2_SERIAL_GPIO_PIN_TX;
-    escBridgeTxGpiox = AUX2_SERIAL_GPIO;
+    escBridgeCfgUart(AUX2_SERIAL_USART, AUX2_SERIAL_GPIO, AUX2_SERIAL_GPIO_PIN_TX);
+    escBridgeInitFifo();
     escBridgeTxPinSetDir(false);
     return ESCBRIDGE_INIT_SUCCESS;
   }
@@ -250,8 +299,8 @@ int8_t escBridgeExtModInit(const etx_serial_init* params)
   if (!escBridgeCtx) {
     return ESCBRIDGE_INIT_ERR_NO_CTX;
   }
-  escBridgeTxPin = EXTMODULE_TX_GPIO_PIN;
-  escBridgeTxGpiox = EXTMODULE_USART_GPIO;
+  escBridgeCfgUart(EXTMODULE_USART, EXTMODULE_USART_GPIO, EXTMODULE_TX_GPIO_PIN);
+  escBridgeInitFifo();
   escBridgeTxPinSetDir(false);
   return ESCBRIDGE_INIT_SUCCESS;
   #endif
@@ -261,9 +310,8 @@ int8_t escBridgeExtModInit(const etx_serial_init* params)
 int8_t escBridgeSportInit(etx_serial_init* params)
 {
   #if defined(TELEMETRY_USART)
-  escBridgeModState = modulePortInitSerial(1, ETX_MOD_PORT_SPORT, params);
+  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SPORT, params);
   // note: the S.PORT connector on the bottom of the X7 is not a SPORT_MODULE, it is a part of EXTERNAL_MODULE
-  // TODO: use a constant for EXTERNAL_MODULE, after fixing compiler errors
   // TODO: make sure this works for all radios, as some has an inversion selection
 
   if (!escBridgeModState) {
@@ -277,11 +325,12 @@ int8_t escBridgeSportInit(etx_serial_init* params)
   if (!escBridgeCtx) {
     return ESCBRIDGE_INIT_ERR_NO_CTX;
   }
+  escBridgeTxUsartx = TELEMETRY_USART;
+  escBridgeHasDirPin = true;
   escBridgeTxPinSetDir(false);
   escBridgeInitFifo(); // this will force manual echo to be used
   // need the UART to be not inverted, use setPolarity implementation if available
   if (escBridgeDrv->setPolarity) {
-    auto module = modulePortGetModule(escBridgeModState);
     escBridgeDrv->setPolarity(escBridgeCtx, 0);
     // TODO: check if the polarity here is actually correct
   }
@@ -291,6 +340,7 @@ int8_t escBridgeSportInit(etx_serial_init* params)
     LL_GPIO_ResetOutputPin(TELEMETRY_REV_GPIO, TELEMETRY_TX_REV_GPIO_PIN | TELEMETRY_RX_REV_GPIO_PIN);
     #endif
   }
+  // TODO: if the UART cannot have the correct polarity, perhaps notify the user with an error
   return ESCBRIDGE_INIT_SUCCESS;
   #endif
   return ESCBRIDGE_INIT_ERR_NO_HW;

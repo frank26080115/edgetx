@@ -1187,6 +1187,31 @@ int cliSerialPassthrough(const char **argv)
     {
       cliSerialPrint("ESC Bridge test in virtual loopback mode");
     }
+    else if (!memcmp("?", port_num, 1))
+    {
+      cliSerialPrint("ESC Bridge reporting available ports:");
+      #if defined(TRAINER_MODULE_SBUS_USART)
+      cliSerialPrint("    trainer");
+      #endif
+      #if defined(AUX_SERIAL) 
+      cliSerialPrint("    aux1");
+      #endif
+      #if defined(AUX2_SERIAL) 
+      cliSerialPrint("    aux2");
+      #endif
+      #if defined(EXTMODULE_USART)
+      cliSerialPrint("    ext");
+      #endif
+      #if defined(TELEMETRY_USART)
+      #if defined(MANUFACTURER_FRSKY)
+      cliSerialPrint("    sport");
+      #else
+      cliSerialPrint("    telem");
+      #endif
+      #endif
+      cliSerialPrint("---end of list---");
+      return -1;
+    }
     else if (!memcmp("aux", port_num, 3))
     {
       port_n = port_num[3] - '1';
@@ -1195,41 +1220,45 @@ int cliSerialPassthrough(const char **argv)
         return -1;
       }
       initerr = escBridgeAuxInit(port_n, &params);
-      if (initerr == 0) {
+      if (initerr == ESCBRIDGE_INIT_SUCCESS) {
         cliSerialPrint("ESC Bridge established using AUX%u serial port", port_n + 1);
       }
       else {
         cliSerialPrint("ERROR: ESC Bridge using AUX%u failed, err = %d", port_n + 1, initerr);
+        return -1;
       }
     }
     else if (!memcmp("ext", port_num, 3))
     {
       initerr = escBridgeExtModInit(&params);
-      if (initerr == 0) {
+      if (initerr == ESCBRIDGE_INIT_SUCCESS) {
         cliSerialPrint("ESC Bridge established using external module serial port");
       }
       else {
         cliSerialPrint("ERROR: ESC Bridge using external module failed, err = %d", initerr);
+        return -1;
       }
     }
     else if (!memcmp("train", port_num, 5))
     {
       initerr = escBridgeTrainerInit(&params);
-      if (initerr == 0) {
+      if (initerr == ESCBRIDGE_INIT_SUCCESS) {
         cliSerialPrint("ESC Bridge established using trainer serial port");
       }
       else {
         cliSerialPrint("ERROR: ESC Bridge using trainer failed, err = %d", initerr);
+        return -1;
       }
     }
-    else if (!memcmp("sport", port_num, 5))
+    else if (!memcmp("sport", port_num, 5) || !memcmp("telem", port_num, 5))
     {
       initerr = escBridgeSportInit((etx_serial_init*)&params);
-      if (initerr == 0) {
-        cliSerialPrint("ESC Bridge established using S.PORT serial port");
+      if (initerr == ESCBRIDGE_INIT_SUCCESS) {
+        cliSerialPrint("ESC Bridge established using S.PORT/telem serial port");
       }
       else {
-        cliSerialPrint("ERROR: ESC Bridge using S.PORT failed, err = %d", initerr);
+        cliSerialPrint("ERROR: ESC Bridge using S.PORT/telem failed, err = %d", initerr);
+        return -1;
       }
     }
     else
