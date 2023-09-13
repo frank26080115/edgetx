@@ -345,3 +345,12 @@ int8_t escBridgeSportInit(etx_serial_init* params)
   #endif
   return ESCBRIDGE_INIT_ERR_NO_HW;
 }
+
+void escBridgeDisplayLcd()
+{
+  lcdRefreshWait();
+  lcdClear();
+  lcdDrawCenteredText((LCD_H - FH) / 2, "ESC Bridge Active");
+  lcdRefresh();
+  lcdRefreshWait();
+}

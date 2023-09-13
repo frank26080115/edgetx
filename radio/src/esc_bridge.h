@@ -49,4 +49,7 @@ int8_t escBridgeExtModInit(const etx_serial_init* params);
 int8_t escBridgeAuxInit(uint8_t port_n, const etx_serial_init* params);
 int8_t escBridgeSportInit(etx_serial_init* params);
 
+// show text on screen
+void escBridgeDisplayLcd();
+
 #endif // _ESC_BRIDGE_H_

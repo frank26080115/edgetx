@@ -1276,6 +1276,9 @@ int cliSerialPassthrough(const char **argv)
     // swap CLI input
     cliReceiveCallBack = escBridgeTx;
 
+    // show the user a message on LCD
+    escBridgeDisplayLcd();
+
     // loop until cable disconnected
     // cdcConnected only reports physical status, so it's ok to virtually close the port
     while (cdcConnected) {
