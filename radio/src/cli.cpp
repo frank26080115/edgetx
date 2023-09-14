@@ -1209,6 +1209,9 @@ int cliSerialPassthrough(const char **argv)
       cliSerialPrint("    telem");
       #endif
       #endif
+      #if defined(TRAINER_MODULE_CPPM_TIMER) && defined(INTMODULE_HEARTBEAT_GPIO_PIN) && defined(HARDWARE_EXTERNAL_MODULE) && defined(EXTMODULE_TIMER)
+      cliSerialPrint("    jrbay");
+      #endif
       cliSerialPrint("---end of list---");
       return -1;
     }
@@ -1258,6 +1261,17 @@ int cliSerialPassthrough(const char **argv)
       }
       else {
         cliSerialPrint("ERROR: ESC Bridge using S.PORT/telem failed, err = %d", initerr);
+        return -1;
+      }
+    }
+    else if (!memcmp("jrbay", port_num, 5))
+    {
+      initerr = escBridgeJrBayInit((etx_serial_init*)&params);
+      if (initerr == ESCBRIDGE_INIT_SUCCESS) {
+        cliSerialPrint("ESC Bridge established using JR bay serial port");
+      }
+      else {
+        cliSerialPrint("ERROR: ESC Bridge using JR bay failed, err = %d", initerr);
         return -1;
       }
     }

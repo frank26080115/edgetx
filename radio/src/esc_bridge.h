@@ -38,6 +38,8 @@ enum {
     ESCBRIDGE_INIT_ERR_NO_PORT = -4,
     ESCBRIDGE_INIT_ERR_NO_AUX  = -5,
     ESCBRIDGE_INIT_ERR_NO_HW   = -6,
+    ESCBRIDGE_INIT_ERR_UNABLE  = -7,
+    ESCBRIDGE_INIT_ERR_SECOND  = -20,
 };
 
 void escBridgeTx(uint8_t* buf, uint32_t len); // replacement for the CLI data received callback
@@ -48,6 +50,7 @@ int8_t escBridgeTrainerInit(const etx_serial_init* params);
 int8_t escBridgeExtModInit(const etx_serial_init* params);
 int8_t escBridgeAuxInit(uint8_t port_n, const etx_serial_init* params);
 int8_t escBridgeSportInit(etx_serial_init* params);
+int8_t escBridgeJrBayInit(etx_serial_init* params);
 
 // show text on screen
 void escBridgeDisplayLcd();

@@ -53,6 +53,7 @@
 #include "myeeprom.h"
 #include "serial.h"
 #include "hal/module_port.h"
+#include "stm32_softserial_driver.h"
 
 #include "esc_bridge.h"
 
@@ -66,11 +67,17 @@ void init_trainer_module_sbus();
 #endif
 
 extern const etx_serial_driver_t STM32SerialDriver;
+extern const etx_serial_driver_t STM32SoftSerialTxDriver;
+extern const etx_serial_driver_t STM32SoftSerialRxDriver;
 
 static etx_serial_port_t* escBridgePort = nullptr;
 static etx_serial_driver_t* escBridgeDrv = nullptr;
 static etx_module_state_t* escBridgeModState = nullptr;
 static void* escBridgeCtx = nullptr;
+static etx_serial_port_t* escBridgePortRx = nullptr;
+static etx_serial_driver_t* escBridgeDrvRx = nullptr;
+static etx_module_state_t* escBridgeModStateRx = nullptr;
+static void* escBridgeCtxRx = nullptr;
 static uint32_t escBridgeTxPin = 0;
 static USART_TypeDef* escBridgeTxUsartx = nullptr;
 static GPIO_TypeDef* escBridgeTxGpiox = nullptr;
@@ -79,8 +86,9 @@ static GPIO_TypeDef* escBridgeTxGpiox = nullptr;
 static bool escBridgeHasDirPin = false;       // indicates that direction change will happen automatically
 static bool escBridgeUsingHalfDuplex = false; // using native half-duplex mode, which means echo is required and some other quirks
 static bool escBridgeRequireEcho = false;     // implementations of half-duplex will disable RX while TX, so a manual echo is needed
+static bool escBridgeNoPinModes = false;      // the JR bay implementation does not require any action for direction change
 
-// if manual echo is required, then implement a FIFO to store all the bytes to echo out
+// if manual echo is required, then implement a FIFO to store all the bytes to echo out (must be power of 2)
 #define ESCBRIDGE_FIFO_SIZE    512
 static uint8_t* fifo = nullptr;
 static int16_t fifo_w = 0, fifo_r = 0;
@@ -95,6 +103,9 @@ static void escBridgeInitFifo()
 
 static inline void escBridgeTxPinSetDir(bool isOut)
 {
+  if (escBridgeNoPinModes) {
+    return;
+  }
   if (isOut == false) { // RX mode
     if (escBridgeTxGpiox && escBridgeUsingHalfDuplex) {
       LL_GPIO_SetPinPull(escBridgeTxGpiox, escBridgeTxPin, LL_GPIO_PULL_UP);
@@ -185,9 +196,12 @@ void escBridgeTx(uint8_t* buf, uint32_t len)
   // need to wait until all the bytes are sent physically, then the TX pin must be turned into an input
   //escBridgeDrv->waitForTxCompleted(escBridgeCtx);
   // waitForTxCompleted seems to be not effective, on_idle callback is also ineffective, both of those are waiting for TXE, we need to wait for TC flag
-  while ((escBridgeTxUsartx->SR & USART_SR_TC) == 0) {
-    // do nothing but wait
+  if (escBridgeTxUsartx != nullptr) {
+    while ((escBridgeTxUsartx->SR & USART_SR_TC) == 0) {
+      // do nothing but wait
+    }
   }
+  // note: the driver for software TX is already always blocking
   escBridgeTxPinSetDir(false); // make the pin not drive the line, so that the ESC can reply
 }
 
@@ -202,11 +216,16 @@ int16_t escBridgeReadByte()
     fifo_r = (fifo_r + 1) % fifo_sz;
     return (int16_t)data;
   }
-  if (!escBridgeDrv) { // no data if driver is missing
-    return -1;
+
+  if (escBridgeDrvRx != nullptr && escBridgeDrvRx->getByte != nullptr) {
+    if (escBridgeDrvRx->getByte(escBridgeCtxRx, &data) > 0) { // yes data
+      return (int16_t)data;
+    }
   }
-  if (escBridgeDrv->getByte(escBridgeCtx, &data) > 0) { // yes data
-    return (int16_t)data;
+  else if (escBridgeDrv != nullptr && escBridgeDrv->getByte != nullptr) {
+    if (escBridgeDrv->getByte(escBridgeCtx, &data) > 0) { // yes data
+      return (int16_t)data;
+    }
   }
   return -1; // no data
 }
@@ -249,6 +268,8 @@ int8_t escBridgeTrainerInit(const etx_serial_init* params)
 
 int8_t escBridgeAuxInit(uint8_t port_n, const etx_serial_init* params)
 {
+  UNUSED(escBridgePort);
+  UNUSED(escBridgePortRx);
   #if defined(AUX_SERIAL) || defined(AUX2_SERIAL)
   escBridgePort = (etx_serial_port_t*)serialGetPort(port_n);
   if (!escBridgePort) {
@@ -302,6 +323,7 @@ int8_t escBridgeExtModInit(const etx_serial_init* params)
   escBridgeCfgUart(EXTMODULE_USART, EXTMODULE_USART_GPIO, EXTMODULE_TX_GPIO_PIN);
   escBridgeInitFifo();
   escBridgeTxPinSetDir(false);
+  modulePortSetPower(EXTERNAL_MODULE, true);
   return ESCBRIDGE_INIT_SUCCESS;
   #endif
   return ESCBRIDGE_INIT_ERR_NO_HW;
@@ -341,6 +363,86 @@ int8_t escBridgeSportInit(etx_serial_init* params)
     #endif
   }
   // TODO: if the UART cannot have the correct polarity, perhaps notify the user with an error
+  return ESCBRIDGE_INIT_SUCCESS;
+  #endif
+  return ESCBRIDGE_INIT_ERR_NO_HW;
+}
+
+int8_t escBridgeJrBayInit(etx_serial_init* params)
+{
+  // this is a full duplex port, but the TX pin is open drain, at least according to the schematic
+  // so the TX and RX pins can be tied together if being used for an ESC
+  #if defined(TRAINER_MODULE_CPPM_TIMER) && defined(INTMODULE_HEARTBEAT_GPIO_PIN) && defined(HARDWARE_EXTERNAL_MODULE) && defined(EXTMODULE_TIMER)
+  pulsesStop(); // deinit required or else the TX won't work
+
+  etx_serial_init temp_params;
+  memcpy(&temp_params, params, sizeof(etx_serial_init));
+  temp_params.direction = ETX_MOD_DIR_TX; // search for the TX port
+  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SOFT_INV, (const etx_serial_init*)&temp_params);
+  if (!escBridgeModState) {
+    return ESCBRIDGE_INIT_ERR_NO_MOD;
+  }
+  escBridgeDrv   = (etx_serial_driver_t*)&STM32SoftSerialTxDriver;
+  escBridgeDrvRx = (etx_serial_driver_t*)&STM32SoftSerialRxDriver;
+  void* hw_def = nullptr;
+  if (escBridgeModState->tx.port) {
+    hw_def = escBridgeModState->tx.port->hw_def;
+  }
+  if (!hw_def && escBridgeModState->rx.port) {
+    hw_def = escBridgeModState->rx.port->hw_def;
+  }
+  if (!hw_def) {
+    return ESCBRIDGE_INIT_ERR_NO_DRV;
+  }
+  escBridgeCtx = hw_def;
+  if (escBridgeDrv->setPolarity) {
+    escBridgeDrv->setPolarity(escBridgeCtx, true); // this sets the polarity of the PPM generator
+  }
+
+ // finished TX initialization, now initialize RX
+
+  #if 0
+  // TODO: this section of code that uses HEARTBEAT doesn't work
+  // the initialization succeeds, but it only receives maybe a null and then never a complete byte
+  // I am unsure if the problem is firmware or hardware
+  static stm32_softserial_rx_port softRx = {
+    .GPIOx = INTMODULE_HEARTBEAT_GPIO,
+    .GPIO_Pin = INTMODULE_HEARTBEAT_GPIO_PIN,
+    .TIMx = TRAINER_MODULE_CPPM_TIMER,
+    .TIM_Freq = TRAINER_MODULE_CPPM_FREQ,
+    .TIM_IRQn = TRAINER_MODULE_CPPM_TIMER_IRQn,
+    .EXTI_Port = INTMODULE_HEARTBEAT_EXTI_PORT,
+    .EXTI_SysLine = INTMODULE_HEARTBEAT_EXTI_SYS_LINE,
+    .EXTI_Line = INTMODULE_HEARTBEAT_EXTI_LINE,
+    .dir_GPIOx = nullptr,
+    .dir_Pin = 0,
+    .dir_Input = 0,
+    .buffer = { (uint8_t*)malloc(ESCBRIDGE_FIFO_SIZE), ESCBRIDGE_FIFO_SIZE },
+  };
+  hw_def = (void*)&softRx;
+  temp_params.polarity = ETX_Pol_Normal;
+  escBridgeCtxRx = escBridgeDrvRx->init(hw_def, (const etx_serial_init*)&temp_params);
+  #else
+  // TODO: this section of code uses the SPORT pin in a bit-bang mode
+  temp_params.polarity  = ETX_Pol_Normal; // setPolarity is missing, NORMAL makes the pin uninverted
+  temp_params.direction = ETX_MOD_DIR_RX; // search for the RX port
+  escBridgeModStateRx = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SPORT_INV, (const etx_serial_init*)&temp_params);
+  if (!escBridgeModStateRx) {
+    return ESCBRIDGE_INIT_ERR_NO_MOD + ESCBRIDGE_INIT_ERR_SECOND;
+  }
+  if (escBridgeModStateRx->rx.port) {
+    hw_def = escBridgeModStateRx->rx.port->hw_def;
+  }
+  escBridgeCtxRx = hw_def;
+  #endif
+  if (!escBridgeCtxRx) {
+    return ESCBRIDGE_INIT_ERR_NO_CTX + ESCBRIDGE_INIT_ERR_SECOND;
+  }
+  if (escBridgeDrvRx->setPolarity) {
+    escBridgeDrvRx->setPolarity(escBridgeCtxRx, true); // TODO: verify this works right (the RX driver has no such function right now)
+  }
+  escBridgeNoPinModes = true; // the PPM pin is open drain, and it's not using an USART peripheral, so we don't need to ever toggle TX pin modes
+  modulePortSetPower(EXTERNAL_MODULE, true);
   return ESCBRIDGE_INIT_SUCCESS;
   #endif
   return ESCBRIDGE_INIT_ERR_NO_HW;
