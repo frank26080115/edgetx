@@ -597,6 +597,7 @@ enum Functions {
   FUNC_DISABLE_TOUCH,
   FUNC_SET_SCREEN,
 #endif
+  FUNC_DISABLE_AUDIO_AMP,
 #if defined(DEBUG)
   FUNC_TEST,  // should remain the last before MAX as not added in Companion
 #endif
@@ -655,6 +656,13 @@ enum BluetoothModes {
 #else
   BLUETOOTH_MAX SKIP = BLUETOOTH_TRAINER
 #endif
+};
+
+enum HatsMode {
+  HATSMODE_TRIMS_ONLY,
+  HATSMODE_KEYS_ONLY,
+  HATSMODE_SWITCHABLE,
+  HATSMODE_GLOBAL
 };
 
 enum UartSampleModes {

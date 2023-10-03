@@ -55,7 +55,6 @@
 #define TR_COUNTRY_CODES               TR("US","アメリカ"),TR("JP","日本"),TR("EU","ヨーロッパ")
 #define TR_USBMODES                    "確認",TR("Joyst","JoyStick"),TR("SDカード","ストレージ"),"シリアル"
 #define TR_JACK_MODES                  "確認","音声","トレーナー"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 
 #define TR_SBUS_INVERSION_VALUES       "標準","リバースなし"
 #define TR_MULTI_CUSTOM                "カスタム"
@@ -114,8 +113,8 @@
 #define TR_SF_SCREENSHOT               "画面キャプチャ"
 #define TR_SF_RACING_MODE              "レースモード"
 #define TR_SF_DISABLE_TOUCH            "非タッチ"
+#define TR_SF_DISABLE_AUDIO_AMP        "オーディオアンプ OFF"
 #define TR_SF_SET_SCREEN               "メインスクリーン設定"
-#define TR_SF_RESERVE                  "[予備]"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "テレメトリー")
 
@@ -146,8 +145,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Rud", "Ele", "Thr", "Ail"
-#define TR_SURFACE_NAMES               "ST", "TH"
+#define TR_STICK_NAMES0                "Rud"
+#define TR_STICK_NAMES1                "Ele"
+#define TR_STICK_NAMES2                "Thr"
+#define TR_STICK_NAMES3                "Ail"
+#define TR_SURFACE_NAMES0              "ST"
+#define TR_SURFACE_NAMES1              "TH"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -157,6 +160,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "アナログスティック"
+#define TR_HATSOPT                     "トリムのみ","キーのみ","スイッチ","すべて"
+#define TR_HATSMODE_TRIMS              "アナログスティック: トリム"
+#define TR_HATSMODE_KEYS               "アナログスティック: キー"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "標準","リバース"
@@ -433,7 +443,7 @@
 #define TR_FM                          "DM"
 #else
 #define TR_FM                          "FM"
-#else
+#endif
 #define TR_EEPROMLOWMEM                "EEPROMメモリ低"
 #define TR_PRESS_ANY_KEY_TO_SKIP       "任意のキーを押してスキップします"
 #define TR_THROTTLE_NOT_IDLE           "Throttleがアイドル値ではありません"
@@ -863,7 +873,6 @@
 #define TR_INTERVAL                    "インターバル"
 #define TR_REPEAT                      "リピート"
 #define TR_ENABLE                      "有効"
-#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "上部LCDタイマー"
 #define TR_UNIT                        "ユニット"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "新規追加"
@@ -965,6 +974,7 @@
   #define TR_TIMER_SOURCE              "タイマーソース"
   #define TR_SIZE                      "サイズ"
   #define TR_SHADOW                    "影"
+  #define TR_ALIGNMENT                 "アライメント"
   #define TR_ALIGN_LABEL               "ラベルを揃える"
   #define TR_ALIGN_VALUE               "値を揃える"
   #define TR_ALIGN_OPTS                { "左", "中央", "右" }

@@ -34,6 +34,7 @@
 // #include "keys.h"
 #include "debug.h"
 
+#include "timers_driver.h"
 #include "watchdog_driver.h"
 
 #include "hal/rotary_encoder.h"
@@ -94,10 +95,10 @@ uint32_t eepromWritten = 0;
 FlashCheckRes valid;
 MemoryType memoryType;
 uint32_t unlocked = 0;
-uint32_t timer10MsCount;
 
+volatile uint32_t timer10MsCount;
 
-void interrupt10ms()
+void per10ms()
 {
   timer10MsCount++;
   tenms |= 1u; // 10 mS has passed
@@ -105,7 +106,7 @@ void interrupt10ms()
 
   keysPollingCycle();
 
-#if defined(ROTARY_ENCODER_NAVIGATION)
+#if defined(ROTARY_ENCODER_NAVIGATION) && !defined(USE_HATS_AS_KEYS)
   static rotenc_t rePreviousValue;
 
   rotenc_t reNewValue = rotaryEncoderGetValue();
@@ -117,31 +118,11 @@ void interrupt10ms()
 #endif
 }
 
-void init10msTimer()
-{
-  timer10MsCount = 0;
-  INTERRUPT_xMS_TIMER->ARR = 9999;  // 10mS in uS
-  INTERRUPT_xMS_TIMER->PSC = (PERI1_FREQUENCY * TIMER_MULT_APB1) / 1000000 - 1; // 1uS
-  INTERRUPT_xMS_TIMER->CCER = 0;
-  INTERRUPT_xMS_TIMER->CCMR1 = 0;
-  INTERRUPT_xMS_TIMER->EGR = 0;
-  INTERRUPT_xMS_TIMER->CR1 = 5;
-  INTERRUPT_xMS_TIMER->DIER |= 1;
-  NVIC_EnableIRQ(INTERRUPT_xMS_IRQn);
-}
-
 extern "C" uint32_t HAL_GetTick(void)
 {
-    return timer10MsCount*10;
+    return timer10MsCount * 10;
 }
 
-#if !defined(SIMU)
-extern "C" void INTERRUPT_xMS_IRQHandler()
-{
-  INTERRUPT_xMS_TIMER->SR &= ~TIM_SR_UIF;
-  interrupt10ms();
-}
-#endif
 
 uint32_t isValidBufferStart(const uint8_t * buffer)
 {
@@ -226,14 +207,13 @@ void writeEepromBlock()
 #if !defined(SIMU)
 void bootloaderInitApp()
 {
-  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph |
-                             LCD_RCC_AHB1Periph | BACKLIGHT_RCC_AHB1Periph |
-                             KEYS_BACKLIGHT_RCC_AHB1Periph | SD_RCC_AHB1Periph,
+  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph | LCD_RCC_AHB1Periph |
+                             BACKLIGHT_RCC_AHB1Periph |
+                             KEYS_BACKLIGHT_RCC_AHB1Periph,
                          ENABLE);
 
   RCC_APB1PeriphClockCmd(ROTARY_ENCODER_RCC_APB1Periph | LCD_RCC_APB1Periph |
-                             BACKLIGHT_RCC_APB1Periph |
-                             INTERRUPT_xMS_RCC_APB1Periph | SD_RCC_APB1Periph,
+                             BACKLIGHT_RCC_APB1Periph,
                          ENABLE);
 
   RCC_APB2PeriphClockCmd(
@@ -250,18 +230,6 @@ void bootloaderInitApp()
 
   pwrInit();
   keysInit();
-
-#if defined(SWSERIALPOWER)
-  // TODO: replace with proper serial port query...
-  // #if defined(AUX_SERIAL)
-  //   void set_aux_pwr(uint8_t on);
-  //   set_aux_pwr(0);
-  // #endif
-  // #if defined(AUX2_SERIAL)
-  //   void set_aux2_pwr(uint8_t on);
-  //   set_aux2_pwr(0);
-  // #endif
-#endif
 
   // wait a bit for the inputs to stabilize...
   if (!WAS_RESET_BY_WATCHDOG_OR_SOFTWARE()) {
@@ -288,7 +256,7 @@ void bootloaderInitApp()
 
   pwrOn();
 
-#if defined(ROTARY_ENCODER_NAVIGATION)
+#if defined(ROTARY_ENCODER_NAVIGATION) && !defined(USE_HATS_AS_KEYS)
   rotaryEncoderInit();
 #endif
 
@@ -311,7 +279,7 @@ void bootloaderInitApp()
   eepromInit();
 #endif
 
-  init10msTimer();
+  timersInit();
 
   // SD card detect pin
   sdInit();
@@ -578,16 +546,6 @@ int  bootloaderMain()
 
       lcdRefresh();
 
-#if defined(SDCARD) && defined(PCBTARANIS)
-      static uint32_t PowerUpDelay = 0;
-
-      if (PowerUpDelay < 20) {  // 200 mS
-        PowerUpDelay += 1;
-      }
-      else {
-        sdPoll10ms();
-      }
-#endif
     }
 
     if (state != ST_FLASHING && state != ST_USB) {

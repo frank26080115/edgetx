@@ -230,6 +230,7 @@ void menuRadioSetup(event_t event)
     uint8_t attr = (sub == k ? blink : 0);
 
     switch (k) {
+#if defined(RTCLOCK)
       case ITEM_RADIO_SETUP_DATE:
         lcdDrawTextAlignedLeft(y, STR_DATE);
         lcdDrawChar(RADIO_SETUP_DATE_COLUMN, y, '-'); lcdDrawChar(RADIO_SETUP_DATE_COLUMN+3*FW-2, y, '-');
@@ -238,7 +239,7 @@ void menuRadioSetup(event_t event)
           switch (j) {
             case 0:
               lcdDrawNumber(RADIO_SETUP_DATE_COLUMN, y, t.tm_year+TM_YEAR_BASE, rowattr|RIGHT);
-              if (rowattr && s_editMode>0) t.tm_year = checkIncDec(event, t.tm_year, 112, 200, 0);
+              if (rowattr && s_editMode>0) t.tm_year = checkIncDec(event, t.tm_year, 123, 137, 0);
               break;
             case 1:
               lcdDrawNumber(RADIO_SETUP_DATE_COLUMN+3*FW-2, y, t.tm_mon+1, rowattr|LEADING0|RIGHT, 2);
@@ -287,6 +288,7 @@ void menuRadioSetup(event_t event)
           g_rtcTime = gmktime(&t); // update local timestamp and get wday calculated
         }
         break;
+#endif
 
      case ITEM_RADIO_SETUP_BATTERY_CALIB:
         lcdDrawTextAlignedLeft(y, STR_BATT_CALIB);

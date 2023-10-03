@@ -445,7 +445,6 @@ void doMixerPeriodicUpdates();
 void checkTrims();
 extern uint8_t currentBacklightBright;
 void perMain();
-void per10ms();
 
 getvalue_t getValue(mixsrc_t i, bool* valid = nullptr);
 
@@ -627,7 +626,6 @@ uint16_t anaIn(uint8_t chan);
 
 FlightModeData * flightModeAddress(uint8_t idx);
 ExpoData * expoAddress(uint8_t idx);
-MixData * mixAddress(uint8_t idx);
 LimitData * limitAddress(uint8_t idx);
 LogicalSwitchData * lswAddress(uint8_t idx);
 USBJoystickChData * usbJChAddress(uint8_t idx);
@@ -664,6 +662,9 @@ enum FunctionsActive {
   FUNCTION_RACING_MODE,
 #if defined(HARDWARE_TOUCH)
   FUNCTION_DISABLE_TOUCH,
+#endif
+#if defined(AUDIO_MUTE_GPIO)
+  FUNCTION_DISABLE_AUDIO_AMP
 #endif
 };
 

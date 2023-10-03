@@ -22,6 +22,7 @@
 #include "opentx.h"
 #include "hal/adc_driver.h"
 #include "input_mapping.h"
+#include "mixes.h"
 
 void clearInputs()
 {
@@ -132,6 +133,8 @@ void applyDefaultTemplate()
       g_model.switchWarningState |= (1 << (3 * i));
   }
 #endif
+
+  g_model.hatsMode = HATSMODE_GLOBAL;
 }
 
 void setModelDefaults(uint8_t id)

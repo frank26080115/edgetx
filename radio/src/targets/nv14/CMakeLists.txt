@@ -39,7 +39,7 @@ set(PCB_RF_BAUD 921600 CACHE STRING "INTERNAL_MODULE_BAUDRATE: ${RF_BAUD_RATE}")
 set_property(CACHE PCB_RF_BAUD PROPERTY STRINGS ${RF_BAUD_RATE})
 
 add_definitions(-DPCBNV14 -DPCBFLYSKY -DAFHDS2_BAUDRATE=${PCB_RF_BAUD})
-add_definitions(-DBATTERY_CHARGE -DUSE_TRIMS_AS_BUTTONS)
+add_definitions(-DBATTERY_CHARGE -DUSE_HATS_AS_KEYS)
 
 if (PCBREV STREQUAL EL18)
     set(FLAVOUR el18)
@@ -140,7 +140,6 @@ set(FIRMWARE_TARGET_SRC
   ${TOUCH_DRIVER}
   sdram_driver.c
   battery_driver.cpp
-  audio_spi_driver.cpp
   backlight_driver.cpp
   )
 
@@ -153,8 +152,8 @@ set(FIRMWARE_SRC
   targets/common/arm/stm32/stm32_usart_driver.cpp
   targets/common/arm/stm32/trainer_driver.cpp
   targets/common/arm/stm32/pwr_driver.cpp
-  targets/common/arm/stm32/sdio_sd.cpp
   targets/common/arm/stm32/diskio_sdio.cpp
+  targets/common/arm/stm32/vs1053b.cpp
   )
 
 # Make malloc() thread-safe

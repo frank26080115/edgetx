@@ -66,7 +66,6 @@
 #define TR_COUNTRY_CODES                TR("US","Amerika"),TR("JP","Japan"),TR("EU","Europa")
 #define TR_USBMODES                     "Fråga","Joystick",TR("SD-kort","SD-kortlagring"),"Seriell"
 #define TR_JACK_MODES                   "Fråga","Audio","Lärare"
-#define TR_TELEMETRY_PROTOCOLS          "FrSky S.Port","FrSky D","FrSky D (sladd)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 #define TR_SBUS_INVERSION_VALUES        "normal","ej inverterad"
 #define TR_MULTI_CUSTOM                 "Anpassad"
 #define TR_VTRIMINC                     TR("Expo","Exponentiell"),TR("xFin","Extra fin"),"Fin","Medium","Grov"
@@ -125,8 +124,8 @@
 #define TR_SF_SCREENSHOT                "Skärmbild"
 #define TR_SF_RACING_MODE               "Tävlingsläge"
 #define TR_SF_DISABLE_TOUCH             "Ej pekskärm"
+#define TR_SF_DISABLE_AUDIO_AMP         TR("Audioförst. av","Audioförstärkare av")
 #define TR_SF_SET_SCREEN                "Sätt huvudskärm"
-#define TR_SF_RESERVE                   "[reserv]"
 
 #define TR_FSW_RESET_TELEM              TR("Telm","Telemetri")
 #define TR_FSW_RESET_TIMERS             "Tmr1","Tmr2","Tmr3"
@@ -157,8 +156,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Rod", "Hjd", "Gas", "Ske"
-#define TR_SURFACE_NAMES               "Rod", "Gas"
+#define TR_STICK_NAMES0                "Rod"
+#define TR_STICK_NAMES1                "Hjd"
+#define TR_STICK_NAMES2                "Gas"
+#define TR_STICK_NAMES3                "Ske"
+#define TR_SURFACE_NAMES0              "Rod"
+#define TR_SURFACE_NAMES1              "Gas"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","Hög"
@@ -175,6 +178,13 @@
 #endif
 
 #define TR_ON_ONE_SWITCHES              "PÅ","Ett"
+
+#if defined(USE_HATS_AS_KEYS)
+  #define TR_HATSMODE                   "Hattläge"
+  #define TR_HATSOPT                    "Endast trimm","Endast knapp","Ändringsbar","Global"
+  #define TR_HATSMODE_TRIMS             "Hattläge: Trimmar"
+  #define TR_HATSMODE_KEYS              "Hattläge: Knappar"
+#endif
 
 #if defined(IMU)
   #define TR_IMU_VSRCRAW                "TltX","TltY",
@@ -487,8 +497,8 @@
 #define TR_MENUMODELSEL                 TR("MODELL","VÄLJ MODELL")
 #define TR_MENU_MODEL_SETUP             TR("MODELLINSTÄLLNING","MODELLINSTÄLLNINGAR")
 #if defined(SURFACE_RADIO)
-#define TR_MENUFLIGHTMODES              "DRIVE MODES"
-#define TR_MENUFLIGHTMODE               "DRIVE MODE"
+#define TR_MENUFLIGHTMODES              "KÖRLÄGEN"
+#define TR_MENUFLIGHTMODE               "KÖRLÄGE"
 #else
 #define TR_MENUFLIGHTMODE               "FLYGLÄGE"
 #define TR_MENUFLIGHTMODES              "FLYGLÄGEN"
@@ -893,7 +903,6 @@
 #define TR_UNIT                         "Enhet"
 #define TR_TELEMETRY_NEWSENSOR          INDENT "Lägg till..."
 #define TR_CHANNELRANGE                 TR(INDENT "Kanalomr.", INDENT "Kanalområde")
-#define TR_RXFREQUENCY                  TR("Rx frekv.", "Rx frekvens")
 #define TR_AFHDS3_RX_FREQ               TR("Rx frekv.", "Rx frekvens")
 #define TR_AFHDS3_ONE_TO_ONE_TELEMETRY  TR("Unicast/Tel.", "Unicast/Telemetry")
 #define TR_AFHDS3_ONE_TO_MANY           "Multicast"
@@ -999,7 +1008,6 @@
   #define TR_TIMER_SOURCE               "Timerkälla"
   #define TR_SIZE                       "Storlek"
   #define TR_SHADOW                     "Skugga"
-  #define TR_ALIGNMENT                  "Justering"
   #define TR_ALIGN_LABEL                "Justera etikett"
   #define TR_ALIGN_VALUE                "Justera värde"
   #define TR_ALIGN_OPTS                 { "Vänster", "Mitten", "Höger" }
@@ -1064,6 +1072,8 @@
   #define TR_BL_SELECT_KEY              "[R TRIM] foer att vaelja fil"
   #define TR_BL_FLASH_KEY               "Tryck [R TRIM] foer att flasha"
   #define TR_BL_EXIT_KEY                " [L TRIM] för att avsluta"
+  #define TR_BL_ENABLE                  "Aktivera"
+  #define TR_BL_DISABLE                 "Inaktivera"
 #endif
 
 // About screen

@@ -59,7 +59,6 @@
 #define TR_COUNTRY_CODES               TR("US","Amerika"),TR("JP","Japonsko"),TR("EU","Evropa")
 #define TR_USBMODES                    TR("Zeptat","Zeptat se"),TR("Joyst","Joystick"),TR("SDkarta","Úložiště"),"Serial"
 #define TR_JACK_MODES                  "Zeptat","Audio","Trenér"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (kabel)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetrie"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","neinvertováno"
 #define TR_MULTI_CUSTOM                "Vlastní"
@@ -123,6 +122,7 @@
 #define TR_SF_SCREENSHOT               "Snímek LCD"
 #define TR_SF_RACING_MODE              "Závodní režim"
 #define TR_SF_DISABLE_TOUCH            "Deaktivace dotyku"
+#define TR_SF_DISABLE_AUDIO_AMP        "Vypnutí zesilovače zvuku"
 #define TR_SF_SET_SCREEN               "Vybrat hlavní obrazovku"
 
 #define TR_FSW_RESET_TELEM             TR("Telm","Telemetrie")
@@ -153,8 +153,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Smě", "Výš", "Pln", "Kři"
-#define TR_SURFACE_NAMES               "Smě", "Pln"
+#define TR_STICK_NAMES0                "Smě"
+#define TR_STICK_NAMES1                "Výš"
+#define TR_STICK_NAMES2                "Pln"
+#define TR_STICK_NAMES3                "Kři"
+#define TR_SURFACE_NAMES0              "Smě"
+#define TR_SURFACE_NAMES1              "Pln"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Defaultní","Vysoký"
@@ -164,6 +168,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "ZAP","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "Režim kloboučků"
+#define TR_HATSOPT                     "Pouze trimy","Pouze tlačítka","Přepinatelné","Globální"
+#define TR_HATSMODE_TRIMS              "Režim kloboučků: Trimy"
+#define TR_HATSMODE_KEYS                "Režim kloboučků: Tlačítka"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "Normal","Invertován"
@@ -873,7 +884,6 @@
 #define TR_INTERVAL                    "Interval"
 #define TR_REPEAT                      "Opakovat"
 #define TR_ENABLE                      "Povoleno"
-#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "Stopky horního LCD"
 #define TR_UNIT                        "Jednotky"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "Přidat senzor ručně"
@@ -980,6 +990,7 @@
   #define TR_TIMER_SOURCE              "Časovač zdroj"
   #define TR_SIZE                      "Velikost"
   #define TR_SHADOW                    "Stíny"
+  #define TR_ALIGNMENT                 "Zarovnání"
   #define TR_ALIGN_LABEL               "Zarovnat název"
   #define TR_ALIGN_VALUE               "Zarovnat hodnotu"
   #define TR_ALIGN_OPTS                { "Vlevo", "Uprostřed", "Vpravo" }

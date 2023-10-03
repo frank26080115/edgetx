@@ -23,6 +23,7 @@
 #include "timers.h"
 #include "switches.h"
 #include "input_mapping.h"
+#include "mixes.h"
 
 #include "hal/adc_driver.h"
 #include "hal/trainer_driver.h"
@@ -1078,7 +1079,11 @@ void evalMixes(uint8_t tick10ms)
     } else {
       globalFunctionsContext.reset();
     }
-    evalFunctions(g_model.customFn, modelFunctionsContext);
+    if (modelSFEnabled()) {
+      evalFunctions(g_model.customFn, modelFunctionsContext);
+    } else {
+      modelFunctionsContext.reset();
+    }
   }
 
   //========== LIMITS ===============

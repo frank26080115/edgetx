@@ -78,6 +78,7 @@ const char RADIO_SETTINGS_ERRORFILE_YAML_PATH[] = RADIO_PATH PATH_SEPARATOR "rad
 const char YAMLFILE_CHECKSUM_TAG_NAME[] = "checksum";
 #endif
 #define    SPLASH_FILE             "splash.png"
+#define    SHUTDOWN_SPLASH_FILE    "shutdown.png"
 #endif
 
 #define MODELS_EXT          ".bin"
@@ -134,21 +135,6 @@ uint32_t sdGetFreeSectors();
 uint32_t sdGetFreeKB();
 bool sdIsFull();
 
-#if defined(PCBTARANIS)
-void sdPoll10ms();
-#endif
-
-#if !defined(SIMU) || defined(SIMU_DISKIO)
-  uint32_t sdIsHC();
-  uint32_t sdGetSpeed();
-  #define SD_IS_HC()                    (sdIsHC())
-  #define SD_GET_SPEED()                (sdGetSpeed())
-  #define SD_GET_FREE_BLOCKNR()         (sdGetFreeSectors())
-#else
-  #define SD_IS_HC()                    (0)
-  #define SD_GET_SPEED()                (0)
-#endif
-
 const char * sdCheckAndCreateDirectory(const char * path);
 
 #if !defined(BOOT)
@@ -161,7 +147,6 @@ inline const char * SDCARD_ERROR(FRESULT result)
 }
 #endif
 
-// NOTE: 'size' must = 0 or be a valid character position within 'filename' array -- it is NOT validated
 const char * getBasename(const char * path);
 
 bool isFileAvailable(const char * filename, bool exclDir = false);

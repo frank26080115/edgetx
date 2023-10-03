@@ -126,7 +126,7 @@ class DateTimeWindow : public FormWindow {
       // Date
       auto line = newLine(&grid);
       new StaticText(line, rect_t{}, STR_DATE, 0, COLOR_THEME_PRIMARY1);
-      year = new NumberEdit(line, rect_t{}, 2018, 2100,
+      year = new NumberEdit(line, rect_t{}, 2023, 2037,
                      [=]() -> int32_t {
                        return TM_YEAR_BASE + m_tm.tm_year;
                      },
@@ -793,9 +793,11 @@ void RadioSetupPage::build(FormWindow * window)
   line = window->newLine(&grid);
   new StaticText(line, rect_t{}, STR_SWITCHES_DELAY, 0, COLOR_THEME_PRIMARY1);
   auto edit =
-      new NumberEdit(line, rect_t{}, -15, 100 - 15,
+      new NumberEdit(line, rect_t{}, 0, 100,
                      GET_SET_VALUE_WITH_OFFSET(g_eeGeneral.switchesDelay, 15));
-  edit->setSuffix(std::string("0") + STR_MS);
+  edit->setDisplayHandler([](int32_t value) {
+    return formatNumberAsString(value * 10, 0, 0, nullptr, STR_MS);
+  });
 
   // USB mode
   line = window->newLine(&grid);
@@ -803,12 +805,19 @@ void RadioSetupPage::build(FormWindow * window)
   new Choice(line, rect_t{}, STR_USBMODES, USB_UNSELECTED_MODE, USB_MAX_MODE,
              GET_SET_DEFAULT(g_eeGeneral.USBMode));
 
-#if defined(ROTARY_ENCODER_NAVIGATION)
+#if defined(ROTARY_ENCODER_NAVIGATION) && !defined(USE_HATS_AS_KEYS)
   line = window->newLine(&grid);
   new StaticText(line, rect_t{}, STR_ROTARY_ENC_MODE, 0, COLOR_THEME_PRIMARY1);
   new Choice(line, rect_t{}, STR_ROTARY_ENC_OPT, ROTARY_ENCODER_MODE_NORMAL,
              ROTARY_ENCODER_MODE_INVERT_BOTH,
              GET_SET_DEFAULT(g_eeGeneral.rotEncMode));
+#endif
+
+#if defined(USE_HATS_AS_KEYS)
+  line = window->newLine(&grid);
+  new StaticText(line, rect_t{}, STR_HATSMODE, 0, COLOR_THEME_PRIMARY1);
+  new Choice(line, rect_t{}, STR_HATSOPT, HATSMODE_TRIMS_ONLY, HATSMODE_SWITCHABLE,
+             GET_SET_DEFAULT(g_eeGeneral.hatsMode));
 #endif
 
   // RX channel order

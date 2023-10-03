@@ -25,6 +25,7 @@
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
 #include "switches.h"
+#include "mixes.h"
 
 #undef CPN
 #include "MultiSubtypeDefs.h"
@@ -594,7 +595,11 @@ bool isAssignableFunctionAvailable(int function, CustomFunctionData * functions)
     case FUNC_PLAY_SCRIPT:
       return false;
 #endif
-
+    case FUNC_DISABLE_AUDIO_AMP:
+#if defined(AUDIO_MUTE_GPIO)
+      return true;
+#endif
+      return false;
     default:
       return true;
   }
@@ -1017,44 +1022,6 @@ bool isRfProtocolAvailable(int protocol)
     return false;
   }
   if (protocol != MODULE_SUBTYPE_PXX1_OFF && g_model.moduleData[EXTERNAL_MODULE].type == MODULE_TYPE_R9M_PXX2) {
-    return false;
-  }
-#endif
-
-  return true;
-}
-
-bool isTelemetryProtocolAvailable(int protocol)
-{
-#if defined(PCBTARANIS)
-  if (protocol == PROTOCOL_TELEMETRY_FRSKY_D_SECONDARY &&
-      hasSerialMode(UART_MODE_TELEMETRY) < 0) {
-    return false;
-  }
-#endif
-
-  if (protocol== PROTOCOL_TELEMETRY_CROSSFIRE) {
-    return false;
-  }
-
-  if ( protocol== PROTOCOL_TELEMETRY_GHOST) {
-    return false;
-  }
-
-#if !defined(MULTIMODULE)
-  if (protocol == PROTOCOL_TELEMETRY_SPEKTRUM || protocol == PROTOCOL_TELEMETRY_FLYSKY_IBUS || protocol == PROTOCOL_TELEMETRY_MULTIMODULE) {
-    return false;
-  }
-#endif
-
-#if !defined(AFHDS3)
-  if (protocol == PROTOCOL_TELEMETRY_AFHDS3) {
-    return false;
-  }
-#endif
-
-#if defined(PCBHORUS)
-  if (protocol == PROTOCOL_TELEMETRY_FRSKY_D_SECONDARY) {
     return false;
   }
 #endif

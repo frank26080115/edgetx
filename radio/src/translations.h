@@ -161,9 +161,7 @@ extern const char* const STR_GPSFORMAT[];
 extern const char* const STR_VTELEMSCREENTYPE[];
 extern const char* const STR_VSWASHTYPE[];
 
-extern const char* const STR_STICK_NAMES[];
 extern const char* const STR_ON_ONE_SWITCHES[];
-extern const char* const STR_SURFACE_NAMES[];
 #if defined(IMU)
 extern const char* const STR_IMU_VSRCRAW[];
 #endif
@@ -173,6 +171,13 @@ extern const char* const STR_SM_VSRCRAW[];
 extern const char* const STR_CYC_VSRCRAW[];
 
 extern const char* const STR_ROTARY_ENC_OPT[];
+
+#if defined(USE_HATS_AS_KEYS)
+extern const char STR_HATSMODE[];
+extern const char* const STR_HATSOPT[];
+extern const char STR_HATSMODE_TRIMS[];
+extern const char STR_HATSMODE_KEYS[];
+#endif
 
 extern const char* const STR_VTMRMODES[];
 extern const char* const STR_VPERSISTENT[];
@@ -195,7 +200,6 @@ extern const char* const STR_R9M_FCC_POWER_VALUES[];
 extern const char* const STR_R9M_LBT_POWER_VALUES[];
 extern const char* const STR_R9M_LITE_FCC_POWER_VALUES[];
 extern const char* const STR_R9M_LITE_LBT_POWER_VALUES[];
-extern const char* const STR_TELEMETRY_PROTOCOLS[];
 extern const char* const STR_XJT_ACCST_RF_PROTOCOLS[];
 extern const char* const STR_ISRM_RF_PROTOCOLS[];
 extern const char* const STR_R9M_PXX2_RF_PROTOCOLS[];
@@ -248,6 +252,13 @@ extern const char* const STR_BLUETOOTH_MODES[];
 
 #define NO_INDENT(x) (x) + LEN_INDENT
 
+extern const char STR_STICK_NAMES0[];
+extern const char STR_STICK_NAMES1[];
+extern const char STR_STICK_NAMES2[];
+extern const char STR_STICK_NAMES3[];
+extern const char STR_SURFACE_NAMES0[];
+extern const char STR_SURFACE_NAMES1[];
+
 extern const char STR_EMPTY[];
 extern const char STR_POPUPS_ENTER_EXIT[];
 extern const char STR_OK[];
@@ -295,6 +306,7 @@ extern const char STR_SF_BACKLIGHT[];
 extern const char STR_SF_BG_MUSIC[];
 extern const char STR_SF_BG_MUSIC_PAUSE[];
 extern const char STR_SF_DISABLE_TOUCH[];
+extern const char STR_SF_DISABLE_AUDIO_AMP[];
 extern const char STR_SF_FAILSAFE[];
 extern const char STR_SF_HAPTIC[];
 extern const char STR_SF_INST_TRIM[];
@@ -768,6 +780,7 @@ extern const char* const STR_TEXT_SIZE[];
 extern const char* const STR_SUBTRIMMODES[];
 extern const char STR_SIZE[];
 extern const char STR_SHADOW[];
+extern const char STR_ALIGNMENT[];
 extern const char STR_ALIGN_LABEL[];
 extern const char STR_ALIGN_VALUE[];
 extern const char* const STR_ALIGN_OPTS[];

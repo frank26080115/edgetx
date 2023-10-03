@@ -2052,6 +2052,11 @@ Do you want to import settings from a file?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../firmwares/customfunctiondata.cpp" line="129"/>
+        <source>Audio Amp Off</source>
+        <translation>オーディオアンプ OFF</translation>
+    </message>
+    <message>
         <location filename="../firmwares/customfunctiondata.cpp" line="216"/>
         <source>!1x</source>
         <translation type="unfinished"></translation>
@@ -5971,6 +5976,31 @@ Mode 4:
         <location filename="../generaledit/generalsetup.ui" line="2435"/>
         <source>USB Serial (CDC)</source>
         <translation>USBシリアル （CDC)</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2430"/>
+        <source>Hats Mode</source>
+        <translation>アナログスティック</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2441"/>
+        <source>Trims only</source>
+        <translation>トリムのみ</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2446"/>
+        <source>Keys only</source>
+        <translation>キーのみ</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Switchable</source>
+        <translation>スイッチ</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Global</source>
+        <translation>すべて</translation>
     </message>
 </context>
 <context>

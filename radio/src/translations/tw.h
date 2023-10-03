@@ -56,7 +56,6 @@
 #define TR_COUNTRY_CODES                "美國","日本","歐洲"
 #define TR_USBMODES                     "詢問","遊戲柄","U盤","串行"
 #define TR_JACK_MODES                   "詢問","音頻","教練"
-#define TR_TELEMETRY_PROTOCOLS          "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","not inverted"
 #define TR_MULTI_CUSTOM                "自定義"
@@ -115,6 +114,7 @@
 #define TR_SF_SCREENSHOT               "截屏"
 #define TR_SF_RACING_MODE              "競速模式"
 #define TR_SF_DISABLE_TOUCH            "禁用觸摸"
+#define TR_SF_DISABLE_AUDIO_AMP        "關閉音頻功放"
 #define TR_SF_SET_SCREEN               "選擇主屏"
 
 #define TR_FSW_RESET_TELEM             "回傳參數"
@@ -146,8 +146,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Rud", "Ele", "Thr", "Ail"
-#define TR_SURFACE_NAMES               "ST", "TH"
+#define TR_STICK_NAMES0                "Rud"
+#define TR_STICK_NAMES1                "Ele"
+#define TR_STICK_NAMES2                "Thr"
+#define TR_STICK_NAMES3                "Ail"
+#define TR_SURFACE_NAMES0              "ST"
+#define TR_SURFACE_NAMES1              "TH"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -157,6 +161,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "按鍵帽模式"
+#define TR_HATSOPT                     "微調","導航鍵","可切換","全局"
+#define TR_HATSMODE_TRIMS              "按鍵帽: 微調"
+#define TR_HATSMODE_KEYS               "按鍵帽: 導航鍵"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT          "正常","反向"
@@ -432,7 +443,7 @@
 #define TR_FM                          "DM"
 #else
 #define TR_FM                          "FM"
-#else
+#endif
 #define TR_EEPROMLOWMEM                "EEPROM low mem"
 #define TR_PRESS_ANY_KEY_TO_SKIP       "按任意鍵跳過"
 #define TR_THROTTLE_NOT_IDLE           "請將油門拉至最低!"
@@ -862,7 +873,6 @@
 #define TR_INTERVAL                    "間隔"
 #define TR_REPEAT                      "循環"
 #define TR_ENABLE                      "啟用"
-#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "單位"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "添加新傳感器..."
@@ -964,6 +974,7 @@
   #define TR_TIMER_SOURCE              "計時器選擇"
   #define TR_SIZE                      "尺寸"
   #define TR_SHADOW                    "陰影"
+  #define TR_ALIGNMENT                 "對齊"
   #define TR_ALIGN_LABEL               "对齐名称"
   #define TR_ALIGN_VALUE               "对齐值"
   #define TR_ALIGN_OPTS                { "左", "中", "右" }
@@ -1178,7 +1189,6 @@
 // End Main menu
 
 #define TR_PROTOCOL                    "協議"
-#define TR_MONTH                       "月"
 
 // Voice in native language
 #define TR_VOICE_ENGLISH              "英語"

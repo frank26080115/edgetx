@@ -204,6 +204,8 @@ class Window
     virtual bool isTopBar() { return false; }
     virtual bool isWidgetsContainer() { return false; }
 
+    virtual bool isBubblePopup() { return false; }
+
   protected:
     static std::list<Window*> trash;
 
@@ -229,4 +231,3 @@ class Window
 
     virtual void invalidate(const rect_t & rect);
 };
-

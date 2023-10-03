@@ -56,7 +56,6 @@
 #define TR_COUNTRY_CODES               "美国","日本","欧洲"
 #define TR_USBMODES                    "询问","游戏柄","U盘","串行"
 #define TR_JACK_MODES                  "询问","音频","教练"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","not inverted"
 #define TR_MULTI_CUSTOM                "自定义"
@@ -109,8 +108,8 @@
 #define TR_SF_SCREENSHOT               "截屏"
 #define TR_SF_RACING_MODE              "竞速模式"
 #define TR_SF_DISABLE_TOUCH            "禁用触摸"
+#define TR_SF_DISABLE_AUDIO_AMP        "关闭音频功放"
 #define TR_SF_SET_SCREEN               "选择主屏"
-#define TR_SF_RESERVE                  "[保留]"
 
 #define TR_FSW_RESET_TELEM             "回传参数"
 
@@ -141,8 +140,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Rud", "Ele", "Thr", "Ail"
-#define TR_SURFACE_NAMES               "ST", "TH"
+#define TR_STICK_NAMES0                "Rud"
+#define TR_STICK_NAMES1                "Ele"
+#define TR_STICK_NAMES2                "Thr"
+#define TR_STICK_NAMES3                "Ail"
+#define TR_SURFACE_NAMES0              "ST"
+#define TR_SURFACE_NAMES1              "TH"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -152,6 +155,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "按键帽模式"
+#define TR_HATSOPT                     "微调","导航键","可切换","全局"
+#define TR_HATSMODE_TRIMS              "按键帽: 微调"
+#define TR_HATSMODE_KEYS               "按键帽: 导航键"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "正常","反向"
@@ -392,7 +402,6 @@
   #define TR_MOVESTICKSPOTS            CENTER "\006摇杆、旋钮和滑块最大边界"
   #define TR_MENUWHENDONE              CENTER "\006按[Enter]键完成"
 #endif
-#define TR_RXBATT                      "Rx Batt:"
 #define TR_TXnRX                       "Tx:\0Rx:"
 #define OFS_RX                         4
 #define TR_NODATA                      CENTER "NO DATA"
@@ -428,7 +437,7 @@
 #define TR_FM                          "DM"
 #else
 #define TR_FM                          "FM"
-#else
+#endif
 #define TR_EEPROMLOWMEM                "EEPROM low mem"
 #define TR_PRESS_ANY_KEY_TO_SKIP       "按任意键跳过"
 #define TR_THROTTLE_NOT_IDLE           "请将油门拉至最低!"
@@ -858,7 +867,6 @@
 #define TR_INTERVAL                    "间隔"
 #define TR_REPEAT                      "循环"
 #define TR_ENABLE                      "启用"
-#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "单位"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "添加新传感器..."
@@ -960,6 +968,7 @@
   #define TR_TIMER_SOURCE              "计时器选择"
   #define TR_SIZE                      "尺寸"
   #define TR_SHADOW                    "阴影"
+  #define TR_ALIGNMENT                 "对齐"
   #define TR_ALIGN_LABEL               "对齐名称"
   #define TR_ALIGN_VALUE               "对齐值"
   #define TR_ALIGN_OPTS                { "左", "中", "右" }
@@ -1174,7 +1183,6 @@
 // End Main menu
 
 #define TR_PROTOCOL                    "协议"
-#define TR_MONTH                       "月"
 
 // Voice in native language
 #define TR_VOICE_ENGLISH              "英语"

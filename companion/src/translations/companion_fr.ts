@@ -2080,6 +2080,11 @@ Voulez-vous importer les paramètres depuis un fichier?</translation>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../firmwares/customfunctiondata.cpp" line="129"/>
+        <source>Audio Amp Off</source>
+        <translation>Désact. Ampli Audio</translation>
+    </message>
+    <message>
         <location filename="../firmwares/customfunctiondata.cpp" line="216"/>
         <source>!1x</source>
         <translation type="unfinished"></translation>
@@ -5642,6 +5647,31 @@ Plage de valeurs: 3v...12v</translation>
         <location filename="../generaledit/generalsetup.ui" line="2435"/>
         <source>USB Serial (CDC)</source>
         <translation>Port série USB (Debug)</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2430"/>
+        <source>Hats Mode</source>
+        <translation>Mode joystick</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2441"/>
+        <source>Trims only</source>
+        <translation>Trims uniquement</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2446"/>
+        <source>Keys only</source>
+        <translation>Touches uniquement</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Switchable</source>
+        <translation>Commutable</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Global</source>
+        <translation>Global</translation>
     </message>
     <message>
         <location filename="../generaledit/generalsetup.ui" line="2405"/>

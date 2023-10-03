@@ -59,7 +59,6 @@
 #define TR_COUNTRY_CODES               TR("US","Amerika"),TR("JP","Japan"),TR("EU","Europa")
 #define TR_USBMODES                    "Fragen",TR("Joyst","Joystick"),TR("SDCard","Speicher"),TR("Serial","Seriell")
 #define TR_JACK_MODES                  "Popup","Audio","Trainer"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (Kabel)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetrie"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","nicht inv."
 #define TR_MULTI_CUSTOM                "Benutzer"
@@ -118,6 +117,7 @@
 #define TR_SF_SCREENSHOT               "Screenshot"
 #define TR_SF_RACING_MODE              "RacingMode"
 #define TR_SF_DISABLE_TOUCH            "Kein Touch"
+#define TR_SF_DISABLE_AUDIO_AMP        "Audio Amp AUS"
 #define TR_SF_SET_SCREEN               "Set Main Screen"
 
 #define TR_FSW_RESET_TELEM             TR("Telm","Telemetrie")
@@ -143,8 +143,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Sei", "Höh", "Gas", "Que"
-#define TR_SURFACE_NAMES               "Str", "Gas"
+#define TR_STICK_NAMES0                "Sei"
+#define TR_STICK_NAMES1                "Höh"
+#define TR_STICK_NAMES2                "Gas"
+#define TR_STICK_NAMES3                "Que"
+#define TR_SURFACE_NAMES0              "Str"
+#define TR_SURFACE_NAMES1              "Gas"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -154,6 +158,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "Joystick Modus"
+#define TR_HATSOPT                     "Nur Trimmung","Nur Tasten","Umschaltbar","Global"
+#define TR_HATSMODE_TRIMS              "Joystick Modus: Trimmung"
+#define TR_HATSMODE_KEYS               "Joystick Modus: Tasten"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "Normal","Inverted"
@@ -955,6 +966,7 @@
   #define TR_TIMER_SOURCE              "Timer Quelle"
   #define TR_SIZE                      "Größe"
   #define TR_SHADOW                    "Schatten"
+  #define TR_ALIGNMENT                 "Ausrichtung"
   #define TR_ALIGN_LABEL               "Name ausrichten"
   #define TR_ALIGN_VALUE               "Wert ausrichten"
   #define TR_ALIGN_OPTS                { "Links", "Mitte", "Rechts" }

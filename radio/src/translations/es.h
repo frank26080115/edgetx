@@ -57,7 +57,6 @@
 #define TR_COUNTRY_CODES       TR("US","América"),TR("JP","Japón"),TR("EU", "Europa")
 #define TR_USBMODES            "Pregunta","Joystick","SDCard","Serie"
 #define TR_JACK_MODES          "Pregunta","Audio","Entrena."
-#define TR_TELEMETRY_PROTOCOLS "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","not inverted"
 #define TR_MULTI_CUSTOM        "Custom"
@@ -116,6 +115,7 @@
 #define TR_SF_SCREENSHOT      "Captura"
 #define TR_SF_RACING_MODE     "RacingMode"
 #define TR_SF_DISABLE_TOUCH   "No Touch"
+#define TR_SF_DISABLE_AUDIO_AMP        "Audio Amp Off"
 #define TR_SF_SET_SCREEN      "Set Main Screen"
 
 #define TR_FSW_RESET_TELEM     TR("Telm", "Telemetría")
@@ -141,8 +141,12 @@
 
 #define TR_VSWASHTYPE          "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Rud", "Ele", "Thr", "Ail"
-#define TR_SURFACE_NAMES               "ST", "TH"
+#define TR_STICK_NAMES0                "Rud"
+#define TR_STICK_NAMES1                "Ele"
+#define TR_STICK_NAMES2                "Thr"
+#define TR_STICK_NAMES3                "Ail"
+#define TR_SURFACE_NAMES0              "ST"
+#define TR_SURFACE_NAMES1              "TH"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -152,6 +156,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES     "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "Hats mode"
+#define TR_HATSOPT                     "Trims only","Keys only","Switchable","Global"
+#define TR_HATSMODE_TRIMS              "Hats mode: Trims"
+#define TR_HATSMODE_KEYS               "Hats mode: Keys"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "Normal","Inverted"
@@ -456,7 +467,6 @@
 #define TR_CHANNEL2FAILSAFE    "Canal=>Failsafe"
 #define TR_MENUMODELSEL        TR("MODELOS", "SELECCIÓN MODELO")
 #define TR_MENU_MODEL_SETUP            TR("SETUP", "MODEL SETUP")
-#define TR_MENUSETUP           TR("CONFIG. MODELO", "CONFIGURACIÓN MODELO")
 #if defined(SURFACE_RADIO)
 #define TR_MENUFLIGHTMODES     "DRIVE MODES"
 #define TR_MENUFLIGHTMODE      "DRIVE MODE"
@@ -864,7 +874,6 @@
 #define TR_INTERVAL            "Interval"
 #define TR_REPEAT                      "Repeat"
 #define TR_ENABLE                      "Enable"
-#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER         "Timer LCD superior"
 #define TR_UNIT                "Unidad"
 #define TR_TELEMETRY_NEWSENSOR INDENT "Añadir sensor..."
@@ -972,6 +981,7 @@
   #define TR_TIMER_SOURCE              "Entrada timer"
   #define TR_SIZE                      "Tamaño"
   #define TR_SHADOW                    "Sombra"
+  #define TR_ALIGNMENT                 "Alinear"
   #define TR_ALIGN_LABEL               "Alinear marbete"
   #define TR_ALIGN_VALUE               "Alinear valor"
   #define TR_ALIGN_OPTS                { "Lzquierdo", "Centro", "Derecho" }

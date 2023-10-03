@@ -679,7 +679,8 @@ PACK(struct ModelData {
   uint8_t   disableTelemetryWarning:1;
   uint8_t   showInstanceIds:1;
   uint8_t   checklistInteractive:1;
-  uint8_t   spare3:4 SKIP;  // padding to 8-bit aligment
+  NOBACKUP(uint8_t hatsMode:2 ENUM(HatsMode));
+  uint8_t   spare3:2 SKIP;  // padding to 8-bit aligment
   int8_t    customThrottleWarningPosition;
   BeepANACenter beepANACenter;
   MixData   mixData[MAX_MIXERS] NO_IDX;
@@ -830,16 +831,6 @@ PACK(struct TrainerData {
     BLUETOOTH_FIELDS
 #endif
 
-#if defined(COLORLCD) && !defined(BACKUP)
-  #include "theme.h"
-  #define THEME_NAME_LEN 8
-  #define THEME_DATA \
-    NOBACKUP(char themeName[THEME_NAME_LEN]); \
-    NOBACKUP(EdgeTxTheme::PersistentData themeData);
-#else
-  #define THEME_DATA
-#endif
-
 #if defined(BUZZER)
   #define BUZZER_FIELD int8_t buzzerMode:2    // -2=quiet, -1=only alarms, 0=no keys, 1=all (only used on AVR radios without audio hardware)
 #else
@@ -851,7 +842,8 @@ PACK(struct RadioData {
   // Real attributes
   NOBACKUP(uint8_t manuallyEdited:1);
   int8_t timezoneMinutes:3;    // -3 to +3 ==> (-45 to 45 minutes in 15 minute increments)
-  NOBACKUP(int8_t spare0:4 SKIP);
+  NOBACKUP(uint8_t hatsMode:2 ENUM(HatsMode));
+  NOBACKUP(int8_t spare0:2 SKIP);
   CUST_ATTR(semver,nullptr,w_semver);
   CUST_ATTR(board,nullptr,w_board);
   CalibData calib[MAX_CALIB_ANALOG_INPUTS] NO_IDX;
@@ -934,8 +926,6 @@ PACK(struct RadioData {
 
   EXTRA_GENERAL_FIELDS
 
-  THEME_DATA
-
   char ownerRegistrationID[PXX2_LEN_REGISTRATION_ID];
 
   CUST_ATTR(rotEncDirection, r_rotEncDirection, nullptr);
@@ -992,5 +982,4 @@ PACK(struct RadioData {
 #undef SCRIPTS_DATA
 #undef CUSTOM_SCREENS_DATA
 #undef EXTRA_GENERAL_FIELDS
-#undef THEME_DATA
 #undef NOBACKUP

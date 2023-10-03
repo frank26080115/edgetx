@@ -2060,6 +2060,11 @@ Do you want to import settings from a file?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../firmwares/customfunctiondata.cpp" line="129"/>
+        <source>Audio Amp Off</source>
+        <translation>Vypnutí zesilovače zvuku</translation>
+    </message>
+    <message>
         <location filename="../firmwares/customfunctiondata.cpp" line="216"/>
         <source>Played once, not during startup</source>
         <translation type="unfinished">Hrát jednou, ne při výběru modelu</translation>
@@ -5615,6 +5620,31 @@ Použitelné hodnoty jsou 5v..10v {3v?} {12v?}</translation>
         <location filename="../generaledit/generalsetup.ui" line="2435"/>
         <source>USB Serial (CDC)</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2430"/>
+        <source>Hats Mode</source>
+        <translation>Režim kloboučků</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2441"/>
+        <source>Trims only</source>
+        <translation>Pouze trimy</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2446"/>
+        <source>Keys only</source>
+        <translation>Pouze tlačítka</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Switchable</source>
+        <translation>Přepinatelné</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Global</source>
+        <translation>Globální</translation>
     </message>
     <message>
         <location filename="../generaledit/generalsetup.ui" line="2405"/>

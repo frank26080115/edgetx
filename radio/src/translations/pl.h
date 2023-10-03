@@ -57,7 +57,6 @@
 #define TR_COUNTRY_CODES       TR("US","Ameryka"),TR("JP","Japonia"),TR("EU", "Europa")
 #define TR_USBMODES            "Ask",TR("Joyst","Joystick"),TR("SDCard","Storage"),"Serial"
 #define TR_JACK_MODES          "Ask","Audio","Trainer"
-#define TR_TELEMETRY_PROTOCOLS "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","not inverted"
 #define TR_MULTI_CUSTOM        "Custom"
@@ -115,6 +114,7 @@
 #define TR_SF_SCREENSHOT      "Zrzut Ekra"
 #define TR_SF_RACING_MODE     "RacingMode"
 #define TR_SF_DISABLE_TOUCH   "No Touch"
+#define TR_SF_DISABLE_AUDIO_AMP TR("Wycisz wzm.", "Wycisz wzmacniacz audio")
 #define TR_SF_SET_SCREEN      "Set Main Screen"
 
 #define TR_FSW_RESET_TELEM     TR("Telm", "Telemetra")
@@ -141,8 +141,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES         "SK", "SW", "Gaz", "Lot"
-#define TR_SURFACE_NAMES       "SK", "Gaz"
+#define TR_STICK_NAMES0        "SK"
+#define TR_STICK_NAMES1        "SW"
+#define TR_STICK_NAMES2        "Gaz"
+#define TR_STICK_NAMES3        "Lot"
+#define TR_SURFACE_NAMES0      "SK"
+#define TR_SURFACE_NAMES1      "Gaz"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -152,6 +156,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES      "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE             "Tryb grzybków"
+#define TR_HATSOPT              "Tylko trymy","Tylko przyciski","Przełączane","Globalne"
+#define TR_HATSMODE_TRIMS       "Tryb grzybków: trymy"
+#define TR_HATSMODE_KEYS        "Tryb grzybków: przyciski"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT  "Normal","Inverted"
@@ -863,7 +874,6 @@
 #define TR_UNIT                "Jednostka"
 #define TR_TELEMETRY_NEWSENSOR INDENT "Dodaj nowy czujnik..."
 #define TR_CHANNELRANGE        TR(INDENT "ZakrKn",INDENT "Zakres kanału")
-#define TR_RXFREQUENCY         TR("Rx Freqency", "Rx Servo Frequency")
 #define TR_AFHDS3_RX_FREQ              TR("RX freq.", "RX frequency")
 #define TR_AFHDS3_ONE_TO_ONE_TELEMETRY TR("Unicast/Tel.", "Unicast/Telemetry")
 #define TR_AFHDS3_ONE_TO_MANY          "Multicast"
@@ -966,6 +976,7 @@
   #define TR_TIMER_SOURCE              "Timer source"
   #define TR_SIZE                      "Rozmiar"
   #define TR_SHADOW                    "Cień"
+  #define TR_ALIGNMENT                 "Wyrównaj"
   #define TR_ALIGN_LABEL               "Wyrównaj przywieszka"
   #define TR_ALIGN_VALUE               "Wyrównać wartość"
   #define TR_ALIGN_OPTS                { "Lewy", "Centrum", "Prawe" }

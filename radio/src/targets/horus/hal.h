@@ -498,8 +498,10 @@
   #define AUX2_SERIAL_DMA_Stream_RX            DMA2_Stream1 // or DMA2_Stream2
   #define AUX2_SERIAL_DMA_Channel_RX           LL_DMA_CHANNEL_5
   #define AUX2_SERIAL_DMA_Stream_RX_LL         LL_DMA_STREAM_1
-  #define AUX2_SERIAL_PWR_GPIO                 GPIOB
-  #define AUX2_SERIAL_PWR_GPIO_PIN             GPIO_Pin_0  // PB.00
+  #if !defined(RADIO_T18)
+    #define AUX2_SERIAL_PWR_GPIO               GPIOB
+    #define AUX2_SERIAL_PWR_GPIO_PIN           GPIO_Pin_0  // PB.00
+  #endif
 #endif
 #else // AUX2_SERIAL
   #define AUX2_SERIAL_RCC_AHB1Periph           0
@@ -629,6 +631,7 @@
 #define SD_SDIO_CLK_DIV(fq)             ((48000000 / (fq)) - 2)
 #define SD_SDIO_INIT_CLK_DIV            SD_SDIO_CLK_DIV(400000)
 #define SD_SDIO_TRANSFER_CLK_DIV        SD_SDIO_CLK_DIV(24000000)
+#define STORAGE_USE_SDIO
 
 // EEPROM
 #if defined(PCBX12S) && PCBREV >= 13
@@ -984,19 +987,12 @@
 #define TRAINER_MODULE_CPPM_TIMER_IRQHandler TIM4_IRQHandler
 #define TRAINER_MODULE_CPPM_GPIO_AF          LL_GPIO_AF_2
 
-
-// Xms Interrupt
-#define INTERRUPT_xMS_RCC_APB1Periph    RCC_APB1Periph_TIM14
-#define INTERRUPT_xMS_TIMER             TIM14
-#define INTERRUPT_xMS_IRQn              TIM8_TRG_COM_TIM14_IRQn
-#define INTERRUPT_xMS_IRQHandler        TIM8_TRG_COM_TIM14_IRQHandler
-
-// 2MHz Timer
-#define TIMER_2MHz_RCC_APB1Periph       RCC_APB1Periph_TIM7
-#define TIMER_2MHz_TIMER                TIM7
+// Millisecond timer
+#define MS_TIMER                        TIM14
+#define MS_TIMER_IRQn                   TIM8_TRG_COM_TIM14_IRQn
+#define MS_TIMER_IRQHandler             TIM8_TRG_COM_TIM14_IRQHandler
 
 // Mixer scheduler timer
-#define MIXER_SCHEDULER_TIMER_RCC_APB1Periph RCC_APB1Periph_TIM13
 #define MIXER_SCHEDULER_TIMER                TIM13
 #define MIXER_SCHEDULER_TIMER_FREQ           (PERI1_FREQUENCY * TIMER_MULT_APB1)
 #define MIXER_SCHEDULER_TIMER_IRQn           TIM8_UP_TIM13_IRQn

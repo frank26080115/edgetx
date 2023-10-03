@@ -250,14 +250,15 @@ elseif(PCB STREQUAL X7)
     set(NAVIGATION_TYPE x7)
     set(CPU_TYPE_FULL STM32F407xE)
     set(ROTARY_ENCODER YES)
-    set(BLUETOOTH NO)
     set(USB_CHARGER YES)
-    set(AUX_SERIAL ON)
     add_definitions(-DRADIO_ZORRO)
     add_definitions(-DEEPROM_VARIANT=0x4006)
     add_definitions(-DMANUFACTURER_RADIOMASTER)
     set(PXX2 ON)
     set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
+    if (NOT BLUETOOTH)
+      set(AUX_SERIAL ON)
+    endif()
   elseif(PCBREV STREQUAL POCKET)
     set(DEFAULT_INTERNAL_MODULE CROSSFIRE CACHE STRING "Default internal module")
     set(INTERNAL_MODULE_SERIAL YES)
@@ -266,13 +267,14 @@ elseif(PCB STREQUAL X7)
     set(NAVIGATION_TYPE x7)
     set(CPU_TYPE_FULL STM32F407xE)
     set(ROTARY_ENCODER YES)
-    set(BLUETOOTH NO)
     set(USB_CHARGER YES)
-    set(AUX_SERIAL YES)
     add_definitions(-DRADIO_POCKET)
     add_definitions(-DMANUFACTURER_RADIOMASTER)
     set(PXX2 ON)
     set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
+    if (NOT BLUETOOTH)
+      set(AUX_SERIAL ON)
+    endif()
   elseif(PCBREV STREQUAL T8)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     set(INTERNAL_MODULE_SERIAL YES)
@@ -574,7 +576,6 @@ set(FIRMWARE_TARGET_SRC
   volume_i2c.cpp
   eeprom_driver.cpp
   backlight_driver.cpp
-  diskio.cpp
   )
 
 if(PCB STREQUAL XLITE OR PCB STREQUAL XLITES OR PCBREV STREQUAL COMMANDO8)
@@ -595,6 +596,8 @@ set(FIRMWARE_SRC
   targets/common/arm/stm32/stm32_pulse_driver.cpp
   targets/common/arm/stm32/stm32_usart_driver.cpp
   targets/common/arm/stm32/trainer_driver.cpp
+  targets/common/arm/stm32/sdcard_spi.cpp
+  targets/common/arm/stm32/diskio_spi.cpp
   )
 
 if(LCD_DUAL_BUFFER)

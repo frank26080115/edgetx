@@ -94,12 +94,12 @@
     <message>
         <location filename="../storage/appdata.h" line="654"/>
         <source>Editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Редактор</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="654"/>
         <source>Template</source>
-        <translation type="unfinished"></translation>
+        <translation>Шаблон</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="654"/>
@@ -109,37 +109,37 @@
     <message>
         <location filename="../storage/appdata.h" line="655"/>
         <source>Manual</source>
-        <translation type="unfinished"></translation>
+        <translation>Инструкция</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="655"/>
         <source>Startup</source>
-        <translation type="unfinished"></translation>
+        <translation>Запуск</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="655"/>
         <source>Daily</source>
-        <translation type="unfinished"></translation>
+        <translation>Ежедневно</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="655"/>
         <source>Weekly</source>
-        <translation type="unfinished"></translation>
+        <translation>Еженедельно</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="655"/>
         <source>Monthly</source>
-        <translation type="unfinished"></translation>
+        <translation>Ежемесячно</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="657"/>
         <source>Debug</source>
-        <translation type="unfinished"></translation>
+        <translation>Отладка</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="657"/>
         <source>Warning</source>
-        <translation type="unfinished"></translation>
+        <translation>Предупреждение</translation>
     </message>
     <message>
         <location filename="../storage/appdata.h" line="657"/>
@@ -154,7 +154,7 @@
     <message>
         <location filename="../storage/appdata.h" line="657"/>
         <source>Information</source>
-        <translation type="unfinished"></translation>
+        <translation>Информация</translation>
     </message>
 </context>
 <context>
@@ -2058,6 +2058,11 @@ Do you want to import settings from a file?</source>
     <message>
         <location filename="../firmwares/customfunctiondata.cpp" line="127"/>
         <source>Set Main Screen</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../firmwares/customfunctiondata.cpp" line="129"/>
+        <source>Audio Amp Off</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
@@ -5867,6 +5872,26 @@ p, li { white-space: pre-wrap; }
         <location filename="../generaledit/generalsetup.ui" line="2435"/>
         <source>USB Serial (CDC)</source>
         <translation>Последовательный порт</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2430"/>
+        <source>Hats Mode</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2441"/>
+        <source>Trims only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2446"/>
+        <source>Keys only</source>
+        <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Switchable</source>
+        <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../generaledit/generalsetup.ui" line="2443"/>

@@ -2065,6 +2065,11 @@ Do you want to import settings from a file?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../firmwares/customfunctiondata.cpp" line="129"/>
+        <source>Audio Amp Off</source>
+        <translation>Audio Amp AUS</translation>
+    </message>
+    <message>
         <location filename="../firmwares/customfunctiondata.cpp" line="216"/>
         <source>Played once, not during startup</source>
         <translation type="unfinished">Kommt einmal, aber nicht beim Start</translation>
@@ -5590,6 +5595,31 @@ Werte liegen zwischen 5-10V {3v?} {12v?}</translation>
         <location filename="../generaledit/generalsetup.ui" line="2435"/>
         <source>USB Serial (CDC)</source>
         <translation>USB Serial (CDC)</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2430"/>
+        <source>Hats Mode</source>
+        <translation>Joystick Modus</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2441"/>
+        <source>Trims only</source>
+        <translation>Nur Trimmung</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2446"/>
+        <source>Keys only</source>
+        <translation>Nur Tasten</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Switchable</source>
+        <translation>Umschaltbar</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Global</source>
+        <translation>Global</translation>
     </message>
     <message>
         <location filename="../generaledit/generalsetup.ui" line="2405"/>

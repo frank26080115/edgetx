@@ -21,18 +21,16 @@ set(BOOTLOADER_SRC
   ../../../../../${STM32USB_DIR}/STM32_USB_Device_Library/Class/msc/src/usbd_msc_scsi.c
   ../../../../../${STM32USB_DIR}/STM32_USB_Device_Library/Class/msc/src/usbd_msc_bot.c
   ../../../../../${STM32USB_DIR}/STM32_USB_Device_Library/Class/msc/src/usbd_msc_core.c
-  ../../../../../${FATFS_DIR}/ff.c
-  ../../../../../${FATFS_DIR}/ffunicode.c
   ../../../../../targets/${TARGET_DIR}/${LCD_DRIVER}
   ../../../../../targets/${TARGET_DIR}/backlight_driver.cpp
   ../../../../../targets/${TARGET_DIR}/board.cpp
   ../../../../../targets/${TARGET_DIR}/bootloader/boot_menu.cpp
   ${CMAKE_CURRENT_BINARY_DIR}/hal_keys.inc
-  ../../../../../hal/key_driver.cpp
   ../pwr_driver.cpp
   ../usbd_usr.cpp
   ../usbd_storage_msd.cpp
   ../delays_driver.cpp
+  ../timers_driver.cpp
   ../usbd_desc.c
   ../usb_bsp.c
   ../usb_driver.cpp
@@ -41,6 +39,7 @@ set(BOOTLOADER_SRC
   ../stm32_serial_driver.cpp
   ../stm32_usart_driver.cpp
   ../stm32_gpio_driver.cpp
+  ../stm32_timer.cpp
   ../stm32_dma.cpp
   init.c
   boot.cpp
@@ -77,7 +76,6 @@ if(PCB STREQUAL X10 OR PCB STREQUAL X12S OR PCB STREQUAL NV14)
     ../../../../../fonts/lvgl/lv_font_roboto_bl_16.c
     ../../../../../thirdparty/libopenui/src/bitmapbuffer.cpp
     ../../../../../thirdparty/libopenui/thirdparty/lz4/lz4.c
-    ../../../../../targets/common/arm/stm32/sdio_sd.cpp
     ../../../../../targets/common/arm/stm32/diskio_sdio.cpp
     ../../../../../targets/common/arm/stm32/rtc_driver.cpp
     ../../../../../targets/${TARGET_DIR}/sdram_driver.c
@@ -119,8 +117,11 @@ else()
     ${BOOTLOADER_SRC}
     ../../../../../gui/common/stdlcd/fonts.cpp
     ../../../../../gui/common/stdlcd/utf8.cpp
-    ../../../../../targets/${TARGET_DIR}/eeprom_driver.cpp
-    ../../../../../targets/${TARGET_DIR}/diskio.cpp
+    ../../../../../targets/common/arm/stm32/stm32_gpio_driver.cpp
+    ../../../../../targets/common/arm/stm32/stm32_spi.cpp
+    ../../../../../targets/common/arm/stm32/sdcard_spi.cpp
+    ../../../../../targets/common/arm/stm32/diskio_spi.cpp
+    ../../../../../crc.cpp
     )
   remove_definitions(-DDEBUG)
 endif()

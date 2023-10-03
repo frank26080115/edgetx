@@ -79,10 +79,12 @@ struct our_longjmp * global_lj = 0;
 uint32_t luaExtraMemoryUsage = 0;
 #endif
 
+#if defined(USE_HATS_AS_KEYS)
 static bool _is_standalone_script()
 {
   return scriptInternalData[0].reference == SCRIPT_STANDALONE;
 }
+#endif
 
 #if defined(LUA_ALLOCATOR_TRACER)
 
@@ -252,8 +254,8 @@ void luaDisable()
   POPUP_WARNING("Lua disabled!");
   luaState = INTERPRETER_PANIC;
 
-#if defined(USE_TRIMS_AS_BUTTONS)
-  if (_is_standalone_script()) setTrimsAsButtons(false);
+#if defined(USE_HATS_AS_KEYS)
+  if (_is_standalone_script()) setTransposeHatsForLUA(false);
 #endif
 }
 
@@ -629,8 +631,12 @@ static bool luaLoadFunctionScript(uint8_t ref)
   CustomFunctionData * fn;
 
   if (ref <= SCRIPT_FUNC_LAST) {
-    idx = ref - SCRIPT_FUNC_FIRST;
-    fn = &g_model.customFn[idx];
+    if (modelSFEnabled()) {
+      idx = ref - SCRIPT_FUNC_FIRST;
+      fn = &g_model.customFn[idx];
+    } else {
+      return false;
+    }
   }
   else if (radioGFEnabled()) {
     idx = ref - SCRIPT_GFUNC_FIRST;
@@ -1099,10 +1105,12 @@ static bool resumeLua(bool init, bool allowLcdUsage)
           CustomFunctionsContext * functionsContext;
 
           if (ref <= SCRIPT_FUNC_LAST) {
+            if (!modelSFEnabled()) continue;
             idx = ref - SCRIPT_FUNC_FIRST;
             fn = &g_model.customFn[idx];
             functionsContext = &modelFunctionsContext;
           } else {
+            if (!radioGFEnabled()) continue;
             idx = ref - SCRIPT_GFUNC_FIRST;
             fn = &g_eeGeneral.customFn[idx];
             functionsContext = &globalFunctionsContext;
@@ -1253,8 +1261,8 @@ bool luaTask(event_t evt, bool allowLcdUsage)
       init = true;
       luaState = INTERPRETER_LOADING;
 
-#if defined(USE_TRIMS_AS_BUTTONS)
-      if (_is_standalone_script()) setTrimsAsButtons(false);
+#if defined(USE_HATS_AS_KEYS)
+      if (_is_standalone_script()) setTransposeHatsForLUA(false);
 #endif
    
     case INTERPRETER_LOADING:
@@ -1269,8 +1277,8 @@ bool luaTask(event_t evt, bool allowLcdUsage)
       init = true;
       luaState = INTERPRETER_RUNNING;
 
-#if defined(USE_TRIMS_AS_BUTTONS)
-      if (_is_standalone_script()) setTrimsAsButtons(true);
+#if defined(USE_HATS_AS_KEYS)
+      if (_is_standalone_script()) setTransposeHatsForLUA(true);
 #endif
       
     case INTERPRETER_RUNNING:

@@ -60,7 +60,6 @@
 #define TR_COUNTRY_CODES                TR("US","America"),TR("JP","Japan"),TR("EU","Europa")
 #define TR_USBMODES                     TR("Chied","Chiedi"),TR("Joyst","Joystick"),TR("SDCard","Storage"),TR("Serial","Seriale")
 #define TR_JACK_MODES                   "Chiedi","Audio","Trainer"
-#define TR_TELEMETRY_PROTOCOLS          "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Telemetria Multi"
 
 #define TR_SBUS_INVERSION_VALUES        "normale","non invertito"
 #define TR_MULTI_CUSTOM                 "Person."
@@ -119,6 +118,7 @@
 #define TR_SF_SCREENSHOT               "Screenshot"
 #define TR_SF_RACING_MODE              "Modo Racing"
 #define TR_SF_DISABLE_TOUCH            "No Touch"
+#define TR_SF_DISABLE_AUDIO_AMP        "Audio Amp Off"
 #define TR_SF_SET_SCREEN               "Setta Schermo Princ."
 
 #define TR_FSW_RESET_TELEM               TR("Telm", "Telemetria")
@@ -146,8 +146,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Dir", "Ele", "Mot", "Ale"
-#define TR_SURFACE_NAMES               "Dir", "Mot"
+#define TR_STICK_NAMES0                "Dir"
+#define TR_STICK_NAMES1                "Ele"
+#define TR_STICK_NAMES2                "Mot"
+#define TR_STICK_NAMES3                "Ale"
+#define TR_SURFACE_NAMES0              "Dir"
+#define TR_SURFACE_NAMES1              "Mot"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","Alto"
@@ -157,6 +161,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES              "ON","One"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                     "Modo joystick"
+#define TR_HATSOPT                      "Solo trims","Solo keys","Commutabile","Globale"
+#define TR_HATSMODE_TRIMS               "Modo joystick: trims"
+#define TR_HATSMODE_KEYS                "Modo joystick: keys"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT            "Normale","Invertito"
@@ -674,7 +685,6 @@
 #define TR_EXECUTE_FILE                 "Esegui"
 #define TR_REMOVED                      " rimosso"
 #define TR_SD_INFO                      "Informazioni"
-#define TR_SD_FORMAT                    "Formatta"
 #define TR_NA                           "N/A"
 #define TR_HARDWARE                     "HARDWARE"
 #define TR_FORMATTING                   "Formattazione"
@@ -869,7 +879,7 @@
 #define TR_ENABLE                       "Abilita"
 #define TR_TOPLCDTIMER                  "Timer LCD Su"
 #define TR_UNIT                         "Unità"
-#define TR_TELEMETRY_NEWSENSOR          INDENT "Aggiungi nuovo sensore"
+#define TR_TELEMETRY_NEWSENSOR          INDENT "Aggiungi sensore"
 #define TR_CHANNELRANGE                 TR(INDENT "Num Canali", INDENT "Numero Canali")
 #define TR_ANTENNACONFIRM1              "ANTENNA EST."
 #if defined(PCBX12S)
@@ -968,6 +978,7 @@
   #define TR_TIMER_SOURCE              "Sorgente timer"
   #define TR_SIZE                      "Dimensione"
   #define TR_SHADOW                    "Ombra"
+  #define TR_ALIGNMENT                 "Allineamento"
   #define TR_ALIGN_LABEL               "Allineare il cartellino"
   #define TR_ALIGN_VALUE               "Allineare il valore"
   #define TR_ALIGN_OPTS                { "Sinistra", "Mezzo", "Destra" }

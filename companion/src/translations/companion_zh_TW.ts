@@ -2071,6 +2071,11 @@ Do you want to import settings from a file?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
+        <location filename="../firmwares/customfunctiondata.cpp" line="129"/>
+        <source>Audio Amp Off</source>
+        <translation>關閉音頻功放</translation>
+    </message>
+    <message>
         <location filename="../firmwares/customfunctiondata.cpp" line="216"/>
         <source>Played once, not during startup</source>
         <translation type="unfinished">播放一次但開機時不播放  [!1x]</translation>
@@ -5697,6 +5702,31 @@ Acceptable values are 3v..12v</source>
         <location filename="../generaledit/generalsetup.ui" line="2435"/>
         <source>USB Serial (CDC)</source>
         <translation type="unfinished"></translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2430"/>
+        <source>Hats Mode</source>
+        <translation>按鍵帽模式</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2441"/>
+        <source>Trims only</source>
+        <translation>微調</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2446"/>
+        <source>Keys only</source>
+        <translation>導航鍵</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Switchable</source>
+        <translation>可切換</translation>
+    </message>
+    <message>
+        <location filename="../generaledit/generalsetup.ui" line="2451"/>
+        <source>Global</source>
+        <translation>全局</translation>
     </message>
     <message>
         <location filename="../generaledit/generalsetup.ui" line="2405"/>

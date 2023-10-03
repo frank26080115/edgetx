@@ -106,7 +106,7 @@ class FileNameEditWindow : public Page
 };
 
 RadioSdManagerPage::RadioSdManagerPage() :
-  PageTab(SD_IS_HC() ? STR_SDHC_CARD : STR_SD_CARD, ICON_RADIO_SD_MANAGER)
+  PageTab(STR_SD_CARD, ICON_RADIO_SD_MANAGER)
 {
 }
 
@@ -117,7 +117,7 @@ class FlashDialog: public FullScreenDialog
     explicit FlashDialog(const T & device):
       FullScreenDialog(WARNING_TYPE_INFO, STR_FLASH_DEVICE),
       device(device),
-      progress(this, {LCD_W / 2 - 50, LCD_H / 2, 100, 15})
+      progress(this, {LCD_W / 2 - 50, LCD_H / 2, 100, 32})
     {
     }
 
@@ -500,11 +500,11 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
     if (clipboard.type == CLIPBOARD_TYPE_SD_FILE) {
       menu->addLine(STR_PASTE, [=]() {
         static char lfn[FF_MAX_LFN + 1];  // TODO optimize that!
+        char destFileName[2 * CLIPBOARD_PATH_LEN + 1];
         f_getcwd((TCHAR*)lfn, FF_MAX_LFN);
         // prevent copying to the same directory with the same name
         char* destNamePtr = clipboard.data.sd.filename;
         if (!strcmp(clipboard.data.sd.directory, lfn)) {
-          char destFileName[2 * CLIPBOARD_PATH_LEN + 1];
           destNamePtr =
               strAppend(destFileName, FILE_COPY_PREFIX, CLIPBOARD_PATH_LEN);
           destNamePtr = strAppend(destNamePtr, clipboard.data.sd.filename,

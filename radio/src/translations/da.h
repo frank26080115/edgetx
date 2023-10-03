@@ -62,7 +62,6 @@
 #define TR_COUNTRY_CODES               TR("US","Amerika"),TR("JP","Japan"),TR("EU","Europa")
 #define TR_USBMODES                    "Spørg",TR("Joyst","Joystik"),TR("Lager","USB lager"),TR("Data", "USB data")
 #define TR_JACK_MODES                  "Spørg","Audio","Træner"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (kabel)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetri"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","ikke invers"
 #define TR_MULTI_CUSTOM                "Tilpasset"
@@ -100,9 +99,9 @@
 #define TR_SF_RESET                    "Nulstil"
 #define TR_SF_SET_TIMER                "Sæt"
 #define TR_SF_VOLUME                   "Lydstyrke"
-#define TR_SF_FAILSAFE                 "SetFejlsikr"
-#define TR_SF_RANGE_CHECK              "AfstandCheck"
-#define TR_SF_MOD_BIND                 "ModuleBind"
+#define TR_SF_FAILSAFE                 TR("Sæt fejlsik", "Sæt fejlsikring")
+#define TR_SF_RANGE_CHECK              TR("Afst. check", "Afstand kontrol")
+#define TR_SF_MOD_BIND                 "Modul Bind"
 
 #define TR_SOUND                       "Spil lyd"
 #define TR_PLAY_TRACK                  TR("Afspil lyd", "Afspil lydfil")
@@ -121,8 +120,8 @@
 #define TR_SF_SCREENSHOT               "Skærm klip"
 #define TR_SF_RACING_MODE              "Ræs tilstand"
 #define TR_SF_DISABLE_TOUCH            "Ikke berøringsaktiv"
+#define TR_SF_DISABLE_AUDIO_AMP        TR("Sluk audio amp", "Sluk audio amplifier")
 #define TR_SF_SET_SCREEN               "Vælg hoved skærm"
-#define TR_SF_RESERVE                  "[reserve]"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "Telemetri")
 #define TR_FSW_RESET_TIMERS            "Tid1","Tid2","Tid3"
@@ -149,8 +148,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Sid", "Høj", "Gas", "Kræ"
-#define TR_SURFACE_NAMES               "Sid", "Gas"
+#define TR_STICK_NAMES0                "Sid"
+#define TR_STICK_NAMES1                "Høj"
+#define TR_STICK_NAMES2                "Gas"
+#define TR_STICK_NAMES3                "Kræ"
+#define TR_SURFACE_NAMES0              "Sid"
+#define TR_SURFACE_NAMES1              "Gas"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Standard","Høj"
@@ -160,6 +163,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "EN","En"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "Joystik indstilling"
+#define TR_HATSOPT                     "Kun trim","Kun knap","Trim / Knap", "Global"
+#define TR_HATSMODE_TRIMS              "Joystik: Trim"
+#define TR_HATSMODE_KEYS               "Joystik: Knap"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT            "Normal","Invers"
@@ -399,7 +409,7 @@
   #define TR_MOVESTICKSPOTS            "FLYT PINDE/DREJEKONTAKT"
 #else
   #define TR_MENUTOSTART               CENTER "\010" TR_ENTER " FOR START"
-  #define TR_SETMIDPOINT               TR(CENTER "\004SET PINDE I MIDTEN", CENTER "\004CENTRER PINDE/SKYDERE")
+  #define TR_SETMIDPOINT               TR(CENTER "\004SÆT PINDE I MIDT", CENTER "\004CENTRER PINDE/SKYDERE")
   #define TR_MOVESTICKSPOTS            CENTER "\006FLYT PINDE/DREJEKONTAKTER"
   #define TR_MENUWHENDONE              CENTER "\006" TR_ENTER " NÅR FÆRDIG"
 #endif
@@ -440,8 +450,8 @@
   #define TR_FM                        "FT"
 #endif
 #define TR_EEPROMLOWMEM                "EEPROM lav mem"
-#define TR_PRESS_ANY_KEY_TO_SKIP       "Tryk tast for at droppe"
-#define TR_THROTTLE_NOT_IDLE           "Gas ikke i tomgang"
+#define TR_PRESS_ANY_KEY_TO_SKIP       "Tryk en tast ..."
+#define TR_THROTTLE_NOT_IDLE           TR("Gas ikke sat lav", "Gas ikke sat i tomgang")
 #define TR_ALARMSDISABLED              "Alarmer afkoblet"
 #define TR_PRESSANYKEY                 TR("\010Tryk en tast", "Tryk en tast")
 #define TR_BADEEPROMDATA               "Dårlig EEprom data"
@@ -858,7 +868,7 @@
 #define TR_FS_BTN                      BUTTON(TR("Tilpasset sw", TR_FUNCTION_SWITCHES))
 #define TR_TOUCH_NOTFOUND              "Tryk skærm ikke fundet"
 #define TR_TOUCH_EXIT                  "Tryk på skærm for at forlade"
-#define TR_SET                         BUTTON("Set")
+#define TR_SET                         BUTTON("Sæt")
 #define TR_TRAINER                     "Træner"
 #define TR_CHANS                       "Chans"
 #define TR_ANTENNAPROBLEM              CENTER "TX antenne problem!"
@@ -873,7 +883,6 @@
 #define TR_INTERVAL                    "Interval"
 #define TR_REPEAT                      "Gentag"
 #define TR_ENABLE                      "Aktiver"
-#define TR_DISABLE                     "Deaktiver"
 #define TR_TOPLCDTIMER                 "Top LCD ur"
 #define TR_UNIT                        "Enhed"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "Tilføj ny"
@@ -974,6 +983,7 @@
   #define TR_TIMER_SOURCE              "Tidtagning kilde"
   #define TR_SIZE                      "Størrelse"
   #define TR_SHADOW                    "Skygge"
+  #define TR_ALIGNMENT                 "Justering"
   #define TR_ALIGN_LABEL               "Justere navn"
   #define TR_ALIGN_VALUE               "Justere værdi"
   #define TR_ALIGN_OPTS                { "Venstre", "Center", "Højre" }
@@ -1153,7 +1163,7 @@
 #endif
 
 #define TR_DUPLICATE                   "Dupliker"
-#define TR_ACTIVATE                    "Set aktiv"
+#define TR_ACTIVATE                    "Sæt aktiv"
 #define TR_RED                         "Rød"
 #define TR_BLUE                        "Blå"
 #define TR_GREEN                       "Grøn"

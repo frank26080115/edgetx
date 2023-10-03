@@ -23,7 +23,6 @@
 #include <FreeRTOS/include/stream_buffer.h>
 
 #include "opentx.h"
-#include "diskio.h"
 #include "timers_driver.h"
 #include "watchdog_driver.h"
 
@@ -34,6 +33,8 @@
 #include "hal/adc_driver.h"
 #include "hal/module_port.h"
 #include "esc_bridge.h"
+#include "hal/fatfs_diskio.h"
+#include "hal/storage.h"
 
 #include "tasks.h"
 #include "tasks/mixer_task.h"
@@ -348,8 +349,9 @@ int cliReadSD(const char ** argv)
   uint32_t bytesRead = numberOfSectors * 512;
   tmr10ms_t start = get_tmr10ms();
 
+  auto drv = storageGetDefaultDriver();
   while (numberOfSectors > 0) {
-    DRESULT res = __disk_read(0, buffer, startSector, bufferSectors);
+    DRESULT res = drv->read(0, buffer, startSector, bufferSectors);
     if (res != RES_OK) {
       cliSerialPrint("disk_read error: %d, sector: %d(%d)", res, startSector, numberOfSectors);
     }
@@ -386,10 +388,11 @@ int cliReadSD(const char ** argv)
 int cliTestSD(const char ** argv)
 {
   // Do the read test on the SD card and report back the result
+  auto drv = storageGetDefaultDriver();
 
   // get sector count
   uint32_t sectorCount;
-  if (disk_ioctl(0, GET_SECTOR_COUNT, &sectorCount) != RES_OK) {
+  if (drv->ioctl(0, GET_SECTOR_COUNT, &sectorCount) != RES_OK) {
     cliSerialPrint("Error: can't read sector count");
     return 0;
   }
@@ -402,8 +405,9 @@ int cliTestSD(const char ** argv)
     cliSerialPrint("Not enough memory");
     return 0;
   }
+
   for (uint32_t s = sectorCount - 16; s<sectorCount; ++s) {
-    DRESULT res = __disk_read(0, buffer, s, 1);
+    DRESULT res = drv->read(0, buffer, s, 1);
     if (res != RES_OK) {
       cliSerialPrint("sector %d read FAILED, err: %d", s, res);
     }
@@ -422,8 +426,8 @@ int cliTestSD(const char ** argv)
   }
 
   cliSerialPrint("Starting multiple sector read test, reading two sectors at the time");
-  for (uint32_t s = sectorCount - 16; s<sectorCount; s+=2) {
-    DRESULT res = __disk_read(0, buffer, s, 2);
+  for (uint32_t s = sectorCount - 16; s < sectorCount; s += 2) {
+    DRESULT res = drv->read(0, buffer, s, 2);
     if (res != RES_OK) {
       cliSerialPrint("sector %d-%d read FAILED, err: %d", s, s+1, res);
     }
@@ -442,7 +446,7 @@ int cliTestSD(const char ** argv)
   }
 
   cliSerialPrint("Starting multiple sector read test, reading 16 sectors at the time");
-  DRESULT res = __disk_read(0, buffer, sectorCount-16, 16);
+  DRESULT res = drv->read(0, buffer, sectorCount - 16, 16);
   if (res != RES_OK) {
     cliSerialPrint("sector %d-%d read FAILED, err: %d", sectorCount-16, sectorCount-1, res);
   }

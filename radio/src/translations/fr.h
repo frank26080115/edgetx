@@ -60,7 +60,6 @@
 #define TR_COUNTRY_CODES               TR("US","USA"),TR("JP","Japon"),TR("Europe","EU")
 #define TR_USBMODES                    TR("Popup","Demander"),TR("Joyst","Joystick"),TR("SDCard","Stockage"),"Série"
 #define TR_JACK_MODES                  "Demander","Audio","Écolage"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (câble)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Télémetrie"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","non inversé"
 #define TR_MULTI_CUSTOM                "Perso"
@@ -120,6 +119,7 @@
 #define TR_SF_SCREENSHOT               "Photo Écran"
 #define TR_SF_RACING_MODE              "Racing Mode"
 #define TR_SF_DISABLE_TOUCH            "Non Tactile"
+#define TR_SF_DISABLE_AUDIO_AMP        "Désact. Ampli Audio"
 #define TR_SF_SET_SCREEN               "Définir Écran Princ."
 
 #define TR_FSW_RESET_TELEM             TR("Télem.", "Télémétrie")
@@ -153,8 +153,12 @@
 
 #define TR_VSWASHTYPE                  "--- ","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Dir", "Prf", "Gaz", "Ail"
-#define TR_SURFACE_NAMES               "Dir", "Gaz"
+#define TR_STICK_NAMES0                "Dir"
+#define TR_STICK_NAMES1                "Prf"
+#define TR_STICK_NAMES2                "Gaz"
+#define TR_STICK_NAMES3                "Ail"
+#define TR_SURFACE_NAMES0              "Dir"
+#define TR_SURFACE_NAMES1              "Gaz"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Défaut","Haut"
@@ -164,6 +168,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "ON","Un"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "Mode joystick"
+#define TR_HATSOPT                     "Trims uniquement","Touches uniquement","Commutable","Global"
+#define TR_HATSMODE_TRIMS              "Mode joystick: trims"
+#define TR_HATSMODE_KEYS               "Mode joystick: touches"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "Normal","Inversé"
@@ -873,7 +884,6 @@
 #define TR_INTERVAL                    "Intervalle"
 #define TR_REPEAT                      "Répéter"
 #define TR_ENABLE                      "Activer"
-#define TR_DISABLE                     "Désactiver"
 #define TR_TOPLCDTIMER                 "Chrono LCD haut"
 #define TR_UNIT                        "Unité"
 #define TR_TELEMETRY_NEWSENSOR         TR(INDENT"Nouveau capteur...", INDENT "Ajouter nouveau")
@@ -988,6 +998,7 @@
   #define TR_TIMER_SOURCE              "Source Chrono"
   #define TR_SIZE                      "Taille"
   #define TR_SHADOW                    "Ombre"
+  #define TR_ALIGNMENT                 "Alignement"
   #define TR_ALIGN_LABEL               "Aligner Catégorie"
   #define TR_ALIGN_VALUE               "Aligner Valeur"
   #define TR_ALIGN_OPTS                { "Gauche", "Centre", "Droite" }

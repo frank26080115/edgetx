@@ -58,7 +58,6 @@
 #define TR_COUNTRY_CODES               TR("US","America"),TR("JP","Japao"),TR("EU","Europa")
 #define TR_USBMODES                    "Pergunta",TR("Joyst","Joystick"),TR("SDCard","Storage"),"Serial"
 #define TR_JACK_MODES                  "Pergunta","Audio","Trainer"
-#define TR_TELEMETRY_PROTOCOLS         "FrSky S.PORT","FrSky D","FrSky D (cable)","TBS Crossfire","Spektrum","AFHDS2A IBUS","Multi Telemetry"
 
 #define TR_SBUS_INVERSION_VALUES       "normal","not inverted"
 #define TR_MULTI_CUSTOM                "Custom"
@@ -122,8 +121,8 @@
 #define TR_SF_SCREENSHOT               "Capt. Tela"
 #define TR_SF_RACING_MODE              "ModCorrida"
 #define TR_SF_DISABLE_TOUCH            "No Touch"
+#define TR_SF_DISABLE_AUDIO_AMP        "Audio Amp Off"
 #define TR_SF_SET_SCREEN               "Def Tela Princ"
-#define TR_SF_RESERVE                  "[reserve]"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "Telemetria")
 #define TR_FSW_RESET_TIMERS          "Tmr1","Tmr2","Tmr3"
@@ -149,8 +148,12 @@
 
 #define TR_VSWASHTYPE                  "---","120","120X","140","90"
 
-#define TR_STICK_NAMES                 "Lem", "Pfd", "Mot", "Ail"
-#define TR_SURFACE_NAMES               "Dir", "Mot"
+#define TR_STICK_NAMES0                "Lem"
+#define TR_STICK_NAMES1                "Mot"
+#define TR_STICK_NAMES2                "Thr"
+#define TR_STICK_NAMES3                "Ail"
+#define TR_SURFACE_NAMES0              "Dir"
+#define TR_SURFACE_NAMES1              "Mot"
 
 #if defined(PCBNV14)
 #define  TR_RFPOWER_AFHDS2             "Default","High"
@@ -160,6 +163,13 @@
 #define TR_ROTENC_SWITCHES
 
 #define TR_ON_ONE_SWITCHES             "LIG","UM"
+
+#if defined(USE_HATS_AS_KEYS)
+#define TR_HATSMODE                    "Hats mode"
+#define TR_HATSOPT                     "Trims only","Keys only","Switchable","Global"
+#define TR_HATSMODE_TRIMS              "Hats mode: Trims"
+#define TR_HATSMODE_KEYS               "Hats mode: Keys"
+#endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "Normal","Invert"
@@ -972,6 +982,7 @@
   #define TR_TIMER_SOURCE              "Timer source"
   #define TR_SIZE                      "Size"
   #define TR_SHADOW                    "Shadow"
+  #define TR_ALIGNMENT                 "Alinhar"
   #define TR_ALIGN_LABEL               "Alinhar etiqueta"
   #define TR_ALIGN_VALUE               "Alinhar valor"
   #define TR_ALIGN_OPTS                { "Esquerda", "Centro", "Direita" }
