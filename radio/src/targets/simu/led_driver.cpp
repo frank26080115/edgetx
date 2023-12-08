@@ -29,3 +29,5 @@ void ledOff() {}
 void fsLedOn(uint8_t) {}
 void fsLedOff(uint8_t) {}
 bool getFSLedState(uint8_t) { return false;}
+void rgbSetLedColor(unsigned char, unsigned char, unsigned char, unsigned char) {}
+void rgbLedColorApply() {}

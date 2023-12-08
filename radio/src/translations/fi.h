@@ -54,7 +54,7 @@
 
 #define TR_AUX_SERIAL_MODES            "POIS","S-Port Pelik","Telemetry In","SBUS Trainer","LUA","CLI","GPS","Debug","SpaceMouse","External module"
 #define TR_SWTYPES                     "None","Toggle","2POS","3POS"
-#define TR_POTTYPES                    "None", TR("Pot w. det","Pot with detent"),TR("Multipos","Monias. Kytkin"),TR("Pot","Potikka"),"Slider"
+#define TR_POTTYPES                    "None",TR("Pot","Potikka"),TR("Pot w. det","Pot with detent"),"Slider",TR("Multipos","Monias. Kytkin"),"Axis X","Axis Y","Switch"
 #define TR_VPERSISTENT                 "OFF","Flight","Manual Reset"
 #define TR_COUNTRY_CODES               TR("US","Amerikk"),TR("JP","Japani"),TR("EU","Euroopp")
 #define TR_USBMODES                    "Kysy",TR("Joyst","Joystick"),TR("SDCard","Storage"),"Serial"
@@ -79,18 +79,16 @@
 #if defined(PCBTARANIS)
   #define TR_CSWTIMER                  "Timer"
   #define TR_CSWSTICKY                 "Stcky"
-  #define TR_CSWRANGE                  "Range"
   #define TR_CSWSTAY                   "Edge"
 #else
   #define TR_CSWTIMER                  "Tim"
   #define TR_CSWSTICKY                 "Glue"
-    #define TR_CSWRANGE                "Rnge"
-    #define TR_CSWSTAY                 "Edge"
+  #define TR_CSWSTAY                   "Edge"
 #endif
 
 #define TR_CSWEQUAL                    "a=x"
 
-#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 #define TR_TEXT_SIZE                   "Standard","Tiny","Small","Mid","Double"
 
@@ -102,12 +100,13 @@
 #define TR_SF_FAILSAFE                 "SetFailsafe"
 #define TR_SF_RANGE_CHECK              "RangeCheck"
 #define TR_SF_MOD_BIND                 "ModuleBind"
+#define TR_SF_RGBLEDS                  "RGB leds"
  
 #define TR_SOUND                       "Play Sound"
-#define TR_PLAY_TRACK                  "Play Track"
+#define TR_PLAY_TRACK                  TR("Ply Trk", "Play Track")
 #define TR_PLAY_VALUE                  TR("Play Val","Play Value")
 #define TR_SF_HAPTIC                   "Haptic"
-#define TR_SF_PLAY_SCRIPT              "Lua Script"
+#define TR_SF_PLAY_SCRIPT              TR("Lua", "Lua Script")
 #define TR_SF_BG_MUSIC                 "BgMusic"
 #define TR_SF_BG_MUSIC_PAUSE           "BgMusic ||"
 #define TR_SF_LOGS                     "SD Logs"
@@ -215,6 +214,7 @@
 #define TR_VCELLINDEX                  "Alin","1","2","3","4","5","6","7","8","Korkein","Ero"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA" (center only)","= (symetrical)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 #if defined(COLORLCD)
 #if defined(BOLD)
@@ -363,6 +363,7 @@
 #define TR_ALARMWARNING                "Sound Off"
 #define TR_RSSI_SHUTDOWN_ALARM         TR("Rssi Shutdown", "Check Rssi on Shutdown")
 #define TR_MODEL_STILL_POWERED         "Model still powered"
+#define TR_TRAINER_STILL_CONNECTED     "Trainer still connected"
 #define TR_USB_STILL_CONNECTED         "USB still connected"
 #define TR_MODEL_SHUTDOWN              "Shutdown ?"
 #define TR_PRESS_ENTER_TO_CONFIRM      "Press enter to confirm"
@@ -666,11 +667,8 @@
 #define TR_LCD                         "LCD-näyttö"
 #define TR_BRIGHTNESS                  "Kirkkaus"
 #define TR_CPU_TEMP                    "CPU:n lämpötila\016>"
-#define TR_CPU_CURRENT                 "Virta\022>"
-#define TR_CPU_MAH                     "Kulutus"
 #define TR_COPROC                      "CoProc."
 #define TR_COPROC_TEMP                 "MB Temp. \016>"
-#define TR_CAPAWARNING                 INDENT "Capacity Low"
 #define TR_TEMPWARNING                 INDENT "Ylikuumentunut"
 #define TR_TTL_WARNING                 "Varoitus: käytä 3,3V:n logiikkatasoja"
 #define TR_FUNC                        "Func"
@@ -817,6 +815,7 @@
 #define TR_JACK_MODE                   "Jack Mode"
 #define TR_VOICE_LANGUAGE              "Äänen kieli"
 #define TR_UNITS_SYSTEM                "Units"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                        "Edit"
 #define TR_INSERT_BEFORE               "Insert Before"
 #define TR_INSERT_AFTER                "Insert After"
@@ -888,6 +887,7 @@
 #define TR_INTERVAL                    "Interval"
 #define TR_REPEAT                      "Repeat"
 #define TR_ENABLE                      "Enable"
+#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "Unit"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "Add a new sensor..."
@@ -912,8 +912,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2        "certified firmware"
 #define TR_LOWALARM                    INDENT "Low Alarm"
 #define TR_CRITICALALARM               INDENT "Critical Alarm"
-#define TR_RSSIALARM_WARN              TR("RSSI","TELEMETRY RSSI")
-#define TR_NO_RSSIALARM                TR(INDENT "Alarms disabled", INDENT "Telemetry alarms disabled")
 #define TR_DISABLE_ALARM               TR(INDENT "Disable alarms", INDENT "Disable telemetry alarms")
 #define TR_POPUP                       "Popup"
 #define TR_MIN                         "Min"
@@ -1059,8 +1057,16 @@
   #define TR_BL_SELECT_KEY            "[R TRIM] to select file"
   #define TR_BL_FLASH_KEY             "Hold [R TRIM] long to flash"
   #define TR_BL_EXIT_KEY              " [L TRIM] to exit"
-  #define TR_BL_ENABLE                "Enable"
-  #define TR_BL_DISABLE               "Disable"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1269,3 +1275,11 @@
 #define TR_ENABLED_FEATURES       "Enabled Features"
 #define TR_RADIO_MENU_TABS        "Radio Menu Tabs"
 #define TR_MODEL_MENU_TABS        "Model Menu Tabs"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "Name A-Z","Name Z-A","Least used","Most used"
+#define TR_SORT_MODELS_BY         "Sort models by"
+#define TR_CREATE_NEW             "Create"

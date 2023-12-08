@@ -52,7 +52,7 @@
 #define TR_TRNCHN              "KN1","KN2","KN3","KN4"
 #define TR_AUX_SERIAL_MODES    "Wyłącz","S-Port Kopia","Telemetria","Trener SBUS","LUA","CLI","GPS","Debug","SpaceMouse","Moduł zewnętrzny"
 #define TR_SWTYPES             "Brak","Chwil.","2POZ","3POZ"
-#define TR_POTTYPES            "Brak",TR("Pot w. det","Poten z zapadką"),TR("Multipos","Przeł.Wielopoz."),TR("Pot","Potencjometr"),"Suwak"
+#define TR_POTTYPES            "Brak",TR("Pot","Potencjometr"),TR("Pot w. det","Poten z zapadką"),"Suwak",TR("Multipos","Przeł.Wielopoz."),"Axis X","Axis Y","Switch"
 #define TR_VPERSISTENT         "Wyłącz","Lot","Ręczny Reset"
 #define TR_COUNTRY_CODES       TR("US","Ameryka"),TR("JP","Japonia"),TR("EU", "Europa")
 #define TR_USBMODES            "Ask",TR("Joyst","Joystick"),TR("SDCard","Storage"),"Serial"
@@ -76,17 +76,15 @@
 #if LCD_W >= 212
   #define TR_CSWTIMER          "Timer"
   #define TR_CSWSTICKY         "Stały"
-  #define TR_CSWRANGE          "Zasię"
   #define TR_CSWSTAY           "Brzeg"
 #else
   #define TR_CSWTIMER          "Tim"
   #define TR_CSWSTICKY         "Stały"
-  #define TR_CSWRANGE          "Zasię"
   #define TR_CSWSTAY           "Brzeg"
 #endif
 
 #define TR_CSWEQUAL  "a=x"
-#define TR_VCSWFUNC  "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC  "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 #define TR_SF_TRAINER         "Trener"
 #define TR_SF_INST_TRIM       "Inst-Trim"
@@ -96,12 +94,13 @@
 #define TR_SF_FAILSAFE        "SetFailsafe"
 #define TR_SF_RANGE_CHECK     "RangeCheck"
 #define TR_SF_MOD_BIND        "ModuleBind"
+#define TR_SF_RGBLEDS         "RGB leds"
  
 #define TR_SOUND              "GrajDźwięk"
-#define TR_PLAY_TRACK         "GrajŚcieżk"
+#define TR_PLAY_TRACK         TR("Ply Trk", "GrajŚcieżk")
 #define TR_PLAY_VALUE         TR("Graj Wart","GrajWartoś")
 #define TR_SF_HAPTIC          "Wibracje"
-#define TR_SF_PLAY_SCRIPT     "SkryptyLua"
+#define TR_SF_PLAY_SCRIPT     TR("Lua", "SkryptyLua")
 #define TR_SF_BG_MUSIC        "Muz. tła"
 #define TR_SF_BG_MUSIC_PAUSE  "Muz. tła ||"
 #define TR_SF_LOGS            "Logi->SD"
@@ -205,6 +204,7 @@
 #define TR_TEXT_SIZE                   "Standard","Tiny","Small","Mid","Double"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA" (center only)","= (symetrical)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 #if defined(COLORLCD)
 #if defined(BOLD)
@@ -216,7 +216,7 @@
 
 #if defined(PCBTARANIS) || defined(PCBHORUS)
   #define TR_ENTER                     "[ENTER]"
-#elif defined(PCBNV14)
+#elif defined(PCBNV14) || defined(PCBPL18)
   #define TR_ENTER                     "[NEXT]"
 #else
   #define TR_ENTER                     "[MENU]"
@@ -318,7 +318,7 @@
 #define TR_SLOWUP              "Spowoln.(+)"
 #define TR_MIXES               "MIKSERY"
 #define TR_CV                  "Kr"
-#if defined(PCBNV14)
+#if defined(PCBNV14) || defined(PCBPL18)
 #define TR_GV                  "ZG"
 #else
 #define TR_GV                  TR("G", "ZG")
@@ -349,6 +349,7 @@
 #define TR_ALARMWARNING        "Wyłącz dźwięk"
 #define TR_RSSI_SHUTDOWN_ALARM   TR("Rssi Shutdown", "Check Rssi on Shutdown")
 #define TR_MODEL_STILL_POWERED "Model jest włączony"
+#define TR_TRAINER_STILL_CONNECTED     "Uczeń ciągle podłączony"
 #define TR_USB_STILL_CONNECTED         "USB jest podłączone"
 #define TR_MODEL_SHUTDOWN              "Wyłączyć?"
 #define TR_PRESS_ENTER_TO_CONFIRM      "Press enter to confirm"
@@ -648,11 +649,8 @@
 #define TR_LCD                 "LCD"
 #define TR_BRIGHTNESS          "Jasność"
 #define TR_CPU_TEMP            "Temp. CPU\016>"
-#define TR_CPU_CURRENT         "Prąd"
-#define TR_CPU_MAH             "Zużycie"
 #define TR_COPROC              "CoProc."
 #define TR_COPROC_TEMP         "Temp. MB"
-#define TR_CAPAWARNING         INDENT "Mała pojemność"
 #define TR_TEMPWARNING         INDENT "Przegrzanie"
 #define TR_TTL_WARNING         "Uwaga: use 3.3V logic levels"
 #define TR_FUNC                "Funkcja"
@@ -799,6 +797,7 @@
 #define TR_JACK_MODE           "Tryb Jack"
 #define TR_VOICE_LANGUAGE      "Język głosu"
 #define TR_UNITS_SYSTEM        "Jednostki"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                "Edytuj"
 #define TR_INSERT_BEFORE       "Wstaw przed"
 #define TR_INSERT_AFTER        "Wstaw za"
@@ -870,6 +869,7 @@
 #define TR_INTERVAL            "Interwał"
 #define TR_REPEAT              "Powtórz"
 #define TR_ENABLE              "Włącz"
+#define TR_DISABLE             "Wyłączać"
 #define TR_TOPLCDTIMER         "Top LCD Timer"
 #define TR_UNIT                "Jednostka"
 #define TR_TELEMETRY_NEWSENSOR INDENT "Dodaj nowy czujnik..."
@@ -894,8 +894,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2                "certyfikacji firmware"
 #define TR_LOWALARM            INDENT "Alarm niski"
 #define TR_CRITICALALARM       INDENT "Alarm krytyczny"
-#define TR_RSSIALARM_WARN             TR("RSSI","TELEMETRY RSSI")
-#define TR_NO_RSSIALARM                TR(INDENT "Alarms disabled", INDENT "Telemetry alarms disabled")
 #define TR_DISABLE_ALARM               TR(INDENT "Disable alarms", INDENT "Disable telemetry alarms")
 #define TR_POPUP               "Popup"
 #define TR_MIN                 "Min"
@@ -1041,8 +1039,16 @@
   #define TR_BL_SELECT_KEY            "[R TRIM] aby wybrac plik"
   #define TR_BL_FLASH_KEY             "Przytrzymaj [R TRIM] aby flashowac"
   #define TR_BL_EXIT_KEY              " [L TRIM] aby wyjsc"
-  #define TR_BL_ENABLE                "Włącz"
-  #define TR_BL_DISABLE               "Wyłączać"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1247,3 +1253,11 @@
 #define TR_ENABLED_FEATURES       "Włączone opcje"
 #define TR_RADIO_MENU_TABS        "Zakładki menu radia"
 #define TR_MODEL_MENU_TABS        "Zakładki menu modelu"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "Nazwa A-Z","Nazwa Z-A","Najrzadziej użyty","Najczęściej użyty"
+#define TR_SORT_MODELS_BY         "Sortuj modele"
+#define TR_CREATE_NEW             "Utwórz"

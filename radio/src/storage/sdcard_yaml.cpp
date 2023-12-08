@@ -19,6 +19,8 @@
  * GNU General Public License for more details.
  */
 
+#include "hal/adc_driver.h"
+#include "myeeprom.h"
 #include "opentx.h"
 #include "opentx_helpers.h"
 #include "storage.h"
@@ -184,6 +186,8 @@ const char * loadRadioSettings()
 #if defined(DEFAULT_INTERNAL_MODULE)
     g_eeGeneral.internalModule = DEFAULT_INTERNAL_MODULE;
 #endif
+
+    adcCalibDefaults();
 
     const char* error = loadRadioSettingsYaml(true);
     if (!error) {
@@ -456,7 +460,13 @@ bool copyModel(uint8_t dst, uint8_t src)
   GET_FILENAME(fname_src, MODELS_PATH, model_idx_src, YAML_EXT);
   GET_FILENAME(fname_dst, MODELS_PATH, model_idx_dst, YAML_EXT);
 
-  return sdCopyFile(fname_src, fname_dst);
+  if (sdCopyFile(fname_src, fname_dst) == nullptr) {
+    // update headers
+    memcpy(&modelHeaders[dst], &modelHeaders[src], sizeof(ModelHeader));
+    return true;
+  }
+
+  return false;
 }
 
 static void swapModelHeaders(uint8_t id1, uint8_t id2)

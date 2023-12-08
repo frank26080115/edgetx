@@ -42,45 +42,8 @@
   #include "flysky_gimbal_driver.h"
 #endif
 
-enum PowerReason {
-  SHUTDOWN_REQUEST = 0xDEADBEEF,
-  SOFTRESET_REQUEST = 0xCAFEDEAD,
-};
-
-constexpr uint32_t POWER_REASON_SIGNATURE = 0x0178746F;
-
-bool UNEXPECTED_SHUTDOWN()
-{
-#if defined(SIMU) || defined(NO_UNEXPECTED_SHUTDOWN)
-  return false;
-#else
-  if (WAS_RESET_BY_WATCHDOG())
-    return true;
-  else if (WAS_RESET_BY_SOFTWARE())
-    return RTC->BKP0R != SOFTRESET_REQUEST;
-  else
-    return RTC->BKP1R == POWER_REASON_SIGNATURE && RTC->BKP0R != SHUTDOWN_REQUEST;
-#endif
-}
-
-void SET_POWER_REASON(uint32_t value)
-{
-  RTC->BKP0R = value;
-  RTC->BKP1R = POWER_REASON_SIGNATURE;
-}
-
 HardwareOptions hardwareOptions;
 bool boardBacklightOn = false;
-
-void watchdogInit(unsigned int duration)
-{
-  IWDG->KR = 0x5555;      // Unlock registers
-  IWDG->PR = 3;           // Divide by 32 => 1kHz clock
-  IWDG->KR = 0x5555;      // Unlock registers
-  IWDG->RLR = duration;
-  IWDG->KR = 0xAAAA;      // reload
-  IWDG->KR = 0xCCCC;      // start
-}
 
 #if !defined(BOOT)
 #include "opentx.h"
@@ -146,7 +109,8 @@ void boardInit()
   __enable_irq();
 
 #if defined(DEBUG)
-  serialInit(SP_AUX1, UART_MODE_DEBUG);
+  serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
+  serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
 #endif
 
   TRACE("\nHorus board started :)");
@@ -195,6 +159,9 @@ void boardInit()
 #endif
 
   ledBlue();
+#if !defined(LCD_VERTICAL_INVERT)
+  lcdSetInitalFrameBuffer(lcdFront->getData());
+#endif
 }
 #endif
 
@@ -227,7 +194,7 @@ void boardOff()
   hapticDone();
 
   rtcDisableBackupReg();
-  RTC->BKP0R = SHUTDOWN_REQUEST;
+  // RTC->BKP0R = SHUTDOWN_REQUEST;
 
   pwrOff();
 
@@ -254,6 +221,5 @@ void boardOff()
 
 bool isBacklightEnabled()
 {
-  if (globalData.unexpectedShutdown) return true;
   return boardBacklightOn;
 }

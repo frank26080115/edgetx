@@ -25,7 +25,7 @@
 #include "libopenui.h"
 #include "theme.h"
 
-#include "watchdog_driver.h"
+#include "hal/watchdog_driver.h"
 
 coord_t drawStringWithIndex(BitmapBuffer * dc, coord_t x, coord_t y, const char * str, int idx, LcdFlags flags, const char * prefix, const char * suffix)
 {
@@ -185,7 +185,7 @@ void drawShutdownAnimation(uint32_t duration, uint32_t totalDuration,
 
 void drawFatalErrorScreen(const char * message)
 {
-  backlightEnable(100);
+  backlightEnable(BACKLIGHT_LEVEL_MAX);
   lcdInitDirectDrawing();
   lcd->clear(COLOR2FLAGS(BLACK));
   lcd->drawText(LCD_W/2, LCD_H/2-20, message, FONT(XL)|CENTERED|COLOR2FLAGS(WHITE));
@@ -234,7 +234,7 @@ void drawCurveRef(BitmapBuffer * dc, coord_t x, coord_t y, const CurveRef & curv
         break;
 
       case CURVE_REF_FUNC:
-        dc->drawTextAtIndex(x, y, STR_VCURVEFUNC, curve.value, flags);
+        dc->drawText(x, y, STR_VCURVEFUNC[curve.value], flags);
         break;
 
       case CURVE_REF_CUSTOM:
@@ -294,34 +294,33 @@ void drawTrimMode(BitmapBuffer * dc, coord_t x, coord_t y, uint8_t phase, uint8_
 
 void drawDate(BitmapBuffer * dc, coord_t x, coord_t y, TelemetryItem & telemetryItem, LcdFlags att)
 {
-  // TODO
+  bool doTwoLines = false;
+  coord_t ox = x;
+
   if (att & FONT(XL)) {
-    x -= 42;
     att &= ~FONT_MASK;
-    x = dc->drawNumber(x, y, telemetryItem.datetime.day, att|LEADING0|LEFT, 2);
-    x = dc->drawText(x - 1, y, "-", att);
-    x = dc->drawNumber(x - 1, y, telemetryItem.datetime.month, att|LEFT, 2);
-    x = dc->drawText(x - 1, y, "-", att);
-    x = dc->drawNumber(x - 1, y, telemetryItem.datetime.year-2000, att|LEFT);
-    y += FH;
-    /* TODO dc->drawNumber(x, y, telemetryItem.datetime.hour, att|LEADING0|LEFT, 2);
-    dc->drawText(lcdNextPos, y, ":", att);
-    dc->drawNumber(lcdNextPos, y, telemetryItem.datetime.min, att|LEADING0|LEFT, 2);
-    dc->drawText(lcdNextPos, y, ":", att);
-    dc->drawNumber(lcdNextPos, y, telemetryItem.datetime.sec, att|LEADING0|LEFT, 2); */
+    doTwoLines = true;
   }
-  else {
-    x = dc->drawNumber(x, y, telemetryItem.datetime.day, att|LEADING0|LEFT, 2);
-    x = dc->drawText(x - 1, y, "-", att);
-    x = dc->drawNumber(x, y, telemetryItem.datetime.month, att|LEFT, 2);
-    x = dc->drawText(x - 1, y, "-", att);
-    x = dc->drawNumber(x, y, telemetryItem.datetime.year-2000, att|LEFT);
-    x = dc->drawNumber(x + 11, y, telemetryItem.datetime.hour, att|LEADING0|LEFT, 2);
-    x = dc->drawText(x, y, ":", att);
-    x = dc->drawNumber(x, y, telemetryItem.datetime.min, att|LEADING0|LEFT, 2);
-    x = dc->drawText(x, y, ":", att);
-    dc->drawNumber(x, y, telemetryItem.datetime.sec, att|LEADING0|LEFT, 2);
+
+  LcdFlags fl = att|LEADING0|LEFT;
+
+  x = dc->drawNumber(x, y, telemetryItem.datetime.year, fl,4);
+  x = dc->drawText(x, y, "-", att);
+  x = dc->drawNumber(x, y, telemetryItem.datetime.month, fl, 2);
+  x = dc->drawText(x, y, "-", att);
+  x = dc->drawNumber(x, y, telemetryItem.datetime.day, fl, 2);
+  
+  if (doTwoLines) {
+    y += FH;  x = ox;
+  } else {
+    x += 11;
   }
+
+  x = dc->drawNumber(x, y, telemetryItem.datetime.hour, fl, 2);
+  x = dc->drawText(x, y, ":", att);
+  x = dc->drawNumber(x, y, telemetryItem.datetime.min, fl, 2);
+  x = dc->drawText(x, y, ":", att);
+  dc->drawNumber(x, y, telemetryItem.datetime.sec, fl, 2);
 }
 
 coord_t drawGPSCoord(BitmapBuffer * dc, coord_t x, coord_t y, int32_t value, const char * direction, LcdFlags flags, bool seconds=true)
@@ -462,11 +461,11 @@ void drawSourceCustomValue(BitmapBuffer * dc, coord_t x, coord_t y, source_t sou
     dc->drawNumber(x, y, calcRESXto100(value), flags);
   }
   else if (source <= MIXSRC_LAST_CH) {
-#if defined(PPM_UNIT_PERCENT_PREC1)
-    dc->drawNumber(x, y, calcRESXto1000(value), flags|PREC1);
-#else
-    dc->drawNumber(x, y, calcRESXto100(value), flags);
-#endif
+    if (g_eeGeneral.ppmunit == PPM_PERCENT_PREC1) {
+      dc->drawNumber(x, y, calcRESXto1000(value), flags|PREC1);
+    } else {
+      dc->drawNumber(x, y, calcRESXto100(value), flags);
+    }
   }
   else {
     dc->drawNumber(x, y, value, flags);

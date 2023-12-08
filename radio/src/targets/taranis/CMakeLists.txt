@@ -1,5 +1,4 @@
 option(SHUTDOWN_CONFIRMATION "Shutdown confirmation" OFF)
-option(LCD_DUAL_BUFFER "Dual LCD Buffer" OFF)
 option(PXX1 "PXX1 protocol support" ON)
 option(PXX2 "PXX2 protocol support" OFF)
 option(AFHDS3 "AFHDS3 TX Module" OFF)
@@ -73,6 +72,7 @@ elseif(PCB STREQUAL X9D+)
     set(ROTARY_ENCODER YES)
     set(INTERNAL_MODULE_SERIAL YES)
     set(MODULE_SIZE_STD YES)
+    set(FLYSKY_GIMBAL ON)
   else()
     set(DEFAULT_INTERNAL_MODULE XJT_PXX1 CACHE STRING "Default internal module")
     set(FLAVOUR x9d+)
@@ -225,13 +225,31 @@ elseif(PCB STREQUAL X7)
     add_definitions(-DMANUFACTURER_RADIOMASTER)
     set(PXX2 ON)
     set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
+  elseif(PCBREV STREQUAL MT12)
+    set(DEFAULT_INTERNAL_MODULE CROSSFIRE CACHE STRING "Default internal module")
+    set(INTERNAL_MODULE_SERIAL YES)
+    set(MODULE_SIZE_SML YES)
+    set(FLAVOUR mt12)
+    set(NAVIGATION_TYPE x7)
+    set(CPU_TYPE_FULL STM32F407xG)
+    set(ROTARY_ENCODER YES)
+    set(BLUETOOTH NO)
+    set(USB_CHARGER YES)
+    set(AUX_SERIAL NO)
+    set(HELI NO)
+    add_definitions(-DRADIO_MT12)
+    add_definitions(-DMANUFACTURER_RADIOMASTER)
+    set(PXX2 ON)
+    set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
+    set(LUA_MIXER YES)
+    set(FLEXSW "2" CACHE STRING "Max flex inputs usable as switches")
   elseif(PCBREV STREQUAL BOXER)
     set(DEFAULT_INTERNAL_MODULE CROSSFIRE CACHE STRING "Default internal module")
     set(INTERNAL_MODULE_SERIAL YES)
     set(MODULE_SIZE_STD YES)
     set(FLAVOUR boxer)
     set(NAVIGATION_TYPE x7)
-    set(CPU_TYPE_FULL STM32F407xE)
+    set(CPU_TYPE_FULL STM32F407xG)
     set(ROTARY_ENCODER YES)
     set(USB_CHARGER YES)
     add_definitions(-DRADIO_BOXER)
@@ -441,26 +459,24 @@ elseif(PCB STREQUAL XLITES)
   add_definitions(-DMANUFACTURER_FRSKY)
 endif()
 
+message("CPU_TYPE_FULL = ${CPU_FULL_TYPE}")
 if(CPU_TYPE_FULL STREQUAL STM32F205xE)
   set(CPU_TYPE STM32F2)
   add_definitions(-DSTM32F205xx)
-  set(LINKER_SCRIPT targets/taranis/stm32f2_flash.ld)
-elseif (CPU_TYPE_FULL STREQUAL STM32F407xE)
+  set(TARGET_LINKER_DIR stm32f20x)
+elseif ((CPU_TYPE_FULL STREQUAL STM32F407xE) OR (CPU_TYPE_FULL STREQUAL STM32F407xG))
   set(CPU_TYPE STM32F4)
-  add_definitions(-DSTM32F407xx)
-  add_definitions(-DSTM32F40_41xxx -DSTM32F407xx)
-  set(LINKER_SCRIPT targets/taranis/stm32f4_flash.ld)
+  add_definitions(-DSTM32F40_41xxx -DSTM32F407xx -DCCMRAM)
+  set(TARGET_LINKER_DIR stm32f40x)
+  if (CPU_TYPE_FULL STREQUAL STM32F407xG)
+    set(TARGET_FLASH_SIZE 1M)
+  endif()
 elseif (CPU_TYPE_FULL STREQUAL STM32F413xG)
   set(CPU_TYPE STM32F4)
-  add_definitions(-DSTM32F413xx)
   add_definitions(-DSTM32F40_41xxx -DSTM32F413xx)
-  set(LINKER_SCRIPT targets/taranis/stm32f413_flash.ld)
+  set(TARGET_LINKER_DIR stm32f413)
 else()
   message( FATAL_ERROR "Unknown CPU_TYPE_FULL" )
-endif()
-
-if(NOT PCB STREQUAL PCBXLITE)
-  add_definitions(-DHARDWARE_TRAINER_JACK)
 endif()
 
 if(ENABLE_SERIAL_PASSTHROUGH)
@@ -533,10 +549,6 @@ set(SDCARD YES)
 set(TARGET_DIR taranis)
 set(PPM_LIMITS_SYMETRICAL YES)
 
-if(SPLASH STREQUAL OFF)
-  message(FATAL_ERROR "Option SPLASH=OFF not supported on Taranis")
-endif()
-
 add_definitions(-DPCBTARANIS)
 add_definitions(-DAUDIO -DVOICE )
 
@@ -584,24 +596,21 @@ if(PCB STREQUAL XLITE OR PCB STREQUAL XLITES OR PCBREV STREQUAL COMMANDO8)
     targets/common/arm/stm32/sticks_pwm_driver.cpp)
 endif()
 
+if(PCBREV STREQUAL MT12)
+  set(FIRMWARE_SRC
+          ${FIRMWARE_SRC}
+          targets/common/arm/stm32/stm32_ws2812.cpp
+          boards/generic_stm32/rgb_leds.cpp)
+endif()
+
 set(FIRMWARE_SRC
   ${FIRMWARE_SRC}
   hal/adc_driver.cpp
   targets/common/arm/loadboot.cpp
   targets/common/arm/stm32/heartbeat_driver.cpp
-  targets/common/arm/stm32/timers_driver.cpp
   targets/common/arm/stm32/audio_dac_driver.cpp
-  targets/common/arm/stm32/pwr_driver.cpp
-  targets/common/arm/stm32/stm32_exti_driver.cpp
-  targets/common/arm/stm32/stm32_pulse_driver.cpp
-  targets/common/arm/stm32/stm32_usart_driver.cpp
-  targets/common/arm/stm32/trainer_driver.cpp
   targets/common/arm/stm32/sdcard_spi.cpp
   targets/common/arm/stm32/diskio_spi.cpp
   )
-
-if(LCD_DUAL_BUFFER)
-  add_definitions(-DLCD_DUAL_BUFFER)
-endif()
 
 set(RADIO_DEPENDENCIES ${RADIO_DEPENDENCIES} ${BITMAPS_TARGET})

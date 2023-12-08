@@ -23,15 +23,6 @@
 #include "yaml_rawsource.h"
 #include "eeprominterface.h"
 
-static bool fnHasEnable(AssignFunc fn)
-{
-  return (fn <= FuncInstantTrim)
-    || (fn >= FuncReset && fn <= FuncSetTimerLast)
-    || (fn >= FuncAdjustGV1 && fn <= FuncBindExternalModule)
-    || (fn == FuncVolume)
-    || (fn == FuncBacklight);
-}
-
 static bool fnHasRepeat(AssignFunc fn)
 {
   return (fn == FuncPlayPrompt)
@@ -39,7 +30,8 @@ static bool fnHasRepeat(AssignFunc fn)
     || (fn == FuncPlayHaptic)
     || (fn == FuncPlaySound)
     || (fn == FuncSetScreen)
-    || (fn == FuncPlayScript);
+    || (fn == FuncPlayScript)
+    || (fn == FuncRGBLed);
 }
 
 static const YamlLookupTable customFnLut = {
@@ -68,6 +60,7 @@ static const YamlLookupTable customFnLut = {
   {  FuncDisableTouch, "DISABLE_TOUCH"  },
   {  FuncSetScreen, "SET_SCREEN"},
   {  FuncDisableAudioAmp, "DISABLE_AUDIO_AMP"  },
+  {  FuncRGBLed, "RGB_LED"  },
 };
 
 static const YamlLookupTable trainerLut = {
@@ -172,6 +165,7 @@ Node convert<CustomFunctionData>::encode(const CustomFunctionData& rhs)
     def += temp;
   } break;
   case FuncPlayScript:
+  case FuncRGBLed:
     def += std::string(rhs.paramarm);
     break;
   case FuncReset:
@@ -223,16 +217,16 @@ Node convert<CustomFunctionData>::encode(const CustomFunctionData& rhs)
     break;
   }
 
-  if (fnHasEnable(rhs.func)) {
-    if (add_comma) {
-      def += ",";
-    }
-    def += std::to_string((int)rhs.enabled);
-  } else if(fnHasRepeat(rhs.func)) {
-    if (add_comma) {
-      def += ",";
-    }
-    if (rhs.func == FuncPlayScript) {
+  if (add_comma) {
+    def += ",";
+  }
+
+  def += std::to_string((int)rhs.enabled);
+
+  if(fnHasRepeat(rhs.func)) {
+    def += ",";
+
+    if (rhs.func == FuncPlayScript || rhs.func == FuncRGBLed) {
       def += ((rhs.repeatParam == 0) ? "On" : "1x");
     } else if (rhs.repeatParam == 0) {
       def += "1x";
@@ -297,6 +291,7 @@ bool convert<CustomFunctionData>::decode(const Node& node,
     file_str.resize(getCurrentFirmware()->getCapability(VoicesMaxLength));
     strncpy(rhs.paramarm, file_str.c_str(), sizeof(rhs.paramarm) - 1);
     } break;
+  case FuncRGBLed:
   case FuncPlayScript: {
     std::string file_str;
     getline(def, file_str, ',');
@@ -381,14 +376,28 @@ bool convert<CustomFunctionData>::decode(const Node& node,
     def.ignore();
   }
 
-  if (fnHasEnable(rhs.func)) {
-    int en = 0;
-    def >> en;
-    rhs.enabled = en;
-  } else if(fnHasRepeat(rhs.func)) {
-    std::string repeat;
-    getline(def, repeat);
-    if (rhs.func == FuncPlayScript) {
+  // Need to handle older YAML files where only one of enabled/repeat was present
+  std::string en, repeat;
+  getline(def, en, ',');
+  getline(def, repeat);
+
+  if (repeat.empty()) {
+    // Only one value left to parse
+    if (fnHasRepeat(rhs.func)) {
+      // Assume it is repeat and set enabled to true
+      repeat = en;
+      rhs.enabled = 1;
+    } else {
+      // Func does not have repeat
+      rhs.enabled = en[0] == '1' ? 1 : 0;
+    }
+  } else {
+    // Two values - first is 'enabled' flag
+    rhs.enabled = en[0] == '1' ? 1 : 0;
+  }
+
+  if(fnHasRepeat(rhs.func)) {
+    if (rhs.func == FuncPlayScript || rhs.func == FuncRGBLed) {
       rhs.repeatParam = (repeat == "1x") ? 1 : 0;
     } else if (repeat == "1x") {
       rhs.repeatParam = 0;

@@ -30,9 +30,9 @@
 
 #include "board_common.h"
 #include "hal.h"
-#include "hal/serial_port.h"
 
-#include "watchdog_driver.h"
+#include "hal/serial_port.h"
+#include "hal/watchdog_driver.h"
 
 #if defined(HARDWARE_TOUCH)
 #include "tp_gt911.h"
@@ -173,8 +173,8 @@ void SDRAM_Init();
   #define BATTERY_MAX       115 // 11.5V
 #endif
 
-bool UNEXPECTED_SHUTDOWN();
-void SET_POWER_REASON(uint32_t value);
+// bool UNEXPECTED_SHUTDOWN();
+// void SET_POWER_REASON(uint32_t value);
 
 #if defined(__cplusplus) && !defined(SIMU)
 extern "C" {
@@ -210,20 +210,12 @@ void ledBlue();
 #endif
 
 // LCD driver
-#define LCD_W                          480
-#define LCD_H                          272
-#define LCD_PHYS_H                     LCD_H
-#define LCD_PHYS_W                     LCD_W
-#define LCD_DEPTH                      16
+
+void lcdSetInitalFrameBuffer(void* fbAddress);
 
 void lcdInit();
 void lcdCopy(void * dest, void * src);
 
-void DMAFillRect(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
-void DMACopyBitmap(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint16_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h);
-void DMACopyAlphaBitmap(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint16_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h);
-void DMACopyAlphaMask(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint8_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h, uint16_t bg_color);
-void DMABitmapConvert(uint16_t * dest, const uint8_t * src, uint16_t w, uint16_t h, uint32_t format);
 
 #define lcdOff()              backlightEnable(0) /* just disable the backlight */
 
@@ -246,21 +238,19 @@ void backlightEnable(uint8_t dutyCycle);
 void backlightFullOn();
 bool isBacklightEnabled();
 
-#define BACKLIGHT_ENABLE()                                               \
-  {                                                                      \
-    boardBacklightOn = true;                                             \
-    backlightEnable(globalData.unexpectedShutdown                        \
-                        ? BACKLIGHT_LEVEL_MAX                            \
-                        : BACKLIGHT_LEVEL_MAX - currentBacklightBright); \
+#define BACKLIGHT_ENABLE()                                         \
+  {                                                                \
+    boardBacklightOn = true;                                       \
+    backlightEnable(BACKLIGHT_LEVEL_MAX - currentBacklightBright); \
   }
-#define BACKLIGHT_DISABLE()                                                 \
-  {                                                                         \
-    boardBacklightOn = false;                                               \
-    backlightEnable(globalData.unexpectedShutdown ? BACKLIGHT_LEVEL_MAX     \
-                    : ((g_eeGeneral.blOffBright == BACKLIGHT_LEVEL_MIN) &&  \
-                       (g_eeGeneral.backlightMode != e_backlight_mode_off)) \
-                        ? 0                                                 \
-                        : g_eeGeneral.blOffBright);                         \
+
+#define BACKLIGHT_DISABLE()                                               \
+  {                                                                       \
+    boardBacklightOn = false;                                             \
+    backlightEnable(((g_eeGeneral.blOffBright == BACKLIGHT_LEVEL_MIN) &&  \
+                     (g_eeGeneral.backlightMode != e_backlight_mode_off)) \
+                        ? 0                                               \
+                        : g_eeGeneral.blOffBright);                       \
   }
 
 #if !defined(SIMU)

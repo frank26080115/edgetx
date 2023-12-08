@@ -59,6 +59,22 @@
 #define CLOCK_X       53
 #define CLOCK_Y       57
 
+#if defined(ASTERISK) || !defined(USE_WATCHDOG) || defined(LOG_TELEMETRY) || \
+    defined(LOG_BLUETOOTH) || defined(DEBUG_LATENCY)
+
+static bool isAsteriskDisplayed() {
+  return true;
+}
+
+#else
+
+#include "hal/abnormal_reboot.h"
+
+static bool isAsteriskDisplayed() {
+  return UNEXPECTED_SHUTDOWN();
+}
+#endif
+
 void drawExternalAntennaAndRSSI()
 {
 #if defined(INTERNAL_MODULE_PXX1) && defined(EXTERNAL_ANTENNA)
@@ -81,8 +97,8 @@ void drawExternalAntennaAndRSSI()
 
 void drawPotsBars()
 {
-  uint8_t max_pots = adcGetMaxInputs(ADC_INPUT_POT);
-  uint8_t offset = adcGetInputOffset(ADC_INPUT_POT);
+  uint8_t max_pots = adcGetMaxInputs(ADC_INPUT_FLEX);
+  uint8_t offset = adcGetInputOffset(ADC_INPUT_FLEX);
   uint8_t configured_pots = 0;
 
   for (uint8_t i = 0; i < max_pots; i++) {
@@ -517,13 +533,13 @@ void menuMainView(event_t event)
 #else
           y0 = i / 4 * FH + 40;
 #endif
-#if defined(PPM_UNIT_US)
-          lcdDrawNumber(x0 + 4 * FW, y0, PPM_CH_CENTER(chan) + val / 2, RIGHT);
-#elif defined(PPM_UNIT_PERCENT_PREC1)
-          lcdDrawNumber(x0 + 4 * FW, y0, calcRESXto1000(val), RIGHT | PREC1);
-#else
-          lcdDrawNumber(x0+4*FW , y0, calcRESXto1000(val)/10, RIGHT); // G: Don't like the decimal part*
-#endif
+          if (g_eeGeneral.ppmunit == PPM_US) {
+            lcdDrawNumber(x0 + 4 * FW, y0, PPM_CH_CENTER(chan) + val / 2, RIGHT);
+          } else if (g_eeGeneral.ppmunit == PPM_PERCENT_PREC1) {
+            lcdDrawNumber(x0 + 4 * FW, y0, calcRESXto1000(val), RIGHT | PREC1);
+          } else {
+            lcdDrawNumber(x0+4*FW , y0, calcRESXto1000(val)/10, RIGHT); // G: Don't like the decimal part*
+          }
         }
         else {
           constexpr coord_t WBAR2 = (50 / 2);
@@ -567,14 +583,14 @@ void menuMainView(event_t event)
         uint8_t configured_switches = 0;
 
         for (uint8_t i = 0; i < switches; i++) {
-          if (SWITCH_EXISTS(i)) {
+          if (SWITCH_EXISTS(i) && !switchIsFlex(i)) {
             configured_switches ++;
           }
         }
 
         if (configured_switches < 9) {
           for (int i = 0; i < switches; ++i) {
-            if (SWITCH_EXISTS(i)) {
+            if (SWITCH_EXISTS(i) && !switchIsFlex(i)) {
               auto switch_display = switchGetDisplayPosition(i);
               if (switch_display.row >= 3) {
                 drawSmallSwitch(switch_display.col == 0 ? 28 : 16 * FW + 1,
@@ -594,7 +610,7 @@ void menuMainView(event_t event)
         }
         else {
           for (int i = 0; i < switches; ++i) {
-            if (SWITCH_EXISTS(i)) {
+            if (SWITCH_EXISTS(i) && !switchIsFlex(i)) {
               auto switch_display = switchGetDisplayPosition(i);
               coord_t x = (switch_display.col == 0 ? 8 : 96) + switch_display.row * 5;
               drawSmallSwitch(x, 5 * FH + 1, 4, i);

@@ -35,7 +35,6 @@
 #define USB_SW_TO_INTERNAL_MODULE() GPIO_SetBits(USB_SW_GPOIO, USB_SW_PIN);
 #define USB_SW_TO_MCU() GPIO_ResetBits(USB_SW_GPOIO, USB_SW_PIN);
 
-#define SELECTED_COLOR (INVERS | COLOR_THEME_SECONDARY1)
 #define DEFAULT_PADDING 28
 #define DOUBLE_PADDING  56
 #define MESSAGE_TOP     (LCD_H - (2*DOUBLE_PADDING))
@@ -49,11 +48,6 @@ const uint8_t __bmp_usb_plugged[] {
 #include "bmp_usb_plugged.lbm"
 };
 LZ4Bitmap BMP_USB_PLUGGED(BMP_ARGB4444, __bmp_usb_plugged);
-
-const uint8_t __bmp_background[] {
-#include "bmp_background.lbm"
-};
-LZ4Bitmap BMP_BACKGROUND(BMP_ARGB4444, __bmp_background);
 
 #define BL_GREEN      COLOR2FLAGS(RGB(73, 219, 62))
 #define BL_RED        COLOR2FLAGS(RGB(229, 32, 30))
@@ -86,28 +80,7 @@ static void bootloaderDrawFooter()
 
 static void bootloaderDrawBackground()
 {
-  // we have plenty of memory, let's cache that background
-  static BitmapBuffer* _background = nullptr;
-
-  if (!_background) {
-    _background = new BitmapBuffer(BMP_RGB565, LCD_W, LCD_H);
-    
-    for (int i=0; i<LCD_W; i += BMP_BACKGROUND.width()) {
-      for (int j=0; j<LCD_H; j += BMP_BACKGROUND.height()) {
-        BitmapBuffer* bg_bmp = &BMP_BACKGROUND;
-        _background->drawBitmap(i, j, bg_bmp);
-      }
-    }
-  }
-
-  if (_background) {
-    lcd->drawBitmap(0, 0, _background);
-    lcd->drawFilledRect(0, 0, LCD_W, LCD_H, SOLID,
-                        COLOR2FLAGS(BLACK), OPACITY(4));
-  }
-  else {
-    lcd->clear(BL_BACKGROUND);
-  }
+  lcd->clear(BL_BACKGROUND);
 }
 
 void bootloaderDrawScreen(BootloaderState st, int opt, const char* str)
@@ -208,7 +181,7 @@ void bootloaderDrawScreen(BootloaderState st, int opt, const char* str)
                         MESSAGE_TOP + DEFAULT_PADDING, tag.flavour,
                         BL_FOREGROUND);
 
-          lcd->drawText(LCD_W - DOUBLE_PADDING, MESSAGE_TOP - 10,
+          lcd->drawText(LCD_W / 4 + DEFAULT_PADDING - 90, MESSAGE_TOP,
                         LV_SYMBOL_OK, BL_GREEN);
         }
       }
@@ -243,7 +216,7 @@ void bootloaderDrawScreen(BootloaderState st, int opt, const char* str)
       bootloaderDrawTitle(TR_BL_RF_USB_ACCESS);
 
       lcd->drawText(62, 75, LV_SYMBOL_USB, BL_FOREGROUND);
-      coord_t pos = lcd->drawText(84, 75, rfUsbAccess ? TR_BL_DISABLE : TR_BL_ENABLE, BL_FOREGROUND);
+      coord_t pos = lcd->drawText(84, 75, rfUsbAccess ? TR_DISABLE : TR_ENABLE, BL_FOREGROUND);
       pos += 8;
 
       lcd->drawText(60, 110, LV_SYMBOL_NEW_LINE, BL_FOREGROUND);

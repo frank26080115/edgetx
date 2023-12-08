@@ -19,15 +19,19 @@
  * GNU General Public License for more details.
  */
 
+#include "stm32_ws2812.h"
+
 #include "hal/adc_driver.h"
 #include "hal/trainer_driver.h"
 #include "hal/switch_driver.h"
 #include "hal/module_port.h"
+#include "hal/abnormal_reboot.h"
 
 #include "board.h"
 #include "boards/generic_stm32/module_ports.h"
 #include "boards/generic_stm32/intmodule_heartbeat.h"
 #include "boards/generic_stm32/analog_inputs.h"
+#include "boards/generic_stm32/rgb_leds.h"
 
 #include "debug.h"
 #include "rtc.h"
@@ -59,25 +63,7 @@ extern "C" {
 }
 #endif
 
-#if !defined(BOOT)
-bool UNEXPECTED_SHUTDOWN()
-{
-  return WAS_RESET_BY_WATCHDOG()
-    || g_eeGeneral.unexpectedShutdown;
-}
-#endif
-
 HardwareOptions hardwareOptions;
-
-void watchdogInit(unsigned int duration)
-{
-  IWDG->KR = 0x5555;      // Unlock registers
-  IWDG->PR = 3;           // Divide by 32 => 1kHz clock
-  IWDG->KR = 0x5555;      // Unlock registers
-  IWDG->RLR = duration;
-  IWDG->KR = 0xAAAA;      // reload
-  IWDG->KR = 0xCCCC;      // start
-}
 
 #if !defined(BOOT)
 
@@ -224,8 +210,19 @@ void boardInit()
   timersInit();
   usbInit();
 
+#if defined(LED_STRIP_GPIO)
+  extern const stm32_pulse_timer_t _led_timer;
+
+  ws2812_init(&_led_timer, LED_STRIP_LENGTH);
+  for (uint8_t i = 0; i < LED_STRIP_LENGTH; i++) {
+    ws2812_set_color(i, 0, 0, 50);
+  }
+  ws2812_update(&_led_timer);
+#endif
+
 #if defined(DEBUG)
-  serialInit(SP_AUX1, UART_MODE_DEBUG);
+  serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
+  serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
 #endif
 
 #if defined(HAPTIC)

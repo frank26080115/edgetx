@@ -17,7 +17,6 @@ file(GLOB WIDGETS_SRC RELATIVE ${RADIO_SRC_DIR}/gui/colorlcd
 
 set(GUI_SRC
   ${GUI_SRC}
-  str_functions.cpp
   colors.cpp
   lcd.cpp
   splash.cpp
@@ -37,7 +36,6 @@ set(GUI_SRC
   listbox.cpp
   tabsgroup.cpp
   page.cpp
-  fab_button.cpp
   select_fab_button.cpp
   select_fab_carousel.cpp
   topbar.cpp

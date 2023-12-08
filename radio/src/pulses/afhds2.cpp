@@ -44,7 +44,7 @@ static void* afhds2Init(uint8_t module)
   // serial port setup
   resetPulsesAFHDS2();
   auto mod_st = modulePortInitSerial(module, ETX_MOD_PORT_UART,
-                                     &afhds2SerialInitParams);
+                                     &afhds2SerialInitParams, false);
 
   // mixer setup
   mixerSchedulerSetPeriod(module, AFHDS2_PERIOD);
@@ -93,4 +93,6 @@ const etx_proto_driver_t Afhds2InternalDriver = {
   .deinit = afhds2DeInit,
   .sendPulses = afhds2SendPulses,
   .processData = afhds2ProcessData,
+  .processFrame = nullptr,
+  .onConfigChange = nullptr,
 };

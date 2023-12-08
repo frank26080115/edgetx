@@ -125,6 +125,9 @@ do
         pocket)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=POCKET"
             ;;
+        mt12)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=MT12"
+            ;;
         tlite)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=TLITE"
             ;;
@@ -187,6 +190,12 @@ do
             ;;
         el18)
             BUILD_OPTIONS+="-DPCB=NV14 -DPCBREV=EL18"
+            ;;
+        pl18)
+            BUILD_OPTIONS+="-DPCB=PL18"
+            ;;
+        pl18ev)
+            BUILD_OPTIONS+="-DPCB=PL18 -DPCBREV=PL18EV"
             ;;
         commando8)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=COMMANDO8"

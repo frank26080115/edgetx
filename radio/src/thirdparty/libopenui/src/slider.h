@@ -35,9 +35,14 @@ class Slider : public Window
     if (_setValue != nullptr) _setValue(limit(vmin, value, vmax));
   }
 
+  void paint(BitmapBuffer *) override;
+
+  void update();
+
  protected:
   int vmin;
   int vmax;
+  lv_obj_t* slider;
   std::function<int()> _getValue;
   std::function<void(int)> _setValue;
 };

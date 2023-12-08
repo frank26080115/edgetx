@@ -21,6 +21,7 @@
 
 #include "opentx.h"
 #include "switches.h"
+#include "boards/generic_stm32/rgb_leds.h"
 
 #if defined(COLORLCD)
 void setRequestedMainView(uint8_t view);
@@ -113,7 +114,7 @@ bool isRepeatDelayElapsed(const CustomFunctionData * functions, CustomFunctionsC
 {
   const CustomFunctionData * cfn = &functions[index];
   tmr10ms_t tmr10ms = get_tmr10ms();
-  uint8_t repeatParam = CFN_PLAY_REPEAT(cfn);
+  int8_t repeatParam = CFN_PLAY_REPEAT(cfn);
   if (!IS_SILENCE_PERIOD_ELAPSED() && repeatParam == CFN_PLAY_REPEAT_NOSTART) {
     functionsContext.lastFunctionTime[index] = tmr10ms;
   }
@@ -155,12 +156,9 @@ void evalFunctions(const CustomFunctionData * functions, CustomFunctionsContext 
     if (swtch) {
       MASK_CFN_TYPE switch_mask = ((MASK_CFN_TYPE)1 << i);
 
-      bool active = getSwitch(
-          swtch, IS_PLAY_FUNC(CFN_FUNC(cfn)) ? GETSWITCH_MIDPOS_DELAY : 0);
-
-      if (HAS_ENABLE_PARAM(CFN_FUNC(cfn))) {
-        active &= (bool)CFN_ACTIVE(cfn);
-      }
+      bool active = getSwitch(swtch, IS_PLAY_FUNC(CFN_FUNC(cfn)) ? GETSWITCH_MIDPOS_DELAY : 0);
+      if (CFN_ACTIVE(cfn) == 0)
+        active = false;
 
       if (active) {
         switch (CFN_FUNC(cfn)) {
@@ -393,12 +391,8 @@ void evalFunctions(const CustomFunctionData * functions, CustomFunctionsContext 
 
             getvalue_t raw = getValue(CFN_PARAM(cfn));
 #if defined(COLORLCD)
-            if (raw == -1024)
-              requiredBacklightBright = 100;
-            else
-              requiredBacklightBright =
-                  (1024 - raw) * (BACKLIGHT_LEVEL_MAX - BACKLIGHT_LEVEL_MIN) /
-                  2048;
+            requiredBacklightBright = BACKLIGHT_LEVEL_MAX - (g_eeGeneral.blOffBright + 
+                ((1024 + raw) * ((BACKLIGHT_LEVEL_MAX - g_eeGeneral.backlightBright) - g_eeGeneral.blOffBright) / 2048));
 #elif defined(OLED_SCREEN)
             requiredBacklightBright = (raw + 1024) * 254 / 2048;
 #else
@@ -542,6 +536,8 @@ const char* funcGetLabel(uint8_t func)
     case FUNC_DISABLE_AUDIO_AMP:
       return STR_SF_DISABLE_AUDIO_AMP;
 #endif
+  case FUNC_RGB_LED:
+    return STR_SF_RGBLEDS;
 #if defined(DEBUG)
   case FUNC_TEST:
     return STR_SF_TEST;

@@ -20,7 +20,9 @@
  */
 
 #include "opentx.h"
+#include "opentx_constants.h"
 #include "yaml_bits.h"
+#include "yaml_node.h"
 #include "yaml_tree_walker.h"
 
 #include "pulses/multi.h"
@@ -36,7 +38,7 @@
 // ========
 //
 //  If any of these static_assert() fails, you need to check that
-//  the functions bellow are still applicable.
+//  the functions below are still applicable.
 //
 //  Please note that the sizes used here are those from the v220 format
 //  (see storage/conversions/yaml/datastructs_220.h)
@@ -126,6 +128,27 @@ static int _legacy_mix_src(const char* val, uint8_t val_len)
 }
 
 extern const struct YamlIdStr enum_MixSources[];
+
+// Find next ',' separator, return length up to; but not inclding separator.
+uint8_t find_sep(const char* val, uint8_t val_len)
+{
+  // find ","
+  const char* sep = (const char *)memchr(val, ',', val_len);
+  if (sep) {
+    // Special case - check for '(x,y)' in string. If found skip past closing bracket
+    const char* bkt = (const char *)memchr(val, '(', val_len);
+    if (bkt && bkt < sep) {
+      // Found '(' before ','
+      bkt = (const char *)memchr(val, ')', val_len);
+      if (bkt && bkt > sep) {
+        // Found ')' after ','
+        sep = (const char *)memchr(bkt, ',', val_len-(bkt-val));
+      }
+    }
+  }
+  // Return length up to ',' (or full length if not found)
+  return sep ? sep - val : val_len;
+}
 
 // sources: parse/output
 //  - lua(script#,n): LUA mix outputs
@@ -254,13 +277,8 @@ static uint32_t r_mixSrcRaw(const YamlNode* node, const char* val, uint8_t val_l
     auto idx = analogLookupCanonicalIdx(ADC_INPUT_MAIN, val, val_len);
     if (idx >= 0) return idx + MIXSRC_FIRST_STICK;
 
-    idx = analogLookupCanonicalIdx(ADC_INPUT_POT, val, val_len);
+    idx = analogLookupCanonicalIdx(ADC_INPUT_FLEX, val, val_len);
     if (idx >= 0) return idx + MIXSRC_FIRST_POT;
-
-#if MAX_AXIS > 0
-    idx = analogLookupCanonicalIdx(ADC_INPUT_AXIS, val, val_len);
-    if (idx >= 0) return idx + MIXSRC_FIRST_POT;
-#endif
 
     idx = switchLookupIdx(val, val_len);
     if (idx >= 0) return idx + MIXSRC_FIRST_SWITCH;
@@ -318,13 +336,8 @@ static bool w_mixSrcRaw(const YamlNode* node, uint32_t val, yaml_writer_func wf,
         str = analogGetCanonicalName(ADC_INPUT_MAIN, val - MIXSRC_FIRST_STICK);
     }
     else if (val <= MIXSRC_LAST_POT) {
-        str = analogGetCanonicalName(ADC_INPUT_POT, val - MIXSRC_FIRST_POT);
+        str = analogGetCanonicalName(ADC_INPUT_FLEX, val - MIXSRC_FIRST_POT);
     }
-#if MAX_AXIS > 0
-    else if (val <= MIXSRC_LAST_AXIS) {
-        str = analogGetCanonicalName(ADC_INPUT_AXIS, val - MIXSRC_FIRST_AXIS);
-    }
-#endif
     else if (val >= MIXSRC_FIRST_HELI
              && val <= MIXSRC_LAST_HELI) {
         if (!wf(opaque, "CYC", 3)) return false;
@@ -682,8 +695,8 @@ static uint32_t slider_read(void* user, const char* val, uint8_t val_len)
 }
 
 static const struct YamlIdStr enum_SliderConfig[] = {
-    {  POT_NONE, "none" },
-    {  POT_SLIDER_WITH_DETENT, "with_detent" },
+    {  FLEX_NONE, "none" },
+    {  FLEX_SLIDER, "with_detent" },
     {  0, NULL }
 };
 
@@ -704,7 +717,7 @@ static void sl_type_read(void* user, uint8_t* data, uint32_t bitoffs,
 static void sl_name_read(void* user, uint8_t* data, uint32_t bitoffs,
                          const char* val, uint8_t val_len)
 {
-  _read_analog_name(ADC_INPUT_POT, user, data, bitoffs, val, val_len);
+  _read_analog_name(ADC_INPUT_FLEX, user, data, bitoffs, val, val_len);
 }
 
 static const struct YamlNode struct_sliderConfig[] = {
@@ -768,10 +781,63 @@ static const struct YamlNode struct_switchConfig[] = {
     YAML_END
 };
 
+static bool flex_sw_valid(void* user, uint8_t* data, uint32_t bitoffs)
+{
+  auto tw = reinterpret_cast<YamlTreeWalker*>(user);
+  uint16_t idx = tw->getElmts();
+  return switchIsFlexValid_raw(idx);
+}
+
+uint8_t boardGetMaxSwitches();
+
+static uint32_t flex_sw_read(void* user, const char* val, uint8_t val_len)
+{
+  (void)user;
+  auto idx = switchLookupIdx(val, val_len);
+  return idx - boardGetMaxSwitches();
+}
+
+bool flex_sw_write(void* user, yaml_writer_func wf, void* opaque)
+{
+  auto tw = reinterpret_cast<YamlTreeWalker*>(user);
+  uint16_t idx = tw->getElmts();
+
+  auto sw_offset = boardGetMaxSwitches();
+  const char* str = switchGetCanonicalName(idx + sw_offset);
+  return str ? wf(opaque, str, strlen(str)) : true;
+}
+
+static void r_flex_sw_channel(void* user, uint8_t* data, uint32_t bitoffs,
+			      const char* val, uint8_t val_len)
+{
+  auto tw = reinterpret_cast<YamlTreeWalker*>(user);
+  uint16_t idx = tw->getElmts(1);
+
+  auto channel = analogLookupPhysicalIdx(ADC_INPUT_FLEX, val, val_len);
+  switchConfigFlex_raw(idx, channel);
+}
+
+static bool w_flex_sw_channel(void* user, uint8_t* data, uint32_t bitoffs,
+			      yaml_writer_func wf, void* opaque)
+{
+  auto tw = reinterpret_cast<YamlTreeWalker*>(user);
+  uint16_t idx = tw->getElmts(1);
+
+  auto channel = switchGetFlexConfig_raw(idx);
+  const char* s = analogGetPhysicalName(ADC_INPUT_FLEX, channel);
+  return s ? wf(opaque, s, strlen(s)) : true;
+}
+
+static const struct YamlNode struct_flexSwitch[] = {
+    YAML_IDX_CUST( "sw", flex_sw_read, flex_sw_write),
+    YAML_CUSTOM( "channel", r_flex_sw_channel, w_flex_sw_channel),
+    YAML_END
+};
+
 static uint32_t pot_read(void* user, const char* val, uint8_t val_len)
 {
   (void)user;
-  auto idx = analogLookupPhysicalIdx(ADC_INPUT_POT, val, val_len);
+  auto idx = analogLookupPhysicalIdx(ADC_INPUT_FLEX, val, val_len);
   if (idx >= 0) return idx;
 
   idx = _legacy_mix_src(val, val_len);
@@ -786,35 +852,39 @@ static bool pot_write(void* user, yaml_writer_func wf, void* opaque)
   auto tw = reinterpret_cast<YamlTreeWalker*>(user);
   uint16_t idx = tw->getElmts();
 
-  const char* str = analogGetPhysicalName(ADC_INPUT_POT, idx);
+  const char* str = analogGetPhysicalName(ADC_INPUT_FLEX, idx);
   return str ? wf(opaque, str, strlen(str)) : true;
 }
 
 static void pot_name_read(void* user, uint8_t* data, uint32_t bitoffs,
                           const char* val, uint8_t val_len)
 {
-  _read_analog_name(ADC_INPUT_POT, user, data, bitoffs, val, val_len);
+  _read_analog_name(ADC_INPUT_FLEX, user, data, bitoffs, val, val_len);
 }
 
 static bool pot_name_write(void* user, uint8_t* data, uint32_t bitoffs,
                            yaml_writer_func wf, void* opaque)
 {
-  return _write_analog_name(ADC_INPUT_POT, user, data, bitoffs, wf, opaque);
+  return _write_analog_name(ADC_INPUT_FLEX, user, data, bitoffs, wf, opaque);
 }
 
 static const struct YamlIdStr enum_PotConfig[] = {
-    {  POT_NONE, "none" },
-    {  POT_WITH_DETENT, "with_detent" },
-    {  POT_MULTIPOS_SWITCH, "multipos_switch" },
-    {  POT_WITHOUT_DETENT, "without_detent" },
-    {  POT_SLIDER_WITH_DETENT, "slider" },
+    {  FLEX_NONE, "none" },
+    {  FLEX_POT, "without_detent" },
+    {  FLEX_POT_CENTER, "with_detent" },
+    {  FLEX_SLIDER, "slider" },
+    {  FLEX_MULTIPOS, "multipos_switch" },
+    {  FLEX_AXIS_X, "axis_x" },
+    {  FLEX_AXIS_Y, "axis_y" },
+    {  FLEX_SWITCH, "switch" },
     {  0, NULL }
 };
 
 static const struct YamlNode struct_potConfig[] = {
-    YAML_IDX_CUST( "pot", pot_read, pot_write ),
-    YAML_ENUM( "type", POT_CFG_BITS, enum_PotConfig),
-    YAML_CUSTOM( "name", pot_name_read, pot_name_write),
+    YAML_IDX_CUST("pot", pot_read, pot_write ),
+    YAML_ENUM("type", POT_CFG_TYPE_BITS, enum_PotConfig),
+    YAML_UNSIGNED("inv", POT_CFG_INV_BITS),
+    YAML_CUSTOM("name", pot_name_read, pot_name_write),
     YAML_END
 };
 
@@ -840,7 +910,9 @@ static uint32_t r_swtchSrc(const YamlNode* node, const char* val, uint8_t val_le
         val_len--;
     }
 
-    if (val_len > 3 && val[0] == 'S' && val[1] >= 'W'
+    if (val_len > 3
+	&& ((val[0] == 'S' && val[1] >= 'W')
+	    || (val[0] == 'F' && val[1] >= 'L'))
         && val[2] >= '0' && val[2] <= '9'
         && val[3] >= '0' && val[3] <= '2') {
 
@@ -1354,8 +1426,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
   }
   
   // find "," and cut val_len
-  const char* sep = (const char *)memchr(val, ',', val_len);
-  uint8_t l_sep = sep ? sep - val : val_len;
+  uint8_t l_sep = find_sep(val, val_len);
 
   bool eat_comma = true;
   // read values...
@@ -1433,6 +1504,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
   case FUNC_PLAY_TRACK:
   case FUNC_BACKGND_MUSIC:
   case FUNC_PLAY_SCRIPT:
+  case FUNC_RGB_LED:
     strncpy(cfn->play.name, val, std::min<uint8_t>(l_sep, LEN_FUNCTION_NAME));
     break;
 
@@ -1452,10 +1524,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
       val++; val_len--;
 
       CFN_PARAM(cfn) = yaml_str2uint_ref(val, val_len);
-      if (val_len == 0 || val[0] != ',') return;
-      val++; val_len--;
-
-      eat_comma = false;
+      l_sep = 0;
     } else {
       return;
     }
@@ -1491,8 +1560,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     val++; val_len--;
 
     // find "," and cut val_len
-    sep = (const char *)memchr(val, ',', val_len);
-    l_sep = sep ? sep - val : val_len;
+    l_sep = find_sep(val, val_len);
 
     // parse CFN_GVAR_MODE
     for (unsigned i=0; i < DIM(_adjust_gvar_mode_lookup); i++) {
@@ -1506,8 +1574,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     if (val_len == 0 || val[0] != ',') return;
     val++; val_len--;
     // find "," and cut val_len
-    sep = (const char *)memchr(val, ',', val_len);
-    l_sep = sep ? sep - val : val_len;
+    l_sep = find_sep(val, val_len);
 
     // output param
     switch(CFN_GVAR_MODE(cfn)) {
@@ -1543,29 +1610,42 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     val++; val_len--;
   }
 
-  if (HAS_ENABLE_PARAM(func)) {
-    // "0/1"
-    if (val_len > 0) {
-      if (val[0] == '0') {
-        CFN_ACTIVE(cfn) = 0;
-      } else if (val[0] == '1') {
-        CFN_ACTIVE(cfn) = 1;
-      }
+  // Handle old YAML files where only one of active/repeat was present
+  bool read_enable_flag = true;
+  if (HAS_REPEAT_PARAM(func)) {
+    // Check for 2 values to be parsed
+    uint8_t l_sep = find_sep(val, val_len);
+    if (!l_sep) {
+      // only one more value - assume it is repeat
+      read_enable_flag = false;
+      // Set 'enabled'
+      CFN_ACTIVE(cfn) = 1;
     }
-  } else if (HAS_REPEAT_PARAM(func)) {
+  }
+
+  // Enable param
+  // "0/1"
+  if (val_len > 0 && read_enable_flag) {
+    CFN_ACTIVE(cfn) = (val[0] == '1') ? 1 : 0;
+    uint8_t l_sep = find_sep(val, val_len);
+
+    // Skip comma before optional repeat
+    val += l_sep;
+    val_len -= l_sep;
+    if (val_len == 0 || val[0] != ',')
+      return;
+    val++; val_len--;
+  }
+
+  if (HAS_REPEAT_PARAM(func)) {
     if (func == FUNC_PLAY_SCRIPT) {
       if (val_len == 2 && val[0] == '1' && val[1] == 'x')
         CFN_PLAY_REPEAT(cfn) = 1;
       else
         CFN_PLAY_REPEAT(cfn) = 0;
-    } else if (val_len == 2
-        && val[0] == '1'
-        && val[1] == 'x') {
+    } else if (val_len == 2 && val[0] == '1' && val[1] == 'x') {
       CFN_PLAY_REPEAT(cfn) = 0;
-    } else if (val_len == 3
-        && val[0] == '!'
-        && val[1] == '1'
-        && val[2] == 'x') {
+    } else if (val_len == 3 && val[0] == '!' && val[1] == '1' && val[2] == 'x') {
       CFN_PLAY_REPEAT(cfn) = CFN_PLAY_REPEAT_NOSTART;
     } else {
       // repeat time in seconds
@@ -1639,6 +1719,7 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
   case FUNC_PLAY_TRACK:
   case FUNC_BACKGND_MUSIC:
   case FUNC_PLAY_SCRIPT:
+  case FUNC_RGB_LED:
     if (!wf(opaque, cfn->play.name, strnlen(cfn->play.name, LEN_FUNCTION_NAME)))
       return false;
     break;
@@ -1698,24 +1779,25 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     break;
   }
 
-  if (HAS_ENABLE_PARAM(func)) {
-    if (add_comma) {
-      // ","
-      if (!wf(opaque,",",1)) return false;
-    }
-    // "0/1"
-    if (!wf(opaque,CFN_ACTIVE(cfn) ? "1":"0",1)) return false;
-  } else if (HAS_REPEAT_PARAM(func)) {
-    if (add_comma) {
-      // ","
-      if (!wf(opaque,",",1)) return false;
-    }
+  if (add_comma) {
+    // ","
+    if (!wf(opaque,",",1)) return false;
+  }
+
+  // Enable param
+  // "0/1"
+  if (!wf(opaque,CFN_ACTIVE(cfn) ? "1":"0",1)) return false;
+
+  if (HAS_REPEAT_PARAM(func)) {
+    // ","
+    if (!wf(opaque,",",1)) return false;
+
     if (func == FUNC_PLAY_SCRIPT) {
       if (!wf(opaque,(CFN_PLAY_REPEAT(cfn) == 0) ? "On" : "1x",2)) return false;
     } else if (CFN_PLAY_REPEAT(cfn) == 0) {
       // "1x"
       if (!wf(opaque,"1x",2)) return false;
-    } else if (CFN_PLAY_REPEAT(cfn) == CFN_PLAY_REPEAT_NOSTART) {
+    } else if (CFN_PLAY_REPEAT(cfn) == (int8_t)CFN_PLAY_REPEAT_NOSTART) {
       // "!1x"
       if (!wf(opaque,"!1x",3)) return false;
     } else {
@@ -1724,6 +1806,7 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
       if (!wf(opaque, str, strlen(str))) return false;
     }
   }
+
   if (!wf(opaque, "\"", 1)) return false;
   return true;
 }
@@ -1748,8 +1831,7 @@ static void r_logicSw(void* user, uint8_t* data, uint32_t bitoffs,
   data -= sizeof(LogicalSwitchData::func);
 
   // find "," and cut val_len
-  const char* sep = (const char *)memchr(val, ',', val_len);
-  uint8_t l_sep = sep ? sep - val : val_len;
+  uint8_t l_sep = find_sep(val, val_len);
 
   auto ls = reinterpret_cast<LogicalSwitchData*>(data);
   switch(lswFamily(ls->func)) {
@@ -1980,8 +2062,7 @@ static void r_modSubtype(void* user, uint8_t* data, uint32_t bitoffs,
 #if defined(MULTIMODULE)
     // Read type/subType by the book (see MPM documentation)
     // read "[type],[subtype]"
-    const char* sep = (const char *)memchr(val, ',', val_len);
-    uint8_t l_sep = sep ? sep - val : val_len;
+    uint8_t l_sep = find_sep(val, val_len);
 
     int type = yaml_str2uint(val, l_sep);
     val += l_sep; val_len -= l_sep;
@@ -1992,19 +2073,8 @@ static void r_modSubtype(void* user, uint8_t* data, uint32_t bitoffs,
     // convert to ETX format and write to vars
     if (type > 0) {
       type -= 1; // change to internal 0 based representation
-
-      if(type > MODULE_SUBTYPE_MULTI_LAST) {
-        TRACE("Multi protocol: %d exceeds supported protocols. Module set to: OFF", type);
-        md->type = MODULE_TYPE_NONE;
-      } else {
-          if(subtype > getMultiProtocolDefinition(type)->maxSubtype) {
-            TRACE("Multi protocol sub-type %d exceeds number of supported sub-types. Module set to: OFF", subtype);
-            md->type = MODULE_TYPE_NONE;
-          } else {
-            md->multi.rfProtocol = type;
-            md->subType = subtype;
-          }
-      }
+      md->multi.rfProtocol = type;
+      md->subType = subtype;
     }
 #endif
   } else if (md->type == MODULE_TYPE_DSM2) {

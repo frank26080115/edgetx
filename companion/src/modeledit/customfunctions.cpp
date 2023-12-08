@@ -96,11 +96,23 @@ CustomFunctionsPanel::CustomFunctionsPanel(QWidget * parent, ModelData * model, 
     }
   }
 
+  if (IS_STM32(firmware->getBoard())) {
+    scriptsSet = getFilesSet(g.profile[g.id()].sdPath() + "/SCRIPTS/RGBLED", QStringList() << "*.lua", firmware->getCapability(VoicesMaxLength));
+    for (int i = 0; i < fswCapability; i++) {
+      if (functions[i].func == FuncRGBLed) {
+        QString temp = functions[i].paramarm;
+        if (!temp.isEmpty()) {
+          scriptsSet.insert(temp);
+        }
+      }
+    }
+  }
+
   CompanionIcon playIcon("play.png");
   playIcon.addImage("stop.png", QIcon::Normal, QIcon::On);
 
   QStringList headerLabels;
-  headerLabels << "#" << tr("Switch") << tr("Action") << tr("Parameters") << "";
+  headerLabels << "#" << tr("Switch") << tr("Action") << tr("Parameters") << tr("Repeat") << tr("Enable");
   TableLayout * tableLayout = new TableLayout(this, fswCapability, headerLabels);
 
   for (int i = 0; i < fswCapability; i++) {
@@ -194,7 +206,7 @@ CustomFunctionsPanel::CustomFunctionsPanel(QWidget * parent, ModelData * model, 
     tableLayout->addLayout(i, 4, repeatLayout);
     fswtchRepeat[i] = new QComboBox(this);
     fswtchRepeat[i]->setProperty("index", i);
-    if (functions[i].func == FuncPlayScript)
+    if (functions[i].func == FuncPlayScript || functions[i].func == FuncRGBLed)
       fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatLuaId));
     else
       fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatId));
@@ -203,11 +215,12 @@ CustomFunctionsPanel::CustomFunctionsPanel(QWidget * parent, ModelData * model, 
     repeatLayout->addWidget(fswtchRepeat[i], i + 1);
     connect(fswtchRepeat[i], SIGNAL(currentIndexChanged(int)), this, SLOT(customFunctionEdited()));
 
+    QHBoxLayout *enableLayout = new QHBoxLayout();
+    tableLayout->addLayout(i, 5, enableLayout);
     fswtchEnable[i] = new QCheckBox(this);
     fswtchEnable[i]->setProperty("index", i);
-    fswtchEnable[i]->setText(tr("ON"));
     fswtchEnable[i]->setFixedWidth(200);
-    repeatLayout->addWidget(fswtchEnable[i], i + 1);
+    enableLayout->addWidget(fswtchEnable[i], i + 1);
     connect(fswtchEnable[i], SIGNAL(stateChanged(int)), this, SLOT(customFunctionEdited()));
   }
 
@@ -339,7 +352,8 @@ void CustomFunctionsPanel::functionEdited()
     functions[index].clear();
     functions[index].swtch = swtch;
     functions[index].func = (AssignFunc)fswtchFunc[index]->currentData().toInt();
-    if (functions[index].func == FuncPlayScript)
+    functions[index].enabled = true;
+    if (functions[index].func == FuncPlayScript || functions[index].func == FuncRGBLed)
       fswtchRepeat[index]->setModel(tabModelFactory->getItemModel(repeatLuaId));
     else
       fswtchRepeat[index]->setModel(tabModelFactory->getItemModel(repeatId));
@@ -363,10 +377,11 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
   else {
     fswtchSwtch[i]->setCurrentIndex(fswtchSwtch[i]->findData(cfn.swtch.toValue()));
     fswtchFunc[i]->setCurrentIndex(fswtchFunc[i]->findData(cfn.func));
+    fswtchEnable[i]->setChecked(cfn.enabled);
   }
 
   if (!cfn.isEmpty()) {
-    widgetsMask |= CUSTOM_FUNCTION_SHOW_FUNC;
+    widgetsMask |= CUSTOM_FUNCTION_SHOW_FUNC | CUSTOM_FUNCTION_ENABLE;
 
     if (func >= FuncOverrideCH1 && func <= FuncOverrideCH32) {
       if (model) {
@@ -379,7 +394,7 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
           cfn.param = fswtchParam[i]->value();
         }
         fswtchParam[i]->setValue(cfn.param);
-        widgetsMask |= CUSTOM_FUNCTION_NUMERIC_PARAM | CUSTOM_FUNCTION_ENABLE;
+        widgetsMask |= CUSTOM_FUNCTION_NUMERIC_PARAM;
       }
     }
     else if (func == FuncLogs) {
@@ -397,7 +412,7 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
       if (modified)
         cfn.adjustMode = fswtchGVmode[i]->currentData().toInt();
       fswtchGVmode[i]->setCurrentIndex(fswtchGVmode[i]->findData(cfn.adjustMode));
-      widgetsMask |= CUSTOM_FUNCTION_GV_MODE | CUSTOM_FUNCTION_ENABLE;
+      widgetsMask |= CUSTOM_FUNCTION_GV_MODE;
       if (cfn.adjustMode == FUNC_ADJUST_GVAR_CONSTANT || cfn.adjustMode == FUNC_ADJUST_GVAR_INCDEC) {
         if (modified)
           cfn.param = fswtchParam[i]->value() * model->gvarData[gvidx].multiplierSet();
@@ -428,7 +443,7 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
       if (modified)
         cfn.param = fswtchParamT[i]->currentData().toInt();
       populateFuncParamCB(fswtchParamT[i], func, cfn.param);
-      widgetsMask |= CUSTOM_FUNCTION_SOURCE_PARAM | CUSTOM_FUNCTION_ENABLE;
+      widgetsMask |= CUSTOM_FUNCTION_SOURCE_PARAM;
     }
     else if (func >= FuncSetTimer1 && func <= FuncSetTimer3) {
       if (modified)
@@ -436,16 +451,13 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
       RawSourceRange range = RawSource(SOURCE_TYPE_SPECIAL, func - FuncSetTimer1 + 2).getRange(model, generalSettings);
       fswtchParamTime[i]->setTimeRange((int)range.min, (int)range.max);
       fswtchParamTime[i]->setTime(cfn.param);
-      widgetsMask |= CUSTOM_FUNCTION_TIME_PARAM | CUSTOM_FUNCTION_ENABLE;
-    }
-    else if (func >= FuncSetFailsafe && func <= FuncBindExternalModule) {
-      widgetsMask |= CUSTOM_FUNCTION_ENABLE;
+      widgetsMask |= CUSTOM_FUNCTION_TIME_PARAM;
     }
     else if (func == FuncVolume || func == FuncBacklight) {
       if (modified)
         cfn.param = fswtchParamT[i]->currentData().toInt();
       populateFuncParamCB(fswtchParamT[i], func, cfn.param);
-      widgetsMask |= CUSTOM_FUNCTION_SOURCE_PARAM | CUSTOM_FUNCTION_ENABLE;
+      widgetsMask |= CUSTOM_FUNCTION_SOURCE_PARAM;
     }
     else if (func == FuncPlaySound || func == FuncPlayHaptic || func == FuncPlayValue || func == FuncPlayPrompt || func == FuncPlayBoth || func == FuncBackgroundMusic || func == FuncSetScreen) {
       if (func != FuncBackgroundMusic) {
@@ -541,7 +553,7 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
         widgetsMask |= CUSTOM_FUNCTION_NUMERIC_PARAM;
       }
     }
-    else if (func == FuncPlayScript) {
+    else if (func == FuncPlayScript || func == FuncRGBLed) {
       widgetsMask |= CUSTOM_FUNCTION_FILE_PARAM | CUSTOM_FUNCTION_REPEAT;
       if (modified) {
         Helpers::getFileComboBoxValue(fswtchParamArmT[i], cfn.paramarm, 8);
@@ -556,10 +568,11 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
       fswtchParam[i]->setDecimals(0);
       fswtchParam[i]->setSingleStep(1);
       fswtchParam[i]->setValue(cfn.param);
-      if (func <= FuncInstantTrim) {
-        widgetsMask |= CUSTOM_FUNCTION_ENABLE;
-      }
+      widgetsMask |= CUSTOM_FUNCTION_ENABLE;
     }
+  }
+  else {
+    cfn.enabled = true;
   }
 
   fswtchFunc[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_SHOW_FUNC);
@@ -569,10 +582,6 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
   fswtchParamT[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_SOURCE_PARAM);
   fswtchParamArmT[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_FILE_PARAM);
   fswtchEnable[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_ENABLE);
-  if (widgetsMask & CUSTOM_FUNCTION_ENABLE)
-    fswtchEnable[i]->setChecked(cfn.enabled);
-  else
-    fswtchEnable[i]->setChecked(false);
   fswtchRepeat[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_REPEAT);
   fswtchGVmode[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_GV_MODE);
   playBT[i]->setVisible(widgetsMask & CUSTOM_FUNCTION_PLAY);

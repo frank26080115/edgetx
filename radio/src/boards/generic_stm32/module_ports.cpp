@@ -22,14 +22,16 @@
 #include "hal/module_port.h"
 #include "stm32_serial_driver.h"
 #include "stm32_softserial_driver.h"
+#include "stm32_dma.h"
 
 #include "module_ports.h"
 #include "board.h"
 #include "dataconstants.h"
 
+#if defined (HARDWARE_INTERNAL_MODULE)
 #if defined(INTMODULE_USART)
 
-#define INTMODULE_USART_IRQ_PRIORITY 6
+#define INTMODULE_USART_IRQ_PRIORITY 5
 
 static const stm32_usart_t intmoduleUSART = {
   .USARTx = INTMODULE_USART,
@@ -86,7 +88,7 @@ static_assert(__STM32_PULSE_IS_TIMER_CHANNEL_SUPPORTED(INTMODULE_TIMER_Channel),
               "Unsupported timer channel");
 
 // Make sure the DMA channel is supported
-static_assert(__STM32_PULSE_IS_DMA_STREAM_SUPPORTED(INTMODULE_TIMER_DMA_STREAM),
+static_assert(__STM32_DMA_IS_STREAM_SUPPORTED(INTMODULE_TIMER_DMA_STREAM),
               "Unsupported DMA stream");
 
 #if !defined(INTMODULE_TIMER_DMA_IRQHandler)
@@ -109,7 +111,8 @@ extern "C" void INTMODULE_TIMER_IRQHandler()
 
 DEFINE_STM32_SOFTSERIAL_PORT(InternalModule, intmoduleTimer);
 
-#endif
+#endif // INTMODULE_USART
+#endif // HARDWARE_INTERNAL_MODULE
 
 #include "module_timer_driver.h"
 
@@ -198,7 +201,7 @@ static_assert(__STM32_PULSE_IS_TIMER_CHANNEL_SUPPORTED(EXTMODULE_TIMER_Channel),
               "Unsupported timer channel");
 
 // Make sure the DMA channel is supported
-static_assert(__STM32_PULSE_IS_DMA_STREAM_SUPPORTED(EXTMODULE_TIMER_DMA_STREAM_LL),
+static_assert(__STM32_DMA_IS_STREAM_SUPPORTED(EXTMODULE_TIMER_DMA_STREAM_LL),
               "Unsupported DMA stream");
 
 #if !defined(EXTMODULE_TIMER_DMA_IRQHandler)
@@ -222,7 +225,7 @@ extern "C" void EXTMODULE_TIMER_IRQHandler()
 DEFINE_STM32_SOFTSERIAL_PORT(ExternalModule, extmoduleTimer);
 #endif
 
-#define TELEMETRY_USART_IRQ_PRIORITY 5
+#define TELEMETRY_USART_IRQ_PRIORITY 0
 #define TELEMETRY_DMA_IRQ_PRIORITY   0
 
 static void _set_sport_input(uint8_t enable)

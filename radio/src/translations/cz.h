@@ -54,7 +54,7 @@
 #define TR_TRNCHN                      "CH1","CH2","CH3","CH4"
 #define TR_AUX_SERIAL_MODES            "VYP","Telemetrie zrcadlení","Telemetrie vstup","SBUS Trenér","LUA","CLI","GPS","Debug","SpaceMouse","Externí modul"
 #define TR_SWTYPES                     "Žádný","Bez aretace","2-polohový","3-polohový"
-#define TR_POTTYPES                    "Žádný",TR("Pot s aret.","Pot s aretací"),TR("Vícepol př.","Vícepol. přep."),TR("Pot","Potenciometr"),"Slider"
+#define TR_POTTYPES                    "Žádný",TR("Pot","Potenciometr"),TR("Pot s aret.","Pot s aretací"),"Slider",TR("Vícepol př.","Vícepol. přep."),"Axis X","Axis Y","Switch"
 #define TR_VPERSISTENT                 "Ne","V rámci letu","Reset ručně"
 #define TR_COUNTRY_CODES               TR("US","Amerika"),TR("JP","Japonsko"),TR("EU","Evropa")
 #define TR_USBMODES                    TR("Zeptat","Zeptat se"),TR("Joyst","Joystick"),TR("SDkarta","Úložiště"),"Serial"
@@ -82,17 +82,15 @@
 #if LCD_W >= 212
   #define TR_CSWTIMER                  "Stopky"
   #define TR_CSWSTICKY                 "Sticky"
-  #define TR_CSWRANGE                  "Dosah"
   #define TR_CSWSTAY                   "Edge"
 #else
   #define TR_CSWTIMER                  "Tim"
   #define TR_CSWSTICKY                 "Stky"
-  #define TR_CSWRANGE                  "Rnge"
   #define TR_CSWSTAY                   "Edge"
 #endif
 
 #define TR_CSWEQUAL                    "a=x"
-#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 #define TR_TEXT_SIZE                   "Standard","Nejmenší","Malé","Střední","Dvojité"
 
@@ -104,12 +102,13 @@
 #define TR_SF_FAILSAFE                 "Nastavit Failsafe"
 #define TR_SF_RANGE_CHECK              "Kontrola dosahu"
 #define TR_SF_MOD_BIND                 "ModuleBind"
+#define TR_SF_RGBLEDS                  "RGB leds"
 
 #define TR_SOUND                       TR3("\200\201Zvuk", "\200\201Zvuk", "Hrát zvuk")
 #define TR_PLAY_TRACK                  TR3("\200\201Stopa", "\200\201Stopa", "Přehrát wav")
 #define TR_PLAY_VALUE                  TR3("\200\201Hlásit ", "\200\201Hlásit ", "Hlásit stav")
 #define TR_SF_HAPTIC                   "Vibrovat"
-#define TR_SF_PLAY_SCRIPT              "Lua Skript"
+#define TR_SF_PLAY_SCRIPT              TR("Lua", "Lua Skript")
 #define TR_SF_BG_MUSIC                 TR3("\200\201Hudba","\200\201Hudba","Hudba")
 #define TR_SF_BG_MUSIC_PAUSE           TR3("\200\201Hudba ||","\200\201Hudba ||","Hudba pauza")
 #define TR_SF_LOGS                     "Loguj na SD"
@@ -216,6 +215,7 @@
 #define TR_VCELLINDEX                  "Nízký","1","2","3","4","5","6","7","8","Nejvíce","Delta"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA"(pouze středy)","= (symetrický)"
 #define TR_TIMER_DIR                   TR("Zbývající", "Zobrazit zbývající"), TR("Uplynulý", "Zobrazit uplynulý")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 // ZERO TERMINATED STRINGS
 
@@ -229,7 +229,7 @@
 
 #if defined(PCBTARANIS) || defined(PCBHORUS)
   #define TR_ENTER                     "[ENTER]"
-#elif defined(PCBNV14)
+#elif defined(PCBNV14) || defined(PCBPL18)
   #define TR_ENTER                     "[DALŠÍ]"
 #else
   #define TR_ENTER                     "[MENU]"
@@ -330,7 +330,7 @@
 #define TR_SLOWUP                      TR3("Zpomalení(+)", "Zpomal(\176)", "Zpomalení(\176)")
 #define TR_MIXES                       "MIXER"
 #define TR_CV                          "K"
-#if defined(PCBNV14)
+#if defined(PCBNV14) || defined(PCBPL18)
 #define TR_GV                          "GP"
 #else
 #define TR_GV                          TR("G", "GP")
@@ -362,6 +362,7 @@
 #define TR_RSSI_SHUTDOWN_ALARM         TR("Rssi při vyp.", "Hlídat RSSI při vypnutí")
 #define TR_FLYSKY_TELEMETRY            TR("FlySky RSSI #", "Použít FlySky RSSI hodnotu bez škálování")
 #define TR_MODEL_STILL_POWERED         "Model stále spuštěn"
+#define TR_TRAINER_STILL_CONNECTED     "Trenér stále připojen"
 #define TR_USB_STILL_CONNECTED         "USB stále připojeno"
 #define TR_MODEL_SHUTDOWN              "Vypnout?"
 #define TR_PRESS_ENTER_TO_CONFIRM      "Zmáčkni ENTER pro potvrzení"
@@ -662,11 +663,8 @@
 #define TR_LCD                         "LCD"
 #define TR_BRIGHTNESS                  "Jas"
 #define TR_CPU_TEMP                    "Tepl. CPU\016>"
-#define TR_CPU_CURRENT                 "Proud\030>"
-#define TR_CPU_MAH                     "Spotřeba"
 #define TR_COPROC                      "CoProc."
 #define TR_COPROC_TEMP                 "Tepl. MB \016>"
-#define TR_CAPAWARNING                 INDENT "Nízká kapacita"
 #define TR_TEMPWARNING                 INDENT "Přehřátí"
 #define TR_TTL_WARNING                 "Varování: používat 3.3V hodnoty"
 #define TR_FUNC                        "Funkce"
@@ -813,6 +811,7 @@
 #define TR_JACK_MODE                   "Režim Jack"
 #define TR_VOICE_LANGUAGE              "Jazyk hlasu"
 #define TR_UNITS_SYSTEM                "Jednotky"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                        "Upravit"
 #define TR_INSERT_BEFORE               "Vložit před"
 #define TR_INSERT_AFTER                "Vložit za"
@@ -884,6 +883,7 @@
 #define TR_INTERVAL                    "Interval"
 #define TR_REPEAT                      "Opakovat"
 #define TR_ENABLE                      "Povoleno"
+#define TR_DISABLE                     "Zakazano"
 #define TR_TOPLCDTIMER                 "Stopky horního LCD"
 #define TR_UNIT                        "Jednotky"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "Přidat senzor ručně"
@@ -908,8 +908,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2        "firmware."
 #define TR_LOWALARM                    INDENT "Nízký Alarm"
 #define TR_CRITICALALARM               INDENT "Kritický Alarm"
-#define TR_RSSIALARM_WARN              TR("RSSI","RSSI TELEMETRIE")
-#define TR_NO_RSSIALARM                TR(INDENT "Vypnuté alarmy", INDENT "Alarmy telemetrie vypnuty")
 #define TR_DISABLE_ALARM               TR(INDENT "Vypnout alarmy", INDENT "Vypnout alarmy telemetrie")
 #define TR_POPUP                       "Vyskočit"
 #define TR_MIN                         "Min"
@@ -1055,8 +1053,16 @@
   #define TR_BL_SELECT_KEY            "[R TRIM] pro vybrani souboru"
   #define TR_BL_FLASH_KEY             "Drzet dlouze [R TRIM] pro nahrani"
   #define TR_BL_EXIT_KEY              " [L TRIM] pro ukonceni"
-  #define TR_BL_ENABLE                "Povoleno"
-  #define TR_BL_DISABLE               "Zakazano"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1260,3 +1266,11 @@
 #define TR_ENABLED_FEATURES            "Aktivní funkce"
 #define TR_RADIO_MENU_TABS             "Rádiové menu záložky"
 #define TR_MODEL_MENU_TABS             "Model menu záložky"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "Název A-Z","Název Z-A","Nejméne používané","Nejvíce používané"
+#define TR_SORT_MODELS_BY         "Seřadit modely podle"
+#define TR_CREATE_NEW             "Vytvořit"

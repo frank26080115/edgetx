@@ -142,7 +142,7 @@ class SpecialFunctionEditPage : public Page
       }
 
       case FUNC_RESET:
-        if (CFN_PARAM(cfn) < FUNC_RESET_PARAM_FIRST_TELEM) {
+        if (CFN_PARAM(cfn) <= FUNC_RESET_PARAM_LAST) {
           new StaticText(line, rect_t{}, STR_RESET, 0, COLOR_THEME_PRIMARY1);
           auto choice = new Choice(
               line, rect_t{}, 0,
@@ -180,20 +180,21 @@ class SpecialFunctionEditPage : public Page
       case FUNC_PLAY_TRACK:
       case FUNC_BACKGND_MUSIC:
       case FUNC_PLAY_SCRIPT:
+      case FUNC_RGB_LED:
         new StaticText(line, rect_t{}, STR_VALUE, 0, COLOR_THEME_PRIMARY1);
         new FileChoice(
             line, rect_t{},
-            func == FUNC_PLAY_SCRIPT
-                ? SCRIPTS_FUNCS_PATH
+            func == FUNC_PLAY_SCRIPT || func == FUNC_RGB_LED
+                ? (func == FUNC_PLAY_SCRIPT ? SCRIPTS_FUNCS_PATH : SCRIPTS_RGB_PATH)
                 : std::string(SOUNDS_PATH, SOUNDS_PATH_LNG_OFS) +
                       std::string(currentLanguagePack->id, 2),
-            func == FUNC_PLAY_SCRIPT ? SCRIPTS_EXT : SOUNDS_EXT,
+            (func == FUNC_PLAY_SCRIPT || func == FUNC_RGB_LED) ? SCRIPTS_EXT : SOUNDS_EXT,
             sizeof(cfn->play.name),
             [=]() { return std::string(cfn->play.name, ZLEN(cfn->play.name)); },
             [=](std::string newValue) {
               strncpy(cfn->play.name, newValue.c_str(), sizeof(cfn->play.name));
               SET_DIRTY();
-              if (func == FUNC_PLAY_SCRIPT)
+              if (func == FUNC_PLAY_SCRIPT || func == FUNC_RGB_LED)
                 LUA_LOAD_MODEL_SCRIPTS();
             },
             true);  // strip extension
@@ -328,12 +329,7 @@ class SpecialFunctionEditPage : public Page
       }
     }
 
-    if (HAS_ENABLE_PARAM(func)) {
-      line = specialFunctionOneWindow->newLine(&grid);
-      new StaticText(line, rect_t{}, STR_ENABLE, 0, COLOR_THEME_PRIMARY1);
-      new ToggleSwitch(line, rect_t{},
-                   GET_SET_DEFAULT(CFN_ACTIVE(cfn)));
-    } else if (HAS_REPEAT_PARAM(func)) {  // !1x 1x 1s 2s 3s ...
+    if (HAS_REPEAT_PARAM(func)) {  // !1x 1x 1s 2s 3s ...
       line = specialFunctionOneWindow->newLine(&grid);
       new StaticText(line, rect_t{}, STR_REPEAT,
                      0, COLOR_THEME_PRIMARY1);
@@ -360,6 +356,11 @@ class SpecialFunctionEditPage : public Page
             });
       }
     }
+
+    line = specialFunctionOneWindow->newLine(&grid);
+    new StaticText(line, rect_t{}, STR_ENABLE, 0, COLOR_THEME_PRIMARY1);
+    new ToggleSwitch(line, rect_t{}, GET_SET_DEFAULT(CFN_ACTIVE(cfn)));
+
   }
 
   void buildBody(FormWindow *window)
@@ -374,6 +375,10 @@ class SpecialFunctionEditPage : public Page
     FlexGridLayout grid(col_dsc, row_dsc, 2);
 
     CustomFunctionData *cfn = &functions[index];
+
+    // Set new function to "disabled" by default
+    if (!CFN_SWITCH(cfn))
+      CFN_ACTIVE(cfn) = false;
 
     // Switch
     auto line = form->newLine(&grid);
@@ -516,7 +521,6 @@ class SpecialFunctionButton : public Button
 
     sfEnable = lv_obj_create(lvobj);
     lv_obj_set_size(sfEnable, 22, 22);
-    lv_obj_add_flag(sfEnable, LV_OBJ_FLAG_HIDDEN);
     lv_obj_set_style_border_width(sfEnable, 3, 0);
     lv_obj_set_style_border_color(sfEnable, makeLvColor(COLOR_THEME_PRIMARY2), 0);
     lv_obj_set_style_border_opa(sfEnable, LV_OPA_100, 0);
@@ -665,16 +669,14 @@ class SpecialFunctionButton : public Button
 
     lv_label_set_text(sfFunc, s);
 
-    lv_obj_add_flag(sfEnable, LV_OBJ_FLAG_HIDDEN);
     s[0] = 0;
 
-    if (HAS_ENABLE_PARAM(func)) {
-      if (CFN_ACTIVE(cfn))
-        lv_obj_add_state(sfEnable, LV_STATE_CHECKED);
-      else
-        lv_obj_clear_state(sfEnable, LV_STATE_CHECKED);
-      lv_obj_clear_flag(sfEnable, LV_OBJ_FLAG_HIDDEN);
-    } else if (HAS_REPEAT_PARAM(func)) {
+    if (CFN_ACTIVE(cfn))
+      lv_obj_add_state(sfEnable, LV_STATE_CHECKED);
+    else
+      lv_obj_clear_state(sfEnable, LV_STATE_CHECKED);
+
+    if (HAS_REPEAT_PARAM(func)) {
       if (func == FUNC_PLAY_SCRIPT) {
         sprintf(s, "(%s)", (CFN_PLAY_REPEAT(cfn) == 0) ? "On" : "1x");
       } else {
@@ -863,6 +865,21 @@ void SpecialFunctionsPage::build(FormWindow *window)
         if (clipboard.type == CLIPBOARD_TYPE_CUSTOM_FUNCTION) {
           menu->addLine(STR_PASTE, [=]() {
             pasteSpecialFunction(window, i, button);
+          });
+        }
+        CustomFunctionData *cfn = &functions[i];
+        uint8_t func = CFN_FUNC(cfn);
+        if (CFN_ACTIVE(cfn)) {
+          menu->addLine(STR_DISABLE, [=]() {
+            CFN_ACTIVE(cfn) = 0;
+            SET_DIRTY();
+            rebuild(window);
+          });
+        } else {
+          menu->addLine(STR_ENABLE, [=]() {
+            CFN_ACTIVE(cfn) = 1;
+            SET_DIRTY();
+            rebuild(window);
           });
         }
         if (functions[MAX_SPECIAL_FUNCTIONS - 1].isEmpty()) {

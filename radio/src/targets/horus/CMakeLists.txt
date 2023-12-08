@@ -27,19 +27,10 @@ set(USB_SERIAL ON CACHE BOOL "Enable USB serial (CDC)")
 set(ROTARY_ENCODER YES)
 set(HARDWARE_EXTERNAL_MODULE YES)
 
-if(BOOTLOADER)
-  set(LINKER_SCRIPT targets/horus/stm32f4_flash_bootloader.ld)
-else()
-  set(LINKER_SCRIPT targets/horus/stm32f4_flash.ld)
-endif()
-
 # for size report script
 set(CPU_TYPE_FULL STM32F429xI)
+set(TARGET_LINKER_DIR stm32f429_sdram)
 set(SIZE_TARGET_MEM_DEFINE "MEM_SIZE_SDRAM2=8192")
-
-if(SPLASH STREQUAL OFF)
-  message(FATAL_ERROR "Option SPLASH=OFF not supported on Horus")
-endif()
 
 add_definitions(-DPCBFRSKY)
 
@@ -110,6 +101,7 @@ if (PCB STREQUAL X10)
     endif()
     set(INTERNAL_GPS_BAUDRATE "9600" CACHE STRING "Baud rate for internal GPS")
     set(FLYSKY_GIMBAL ON)
+    set(FLEXSW "2" CACHE STRING "Max flex inputs usable as switches")
   elseif (PCBREV STREQUAL T18)
     set(FLAVOUR t18)
     add_definitions(-DRADIO_T18)
@@ -166,7 +158,6 @@ add_definitions(-DPCBHORUS -DSTM32F429_439xx -DSTM32F429xx -DSDRAM -DCCMRAM -DCO
 add_definitions(-DEEPROM_VARIANT=0 -DAUDIO -DVOICE -DRTCLOCK)
 add_definitions(-DGPS_USART_BAUDRATE=${INTERNAL_GPS_BAUDRATE})
 add_definitions(-DPWR_BUTTON_${PWR_BUTTON})
-add_definitions(-DHARDWARE_TRAINER_JACK)
 add_definitions(-DSTM32_SUPPORT_32BIT_TIMERS)
 
 set(SDRAM ON)
@@ -261,17 +252,14 @@ set(FIRMWARE_TARGET_SRC
 
 set(FIRMWARE_SRC
   ${FIRMWARE_SRC}
-  hal/adc_driver.cpp
-  targets/common/arm/stm32/stm32_exti_driver.cpp
-  targets/common/arm/stm32/timers_driver.cpp
-  targets/common/arm/stm32/stm32_pulse_driver.cpp
-  targets/common/arm/stm32/stm32_usart_driver.cpp
   targets/common/arm/stm32/rotary_encoder_driver.cpp
-  targets/common/arm/stm32/pwr_driver.cpp
   targets/common/arm/stm32/heartbeat_driver.cpp
-  targets/common/arm/stm32/trainer_driver.cpp
   targets/common/arm/stm32/ads79xx.cpp
   targets/common/arm/stm32/diskio_sdio.cpp
+  targets/common/arm/stm32/dma2d.cpp
+  targets/common/arm/stm32/spi_flash.cpp
+  targets/common/arm/stm32/diskio_spi_flash.cpp
+  drivers/frftl.cpp
   )
 
 if(BOOTLOADER)
@@ -301,5 +289,4 @@ set(STM32LIB_SRC
   STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fmc.c
   STM32F4xx_StdPeriph_Driver/src/stm32f4xx_ltdc.c
   STM32F4xx_StdPeriph_Driver/src/stm32f4xx_tim.c
-  STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma2d.c
   )

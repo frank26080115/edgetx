@@ -1,18 +1,14 @@
 include(CMakeForceCompiler)
 include(Bitmaps)
 
-set(PCB_TYPES X9LITE X9LITES X7 XLITE XLITES X9D X9D+ X9E X10 X12S NV14)
-set(RADIO_LANGUAGES CN CZ DA DE EN ES FI FR HE IT JP PT SK SE PL HU NL TW)
-set(TTS_LANGUAGES CN CZ DA DE EN ES FR HE IT JP PT SK SE PL HU NL RU)
+set(PCB_TYPES X9LITE X9LITES X7 XLITE XLITES X9D X9D+ X9E X10 X12S NV14 PL18)
+set(RADIO_LANGUAGES CN CZ DA DE EN ES FI FR HE IT JP PT RU SK SE PL HU NL TW)
+set(TTS_LANGUAGES CN CZ DA DE EN ES FR HE IT JP PT RU SK SE PL HU NL)
 
 set(PCB "X9D+" CACHE STRING "Radio type, one of: ${PCB_TYPES}")
 set_property(CACHE PCB PROPERTY STRINGS ${PCB_TYPES})
 set(TRANSLATIONS "EN" CACHE STRING "Radio language, one of: ${RADIO_LANGUAGES}")
 set_property(CACHE TRANSLATIONS PROPERTY STRINGS ${RADIO_LANGUAGES})
-set(SPLASH "DEFAULT" CACHE STRING "Splash (DEFAULT/OFF/FRSKY)")
-set_property(CACHE SPLASH PROPERTY STRINGS DEFAULT OFF FRSKY)
-set(PPM_UNIT "PERCENT_PREC0" CACHE STRING "PPM display unit (US/PERCENT_PREC1/PERCENT_PREC0)")
-set_property(CACHE PPM_UNIT PROPERTY STRINGS US PERCENT_PREC1 PERCENT_PREC0)
 set(DEFAULT_MODE "" CACHE STRING "Default sticks mode")
 set(POPUP_LEVEL 2 CACHE STRING "Popup level")
 
@@ -43,6 +39,7 @@ option(RAS "RAS (SWR) enabled" ON)
 option(TEMPLATES "Model templates menu" OFF)
 option(TRACE_SIMPGMSPACE "Turn on traces in simpgmspace.cpp" ON)
 option(TRACE_LUA_INTERNALS "Turn on traces for Lua internals" OFF)
+option(TRACE_AUDIO "Traces audio enabled" OFF)
 option(DEBUG_SEGGER_RTT "Debug output to Segger RTT" OFF)
 option(DEBUG_WINDOWS "Turn on windows traces" OFF)
 option(DEBUG_YAML "Turn on YAML traces" OFF)
@@ -88,6 +85,8 @@ if(PCB STREQUAL X12S OR PCB STREQUAL X10)
   include(targets/horus/CMakeLists.txt)
 elseif(PCB STREQUAL NV14)
   include(targets/nv14/CMakeLists.txt)
+elseif(PCB STREQUAL PL18)
+  include(targets/pl18/CMakeLists.txt)
 elseif(PCB STREQUAL X9E OR PCB STREQUAL X9D+ OR PCB STREQUAL X9D OR PCB STREQUAL X7 OR PCB STREQUAL X9LITE OR PCB STREQUAL X9LITES OR PCB STREQUAL XLITE OR PCB STREQUAL XLITES)
   include(targets/taranis/CMakeLists.txt)
 else()
@@ -232,8 +231,8 @@ if(ASTERISK)
   add_definitions(-DASTERISK)
 endif()
 
-if(WATCHDOG)
-  add_definitions(-DWATCHDOG)
+if(WATCHDOG AND NOT NATIVE_BUILD)
+  add_definitions(-DUSE_WATCHDOG)
 endif()
 
 if(SIMU_AUDIO)
@@ -254,14 +253,6 @@ if(SHUTDOWN_CONFIRMATION)
   add_definitions(-DSHUTDOWN_CONFIRMATION)
 endif()
 
-if(PPM_UNIT STREQUAL US)
-  add_definitions(-DPPM_UNIT_US)
-elseif(PPM_UNIT STREQUAL PERCENT_PREC1)
-  add_definitions(-DPPM_UNIT_PERCENT_PREC1)
-else()
-  add_definitions(-DPPM_UNIT_PERCENT_PREC0)
-endif()
-
 if(PPM_CENTER_ADJUSTABLE)
   add_definitions(-DPPM_CENTER_ADJUSTABLE)
 endif()
@@ -278,10 +269,6 @@ if(DANGEROUS_MODULE_FUNCTIONS)
   add_definitions(-DDANGEROUS_MODULE_FUNCTIONS)
 endif()
 
-if(NOT SPLASH STREQUAL OFF)
-  add_definitions(-DSPLASH)
-endif()
-
 if(NOT DEFAULT_MODE STREQUAL "")
   add_definitions(-DDEFAULT_MODE=${DEFAULT_MODE})
 endif()
@@ -292,6 +279,12 @@ endif()
 
 if(TRACE_LUA_INTERNALS)
   add_definitions(-DTRACE_LUA_INTERNALS_ENABLED)
+endif()
+
+if(TRACE_AUDIO)
+  add_definitions(-DTRACE_AUDIO)
+  set(DEBUG ON)
+  set(DEBUG_TRACE_BUFFER ON)
 endif()
 
 if(DEBUG_SEGGER_RTT)
@@ -396,6 +389,8 @@ set(SRC
   trainer.cpp
   model_init.cpp
   serial.cpp
+  audio.cpp
+  model_audio.cpp
   sbus.cpp
   input_mapping.cpp
   inactivity_timer.cpp
@@ -506,8 +501,10 @@ set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${COMMON_FLAGS} -Wimplicit")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${COMMON_FLAGS} -fno-rtti")
 
 # these are in addition to CMAKE_CXX_FLAGS
-set(CMAKE_EXE_LINKER_FLAGS "-lm -T${RADIO_SRC_DIR}/${LINKER_SCRIPT}")
+set(LINKER_DIR ${RADIO_SRC_DIR}/boards/generic_stm32/linker)
+set(CMAKE_EXE_LINKER_FLAGS "-lm -T${LINKER_DIR}/firmware.ld -L${LINKER_DIR} -L${LINKER_DIR}/${TARGET_LINKER_DIR}")
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=firmware.map,--cref,--no-warn-mismatch,--gc-sections")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${TARGET_LINKER_PARAMS}")
 
 if(SEMIHOSTING)
   add_definitions(-DSEMIHOSTING)
@@ -545,6 +542,13 @@ add_executable(firmware ${SRC})
 link_libraries(firmware -lstdc++)
 add_dependencies(firmware ${RADIO_DEPENDENCIES})
 set_target_properties(firmware PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+if (DEFINED TARGET_FLASH_SIZE)
+  message("TARGET_FLASH_SIZE = ${TARGET_FLASH_SIZE}")
+  target_link_options(firmware PRIVATE
+    -Wl,--defsym=__flash_size=${TARGET_FLASH_SIZE}
+  )
+endif()
 
 if(ACCESS_DENIED)
   add_subdirectory(thirdparty/AccessDenied)

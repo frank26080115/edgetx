@@ -66,10 +66,14 @@ const char * OpenTxEepromInterface::getName()
       return "EdgeTX for Jumper T-Lite (F4 MCU)";
     case BOARD_JUMPER_TPRO:
       return "EdgeTX for Jumper T-Pro";
+    case BOARD_JUMPER_TPROV2:
+      return "EdgeTX for Jumper T-Pro V2";
     case BOARD_JUMPER_T16:
       return "EdgeTX for Jumper T16";
     case BOARD_JUMPER_T18:
       return "EdgeTX for Jumper T18";
+    case BOARD_JUMPER_T20:
+      return "EdgeTX for Jumper T20";
     case BOARD_RADIOMASTER_TX16S:
       return "EdgeTX for Radiomaster TX16S";
     case BOARD_RADIOMASTER_TX12:
@@ -80,6 +84,8 @@ const char * OpenTxEepromInterface::getName()
       return "EdgeTX for Radiomaster Zorro";
     case BOARD_RADIOMASTER_BOXER:
       return "EdgeTX for Radiomaster Boxer";
+    case BOARD_RADIOMASTER_POCKET:
+      return "EdgeTX for Radiomaster Pocket";
     case BOARD_RADIOMASTER_T8:
       return "EdgeTX for Radiomaster T8";
     case BOARD_TARANIS_X9D:
@@ -118,6 +124,8 @@ const char * OpenTxEepromInterface::getName()
       return "EdgeTX for FlySky NV14";
     case BOARD_FLYSKY_EL18:
       return "EdgeTX for FlySky EL18";
+    case BOARD_FLYSKY_PL18:
+      return "EdgeTX for FlySky PL18";
     case BOARD_BETAFPV_LR3PRO:
       return "EdgeTx for BETAFPV LR3PRO";
     case BOARD_IFLIGHT_COMMANDO8:
@@ -196,14 +204,14 @@ bool OpenTxEepromInterface::loadFromByteArray(T & dest, const QByteArray & data)
   uint32_t fourcc = *((uint32_t*)&data.data()[0]);
   if (Boards::getFourCC(board) != fourcc) {
     if (IS_FAMILY_HORUS_OR_T16(board) && fourcc == 0x3178396F) {
-      qDebug() << QString().sprintf("%s: Deprecated fourcc used %x vs %x", getName(), fourcc, Boards::getFourCC(board));
+      qDebug() << QString("%1: Deprecated fourcc used %2 vs %3").arg(getName()).arg(fourcc).arg(Boards::getFourCC(board));
     }
     else {
-      qDebug() << QString().sprintf("%s: Wrong fourcc %x vs %x", getName(), fourcc, Boards::getFourCC(board));
+      qDebug() << QString("%1: Wrong fourcc %2 vs %3").arg(getName()).arg(fourcc).arg(Boards::getFourCC(board));
       return false;
     }
   }
-  qDebug() << QString().sprintf("%s: OK", getName());
+  qDebug() << QString("%1: OK").arg(getName());
   uint8_t version = data[4];
   QByteArray raw = data.right(data.size() - 8);
   return loadFromByteArray<T, M>(dest, raw, version);
@@ -619,8 +627,6 @@ int OpenTxFirmware::getCapability(::Capability capability)
       return 32;
     case PPMCenter:
       return (IS_HORUS_OR_TARANIS(board) ? 500 : (id.contains("ppmca") ? 125 : 0));
-    case PPMUnitMicroseconds:
-      return id.contains("ppmus") ? 1 : 0;
     case SYMLimits:
       return 1;
     case OptrexDisplay:
@@ -660,6 +666,8 @@ int OpenTxFirmware::getCapability(::Capability capability)
     case LcdWidth:
       if (IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board))
         return 320;
+      else if (IS_FLYSKY_PL18(board))
+        return 480;
       else if (IS_FAMILY_HORUS_OR_T16(board))
         return 480;
       else if (IS_TARANIS_SMALL(board))
@@ -671,6 +679,8 @@ int OpenTxFirmware::getCapability(::Capability capability)
     case LcdHeight:
       if (IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board))
         return 480;
+      else if (IS_FLYSKY_PL18(board))
+        return 320;
       else if (IS_FAMILY_HORUS_OR_T16(board))
         return 272;
       else
@@ -770,10 +780,10 @@ int OpenTxFirmware::getCapability(::Capability capability)
       return IS_FAMILY_T16(board);
     case HasVCPSerialMode:
       return IS_FAMILY_HORUS_OR_T16(board) || IS_RADIOMASTER_ZORRO(board) ||
-             IS_JUMPER_TPRO(board) || IS_RADIOMASTER_TX12_MK2(board) || IS_RADIOMASTER_BOXER(board);
+             IS_JUMPER_TPRO(board) || IS_RADIOMASTER_TX12_MK2(board) || IS_RADIOMASTER_BOXER(board) || IS_RADIOMASTER_POCKET(board);
     case HasBluetooth:
       return (IS_FAMILY_HORUS_OR_T16(board) || IS_TARANIS_X7(board) || IS_TARANIS_XLITE(board)|| IS_TARANIS_X9E(board) ||
-              IS_TARANIS_X9DP_2019(board) || IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board)) ? true : false;
+              IS_TARANIS_X9DP_2019(board) || IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board) || IS_FLYSKY_PL18(board)) ? true : false;
     case HasADCJitterFilter:
       return IS_HORUS_OR_TARANIS(board);
     case HasTelemetryBaudrate:
@@ -790,22 +800,31 @@ int OpenTxFirmware::getCapability(::Capability capability)
               IS_TARANIS_X9LITE(board) || IS_RADIOMASTER_TX12(board) ||
               IS_RADIOMASTER_TX12_MK2(board) || IS_RADIOMASTER_ZORRO(board) ||
               IS_RADIOMASTER_BOXER(board) || IS_RADIOMASTER_TX16S(board) ||
-              IS_JUMPER_T18(board));
+              IS_JUMPER_T18(board) || IS_JUMPER_T20(board) ||
+              IS_RADIOMASTER_POCKET(board));
     case HasSoftwareSerialPower:
       return IS_RADIOMASTER_TX16S(board);
     case HasIntModuleMulti:
       return id.contains("internalmulti") || IS_RADIOMASTER_TX16S(board) || IS_JUMPER_T18(board) ||
               IS_RADIOMASTER_TX12(board) || IS_JUMPER_TLITE(board) || IS_BETAFPV_LR3PRO(board) ||
               (IS_RADIOMASTER_ZORRO(board) && !id.contains("internalelrs")) ||
-              IS_RADIOMASTER_BOXER(board);
+              (IS_RADIOMASTER_BOXER(board) && !id.contains("internalelrs")) ||
+              (IS_RADIOMASTER_POCKET(board) && !id.contains("internalelrs"));
     case HasIntModuleCRSF:
       return id.contains("internalcrsf");
     case HasIntModuleELRS:
       return id.contains("internalelrs") || IS_RADIOMASTER_TX12_MK2(board) ||
-             IS_IFLIGHT_COMMANDO8(board) || IS_RADIOMASTER_BOXER(board);
+             IS_IFLIGHT_COMMANDO8(board) || IS_RADIOMASTER_BOXER(board) ||
+             IS_RADIOMASTER_POCKET(board) || IS_JUMPER_T20(board);
     case HasIntModuleFlySky:
       return  id.contains("afhds2a") || id.contains("afhds3") ||
               IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board);
+    case BacklightLevelMin:
+      if (IS_HORUS_X12S(board))
+        return 5;
+      if (IS_FAMILY_T16(board) || IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board))
+        return 1;
+      return 46;
     default:
       return 0;
   }
@@ -1131,7 +1150,6 @@ void addOpenTxCommonOptions(OpenTxFirmware * firmware)
     Firmware::Option("faichoice", Firmware::tr("Possibility to enable FAI MODE (no telemetry) at field")),
     Firmware::Option("faimode",   Firmware::tr("FAI MODE (no telemetry) always enabled"))
   };
-  firmware->addOption("ppmus", Firmware::tr("Channel values displayed in us"));
   firmware->addOptionsGroup(fai_options);
   firmware->addOption("nooverridech", Firmware::tr("No OverrideCH functions available"));
 }
@@ -1208,6 +1226,103 @@ void registerOpenTxFirmwares()
 {
   OpenTxFirmware * firmware;
 
+  /* BETAFPV LR3PRO board */
+  firmware = new OpenTxFirmware(FIRMWAREID("lr3pro"), QCoreApplication::translate("Firmware", "BETAFPV LiteRadio3 Pro"), BOARD_BETAFPV_LR3PRO);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* FlySky NV14 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("nv14"), QCoreApplication::translate("Firmware", "FlySky NV14"), BOARD_FLYSKY_NV14);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
+  registerOpenTxFirmware(firmware);
+
+  /* FlySky EL18 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("el18"), QCoreApplication::translate("Firmware", "FlySky EL18"), BOARD_FLYSKY_EL18);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
+  registerOpenTxFirmware(firmware);
+
+  /* FlySky PL18 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("pl18"), Firmware::tr("FlySky PL18"), BOARD_FLYSKY_PL18);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  addOpenTxRfOptions(firmware, FLEX + AFHDS3);
+  registerOpenTxFirmware(firmware);
+
+  /* FrSky Horus X10 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x10"), Firmware::tr("FrSky Horus X10 / X10S"), BOARD_X10);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("internalaccess", Firmware::tr("Support for ACCESS internal module replacement"));
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, EU + FLEX);
+
+  /* FrSky Horus X10 Express board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x10express"), Firmware::tr("FrSky Horus X10 Express / X10S Express"), BOARD_X10_EXPRESS, "x10-access");
+  addOpenTxFrskyOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* FrSky Horus X12 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x12s"), Firmware::tr("FrSky Horus X12S"), BOARD_HORUS_X12S);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("internalaccess", Firmware::tr("Support for ACCESS internal module replacement"));
+  firmware->addOption("pcbdev", Firmware::tr("Use ONLY with first DEV pcb version"));
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, EU + FLEX);
+
+  /* FrSky Taranis X7 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x7"), Firmware::tr("FrSky Taranis X7 / X7S"), BOARD_TARANIS_X7);
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, EU + FLEX);
+
+  /* FrSky Taranis X7 Access board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x7access"), Firmware::tr("FrSky Taranis X7 / X7S Access"), BOARD_TARANIS_X7_ACCESS, "x7-access");
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* FrSky Taranis X-Lite board */
+  firmware = new OpenTxFirmware(FIRMWAREID("xlite"), Firmware::tr("FrSky Taranis X-Lite"), BOARD_TARANIS_XLITE);
+  // firmware->addOption("stdr9m", Firmware::tr("Use JR-sized R9M module"));
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, EU + FLEX);
+
+  /* FrSky Taranis X-Lite S/PRO board */
+  firmware = new OpenTxFirmware(FIRMWAREID("xlites"), Firmware::tr("FrSky Taranis X-Lite S/PRO"), BOARD_TARANIS_XLITES);
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* FrSky Taranis X9-Lite board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x9lite"), Firmware::tr("FrSky Taranis X9-Lite"), BOARD_TARANIS_X9LITE);
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* FrSky Taranis X9-LiteS board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x9lites"), Firmware::tr("FrSky Taranis X9-Lite S"), BOARD_TARANIS_X9LITES);
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* FrSky Taranis X9D board */
+  firmware = new OpenTxFirmware(FIRMWAREID("x9d"), Firmware::tr("FrSky Taranis X9D"), BOARD_TARANIS_X9D);
+  firmware->addOption("noras", Firmware::tr("Disable RAS (SWR)"));
+  firmware->addOption("haptic", Firmware::tr("Haptic module installed"));
+  addOpenTxTaranisOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, EU + FLEX + AFHDS2A + AFHDS3);
+
   /* FrSky Taranis X9D+ board */
   firmware = new OpenTxFirmware(FIRMWAREID("x9d+"), Firmware::tr("FrSky Taranis X9D+"), BOARD_TARANIS_X9DP, "x9dp");
   firmware->addOption("noras", Firmware::tr("Disable RAS (SWR)"));
@@ -1221,14 +1336,6 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
-  /* FrSky Taranis X9D board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x9d"), Firmware::tr("FrSky Taranis X9D"), BOARD_TARANIS_X9D);
-  firmware->addOption("noras", Firmware::tr("Disable RAS (SWR)"));
-  firmware->addOption("haptic", Firmware::tr("Haptic module installed"));
-  addOpenTxTaranisOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, EU + FLEX + AFHDS2A + AFHDS3);
-
   /* FrSky Taranis X9E board */
   firmware = new OpenTxFirmware(FIRMWAREID("x9e"), Firmware::tr("FrSky Taranis X9E"), BOARD_TARANIS_X9E);
   firmware->addOption("shutdownconfirm", Firmware::tr("Confirmation before radio shutdown"));
@@ -1237,63 +1344,57 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, EU + FLEX);
 
-  /* FrSky X9-Lite board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x9lite"), Firmware::tr("FrSky Taranis X9-Lite"), BOARD_TARANIS_X9LITE);
-  addOpenTxTaranisOptions(firmware);
+  /* iFlight Commando8 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("commando8"), QCoreApplication::translate("Firmware", "iFlight Commando8"), BOARD_IFLIGHT_COMMANDO8);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, NONE);
+
+  /* Jumper T-Lite board */
+  firmware = new OpenTxFirmware(FIRMWAREID("tlite"), QCoreApplication::translate("Firmware", "Jumper T-Lite"), BOARD_JUMPER_TLITE);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
-  /* FrSky X9-LiteS board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x9lites"), Firmware::tr("FrSky Taranis X9-Lite S"), BOARD_TARANIS_X9LITES);
-  addOpenTxTaranisOptions(firmware);
+  /* Jumper T-Lite F4 board */
+  /* No immediate plans for this to be needed now
+  firmware = new OpenTxFirmware(FIRMWAREID("tlitef4"), QCoreApplication::translate("Firmware", "Jumper T-Lite (F4 MCU)"), BOARD_JUMPER_TLITE_F4, "tlitef4", "edgetx-tlite");
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+  */
+
+  /* Jumper T-Pro board */
+  firmware = new OpenTxFirmware(FIRMWAREID("tpro"), QCoreApplication::translate("Firmware", "Jumper T-Pro"), BOARD_JUMPER_TPRO);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
-  /* FrSky X7 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x7"), Firmware::tr("FrSky Taranis X7 / X7S"), BOARD_TARANIS_X7);
-  addOpenTxTaranisOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, EU + FLEX);
-
-  /* FrSky X7 Access board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x7access"), Firmware::tr("FrSky Taranis X7 / X7S Access"), BOARD_TARANIS_X7_ACCESS, "x7-access");
-  addOpenTxTaranisOptions(firmware);
+  /* Jumper T-Pro V2 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("tprov2"), QCoreApplication::translate("Firmware", "Jumper T-Pro v2"), BOARD_JUMPER_TPROV2);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
-
-  /* FrSky X-Lite S/PRO board */
-  firmware = new OpenTxFirmware(FIRMWAREID("xlites"), Firmware::tr("FrSky Taranis X-Lite S/PRO"), BOARD_TARANIS_XLITES);
-  addOpenTxTaranisOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
-  /* FrSky X-Lite board */
-  firmware = new OpenTxFirmware(FIRMWAREID("xlite"), Firmware::tr("FrSky Taranis X-Lite"), BOARD_TARANIS_XLITE);
-  // firmware->addOption("stdr9m", Firmware::tr("Use JR-sized R9M module"));
-  addOpenTxTaranisOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, EU + FLEX);
-
-  /* FrSky X10 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x10"), Firmware::tr("FrSky Horus X10 / X10S"), BOARD_X10);
-  addOpenTxFrskyOptions(firmware);
-  firmware->addOption("internalaccess", Firmware::tr("Support for ACCESS internal module replacement"));
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, EU + FLEX);
-
-  /* FrSky X10 Express board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x10express"), Firmware::tr("FrSky Horus X10 Express / X10S Express"), BOARD_X10_EXPRESS, "x10-access");
-  addOpenTxFrskyOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
-  /* FrSky X12 (Horus) board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x12s"), Firmware::tr("FrSky Horus X12S"), BOARD_HORUS_X12S);
-  addOpenTxFrskyOptions(firmware);
-  firmware->addOption("internalaccess", Firmware::tr("Support for ACCESS internal module replacement"));
-  firmware->addOption("pcbdev", Firmware::tr("Use ONLY with first DEV pcb version"));
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, EU + FLEX);
 
   /* Jumper T12 board */
   firmware = new OpenTxFirmware(FIRMWAREID("t12"), QCoreApplication::translate("Firmware", "Jumper T12 / T12 Pro"), BOARD_JUMPER_T12);
@@ -1306,36 +1407,6 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
-  /* Jumper T-Lite board */
-  firmware = new OpenTxFirmware(FIRMWAREID("tlite"), QCoreApplication::translate("Firmware", "Jumper T-Lite"), BOARD_JUMPER_TLITE);
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
-    /* Jumper T-Lite F4 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("tlitef4"), QCoreApplication::translate("Firmware", "Jumper T-Lite (F4 MCU)"), BOARD_JUMPER_TLITE_F4, "tlitef4", "edgetx-tlite");
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
-  /* Jumper T-Pro board */
-  firmware = new OpenTxFirmware(FIRMWAREID("tpro"), QCoreApplication::translate("Firmware", "Jumper T-Pro"), BOARD_JUMPER_TPRO);
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
   /* Jumper T16 board */
   firmware = new OpenTxFirmware(FIRMWAREID("t16"), Firmware::tr("Jumper T16 / T16+ / T16 Pro"), BOARD_JUMPER_T16);
   addOpenTxFrskyOptions(firmware);
@@ -1343,6 +1414,51 @@ void registerOpenTxFirmwares()
   firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
   addOpenTxRfOptions(firmware, FLEX);
   registerOpenTxFirmware(firmware);
+
+  /* Jumper T18 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t18"), Firmware::tr("Jumper T18"), BOARD_JUMPER_T18);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+
+  /* Jumper T20 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t20"), Firmware::tr("Jumper T20"), BOARD_JUMPER_T20);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
+  addOpenTxRfOptions(firmware, NONE);
+  registerOpenTxFirmware(firmware);
+
+  /* Radiomaster Boxer board */
+  firmware = new OpenTxFirmware(FIRMWAREID("boxer"), QCoreApplication::translate("Firmware", "Radiomaster Boxer"), Board::BOARD_RADIOMASTER_BOXER);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
+
+  /* Radiomaster Pocket board */
+  firmware = new OpenTxFirmware(FIRMWAREID("pocket"), QCoreApplication::translate("Firmware", "Radiomaster Pocket"), Board::BOARD_RADIOMASTER_POCKET);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
+
+  /* Radiomaster T8 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t8"), QCoreApplication::translate("Firmware", "Radiomaster T8"), BOARD_RADIOMASTER_T8);
+  addOpenTxCommonOptions(firmware);
+  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
+  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
+  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  addOpenTxFontOptions(firmware);
+  registerOpenTxFirmware(firmware);
+  addOpenTxRfOptions(firmware, NONE);
+  firmware->addOption("bindkey", Firmware::tr("Allow bind using bind key"));
 
   /* Radiomaster TX12 board */
   firmware = new OpenTxFirmware(FIRMWAREID("tx12"), QCoreApplication::translate("Firmware", "Radiomaster TX12"), BOARD_RADIOMASTER_TX12);
@@ -1364,38 +1480,6 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
-  /* Radiomaster Zorro board */
-  firmware = new OpenTxFirmware(FIRMWAREID("zorro"), QCoreApplication::translate("Firmware", "Radiomaster Zorro"), Board::BOARD_RADIOMASTER_ZORRO);
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
-
-  /* Radiomaster Boxer board */
-  firmware = new OpenTxFirmware(FIRMWAREID("boxer"), QCoreApplication::translate("Firmware", "Radiomaster Boxer"), Board::BOARD_RADIOMASTER_BOXER);
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
-
-  /* Radiomaster T8 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("t8"), QCoreApplication::translate("Firmware", "Radiomaster T8"), BOARD_RADIOMASTER_T8);
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, NONE);
-  firmware->addOption("bindkey", Firmware::tr("Allow bind using bind key"));
-
   /* Radiomaster TX16S board */
   firmware = new OpenTxFirmware(FIRMWAREID("tx16s"), Firmware::tr("Radiomaster TX16S / SE / Hall / Masterfire"), BOARD_RADIOMASTER_TX16S);
   addOpenTxFrskyOptions(firmware);
@@ -1406,46 +1490,16 @@ void registerOpenTxFirmwares()
   firmware->addOption("flyskygimbals", Firmware::tr("Support hardware mod: FlySky Paladin EV Gimbals"));
   registerOpenTxFirmware(firmware);
 
-  /* Jumper T18 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("t18"), Firmware::tr("Jumper T18"), BOARD_JUMPER_T18);
-  addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
-  /* FlySky NV14 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("nv14"), QCoreApplication::translate("Firmware", "FlySky NV14"), BOARD_FLYSKY_NV14);
-  addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
-  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
-  registerOpenTxFirmware(firmware);
-
-  /* FlySky EL18 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("el18"), QCoreApplication::translate("Firmware", "FlySky EL18"), BOARD_FLYSKY_EL18);
-  addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
-  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
-  registerOpenTxFirmware(firmware);
-
-  /* BETAFPV LR3PRO board */
-  firmware = new OpenTxFirmware(FIRMWAREID("lr3pro"), QCoreApplication::translate("Firmware", "BETAFPV LiteRadio3 Pro"), BOARD_BETAFPV_LR3PRO);
+  /* Radiomaster Zorro board */
+  firmware = new OpenTxFirmware(FIRMWAREID("zorro"), QCoreApplication::translate("Firmware", "Radiomaster Zorro"), Board::BOARD_RADIOMASTER_ZORRO);
   addOpenTxCommonOptions(firmware);
   firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
   firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
   firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
+  firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
   addOpenTxFontOptions(firmware);
   registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, FLEX);
-
-  /* Radiomaster T8 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("commando8"), QCoreApplication::translate("Firmware", "iFlight Commando8"), BOARD_IFLIGHT_COMMANDO8);
-  addOpenTxCommonOptions(firmware);
-  firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
-  firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
-  firmware->addOption("lua", Firmware::tr("Enable Lua custom scripts screen"));
-  addOpenTxFontOptions(firmware);
-  registerOpenTxFirmware(firmware);
-  addOpenTxRfOptions(firmware, NONE);
+  addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
 
   /* 9XR-Pro */
   firmware = new OpenTxFirmware(FIRMWAREID("9xrpro"), Firmware::tr("Turnigy 9XR-PRO"), BOARD_9XRPRO);
@@ -1464,6 +1518,7 @@ void registerOpenTxFirmwares()
   addOpenTxArm9xOptions(firmware);
   registerOpenTxFirmware(firmware, true);
 
+  Firmware::sortRegisteredFirmwares();
   Firmware::setDefaultVariant(Firmware::getFirmwareForFlavour("tx16s"));
   Firmware::setCurrentVariant(Firmware::getDefaultVariant());
 }

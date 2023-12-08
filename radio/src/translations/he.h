@@ -53,7 +53,7 @@
 
 #define TR_AUX_SERIAL_MODES            "OFF","Telem Mirror","Telemetry In","SBUS Trainer","LUA","CLI","GPS","Debug","SpaceMouse","External module"
 #define TR_SWTYPES                     "None","Toggle","2POS","3POS"
-#define TR_POTTYPES                    "None",TR("Pot w. det","Pot with detent"),TR("Multipos","Multipos Switch"),"Pot"
+#define TR_POTTYPES                    "None","Pot",TR("Pot w. det","Pot with detent"),"Slider",TR("Multipos","Multipos Switch"),"Axis X","Axis Y","Switch"
 #define TR_VPERSISTENT                 "OFF","Flight","Manual Reset"
 #define TR_COUNTRY_CODES               TR("US","America"),TR("JP","Japan"),TR("EU","Europe")
 #define TR_USBMODES                    "הצג לי אופציות",TR("Joyst","חיבור משחק קבוע"),TR("SDCard","העברת נתונים קבוע"),"חיבור סיריילי קבוע"
@@ -78,17 +78,15 @@
 #if LCD_W >= 212
   #define TR_CSWTIMER                  "שעון"
   #define TR_CSWSTICKY                 "Stcky"
-  #define TR_CSWRANGE                  "טווח"
   #define TR_CSWSTAY                   "Edge"
 #else
   #define TR_CSWTIMER                  "שעון"
   #define TR_CSWSTICKY                 "Stky"
-  #define TR_CSWRANGE                  "Rnge"
   #define TR_CSWSTAY                   "Edge"
 #endif
 
 #define TR_CSWEQUAL                    "a=x"
-#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 #define TR_SF_TRAINER                  "Trainer"
 #define TR_SF_INST_TRIM                "Inst. Trim"
@@ -98,18 +96,18 @@
 #define TR_SF_FAILSAFE                 "SetFailsafe"
 #define TR_SF_RANGE_CHECK              "RangeCheck"
 #define TR_SF_MOD_BIND                 "ModuleBind"
+#define TR_SF_RGBLEDS                  "RGB leds"
 
 #define TR_SOUND                       "Play Sound"
-#define TR_PLAY_TRACK                  "Play Track"
+#define TR_PLAY_TRACK                  TR("Ply Trk", "Play Track")
 #define TR_PLAY_VALUE                  TR("Play Val","Play Value")
 #define TR_SF_HAPTIC                   "Haptic"
-#define TR_SF_PLAY_SCRIPT              "Lua Script"
+#define TR_SF_PLAY_SCRIPT              TR("Lua", "Lua Script")
 #define TR_SF_BG_MUSIC                 "BgMusic"
 #define TR_SF_BG_MUSIC_PAUSE           "BgMusic ||"
 #define TR_SF_LOGS                     "SD Logs"
 #define TR_ADJUST_GVAR                 "Adjust"
 #define TR_SF_BACKLIGHT                "Backlight"
-#define TR_SF_PLAY_SCRIPT              "Lua Script"
 #define TR_SF_VARIO                    "Vario"
 #define TR_SF_TEST                     "Test"
 
@@ -214,6 +212,7 @@
 #define TR_TEXT_SIZE                   "Standard","Tiny","Small","Mid","Double"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA " (center only)","= (symmetrical)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 #if defined(COLORLCD)
 #if defined(BOLD)
@@ -356,6 +355,7 @@
 #define TR_ALARMWARNING                "sound off"
 #define TR_RSSI_SHUTDOWN_ALARM         TR("RSSI shutdown", "בדיקת חיבור למקלט בכיבוי")
 #define TR_MODEL_STILL_POWERED         "מודל עדיין פעיל"
+#define TR_TRAINER_STILL_CONNECTED     "מצב חניך עדיין מחובר"
 #define TR_USB_STILL_CONNECTED         "חיבור עדיין מחובר"
 #define TR_MODEL_SHUTDOWN              "?לכבות"
 #define TR_PRESS_ENTER_TO_CONFIRM      "לחץ אנטר לאישור"
@@ -660,11 +660,8 @@
 #define TR_LCD                         "LCD"
 #define TR_BRIGHTNESS                  "בהירות"
 #define TR_CPU_TEMP                    "CPU temp."
-#define TR_CPU_CURRENT                 "Current"
-#define TR_CPU_MAH                     "Consumpt."
 #define TR_COPROC                      "CoProc."
 #define TR_COPROC_TEMP                 "MB Temp."
-#define TR_CAPAWARNING                 INDENT "Capacity low"
 #define TR_TEMPWARNING                 INDENT "Overheat"
 #define TR_TTL_WARNING                 "אזהרה חיבורים אלה עם מתח 3.3 וולט !"
 #define TR_FUNC                        "Function"
@@ -812,6 +809,7 @@
 #define TR_JACK_MODE                   "Jack mode"
 #define TR_VOICE_LANGUAGE              "שפת שמע"
 #define TR_UNITS_SYSTEM                "יחידות"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                        "ערוך"
 #define TR_INSERT_BEFORE               "כלול לפני"
 #define TR_INSERT_AFTER                "כלול אחרי"
@@ -883,6 +881,7 @@
 #define TR_INTERVAL                    "Interval"
 #define TR_REPEAT                      "מספר חזרות"
 #define TR_ENABLE                      "זמין"
+#define TR_DISABLE                     "אל תאפשר"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "יחידה"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "הוסף חדש"
@@ -902,8 +901,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2        "certified firmware"
 #define TR_LOWALARM                    INDENT "התראה נמוכה"
 #define TR_CRITICALALARM               INDENT "התראה קריטית"
-#define TR_RSSIALARM_WARN              "RSSI"
-#define TR_NO_RSSIALARM                TR(INDENT "התראות בוטלו", "התראות טלמטריה בוטלו")
 #define TR_DISABLE_ALARM               TR(INDENT "ביטול התראות", INDENT "ביטול התראות טלמטריה")
 #define TR_POPUP                       "התראות"
 #define TR_MIN                         "מינימום"
@@ -1053,8 +1050,16 @@
   #define TR_BL_SELECT_KEY            "[R TRIM] to select file"
   #define TR_BL_FLASH_KEY             "Hold [R TRIM] long to flash"
   #define TR_BL_EXIT_KEY              " [L TRIM] ליציאה"
-  #define TR_BL_ENABLE                "אפשר"
-  #define TR_BL_DISABLE               "אל תאפשר"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1257,3 +1262,11 @@
 #define TR_ENABLED_FEATURES       "אפשר יכולות"
 #define TR_RADIO_MENU_TABS        "לשוניות תפריט רדיו"
 #define TR_MODEL_MENU_TABS        "לשוניות תפריט מודל"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "A-Z סידור","Z-A סידור","יותר בשימוש","פחות בשימוש"
+#define TR_SORT_MODELS_BY         "סדר תצוגה"
+#define TR_CREATE_NEW             "יצירה חדשה"

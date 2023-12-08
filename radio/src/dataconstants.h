@@ -39,7 +39,7 @@
 #define LABELS_LENGTH 100 // Maximum length of the label string
 #define LABEL_LENGTH 16
 
-#if defined(PCBHORUS) || defined(PCBNV14)
+#if defined(PCBHORUS) || defined(PCBNV14) || defined(PCBPL18)
   #define MAX_MODELS                   60
   #define MAX_OUTPUT_CHANNELS          32 // number of real output channels CH1-CH32
   #define MAX_FLIGHT_MODES             9
@@ -98,7 +98,7 @@ enum CurveType {
 #define MIN_POINTS_PER_CURVE           3
 #define MAX_POINTS_PER_CURVE           17
 
-#if defined(PCBHORUS) || defined(PCBNV14)
+#if defined(PCBHORUS) || defined(PCBNV14) || defined(PCBPL18)
   #define LEN_MODEL_NAME               15
   #define LEN_TIMER_NAME               8
   #define LEN_FLIGHT_MODE_NAME         10
@@ -392,23 +392,26 @@ enum PotsWarnMode {
 
 #if defined(COLORLCD)
   #define MAX_POTS        16
-  #define MAX_AXIS        2
 #else
   #define MAX_POTS        8
-  #define MAX_AXIS        0
 #endif
 
 #define MAX_VBAT          1
 #define MAX_RTC_BAT       1
 
-#define MAX_ANALOG_INPUTS (MAX_STICKS + MAX_POTS + MAX_AXIS + MAX_VBAT + MAX_RTC_BAT)
-#define MAX_CALIB_ANALOG_INPUTS (MAX_STICKS + MAX_POTS + MAX_AXIS)
+#define MAX_ANALOG_INPUTS (MAX_STICKS + MAX_POTS + MAX_VBAT + MAX_RTC_BAT)
+#define MAX_CALIB_ANALOG_INPUTS (MAX_STICKS + MAX_POTS)
 
 #define MAX_SWITCHES      20
-#if defined(RADIO_T20)
-#define MAX_TRIMS         8
+
+#if !defined(MAX_FLEX_SWITCHES)
+#define MAX_FLEX_SWITCHES 0
+#endif
+
+#if NUM_TRIMS > 6
+#define MAX_TRIMS 8
 #else
-#define MAX_TRIMS         6
+#define MAX_TRIMS 6
 #endif
 
 #define MAX_XPOTS_POSITIONS (MAX_POTS * XPOTS_MULTIPOS_COUNT)
@@ -425,6 +428,13 @@ enum SwitchSources {
   SWSRC_FIRST_TRIM SKIP,
   SWSRC_LAST_TRIM SKIP = SWSRC_FIRST_TRIM + 2 * MAX_TRIMS - 1,
 
+#if NUM_TRIMS > 6
+  SWSRC_TrimT7Down,
+  SWSRC_TrimT7Up,
+  SWSRC_TrimT8Down,
+  SWSRC_TrimT8Up,
+#endif
+
   SWSRC_FIRST_LOGICAL_SWITCH SKIP,
   SWSRC_LAST_LOGICAL_SWITCH SKIP = SWSRC_FIRST_LOGICAL_SWITCH + MAX_LOGICAL_SWITCHES - 1,
 
@@ -440,6 +450,8 @@ enum SwitchSources {
   SWSRC_LAST_SENSOR SKIP = SWSRC_FIRST_SENSOR+MAX_TELEMETRY_SENSORS-1,
 
   SWSRC_RADIO_ACTIVITY,
+
+  SWSRC_TRAINER_CONNECTED,
 
 #if defined(DEBUG_LATENCY)
   SWSRC_LATENCY_TOGGLE,
@@ -480,11 +492,6 @@ enum MixSources {
   MIXSRC_FIRST_POT SKIP,
   MIXSRC_LAST_POT SKIP = MIXSRC_FIRST_POT + MAX_POTS - 1,
 
-#if MAX_AXIS > 0
-  MIXSRC_FIRST_AXIS SKIP,
-  MIXSRC_LAST_AXIS SKIP = MIXSRC_FIRST_AXIS + MAX_AXIS - 1,
-#endif
-
 #if defined(IMU)
   MIXSRC_TILT_X,
   MIXSRC_TILT_Y,
@@ -515,7 +522,9 @@ enum MixSources {
   //#if defined(PCBHORUS)
   MIXSRC_TrimT5,
   MIXSRC_TrimT6,
-  MIXSRC_LAST_TRIM SKIP = MIXSRC_TrimT6,
+  MIXSRC_TrimT7,
+  MIXSRC_TrimT8,
+  MIXSRC_LAST_TRIM SKIP = MIXSRC_TrimT8,
   //#else
   //MIXSRC_LAST_TRIM SKIP = MIXSRC_TrimAil,
   //#endif
@@ -598,10 +607,13 @@ enum Functions {
   FUNC_SET_SCREEN,
 #endif
   FUNC_DISABLE_AUDIO_AMP,
+  FUNC_RGB_LED,
+  FUNC_TEST, // MUST remain last
 #if defined(DEBUG)
-  FUNC_TEST,  // should remain the last before MAX as not added in Companion
-#endif
   FUNC_MAX SKIP
+#else
+  FUNC_MAX SKIP = FUNC_TEST
+#endif
 };
 
 enum TimerModes {
@@ -685,5 +697,12 @@ enum ModelOverridableEnable {
 };
 
 #define SELECTED_THEME_NAME_LEN 26
+
+// PPM Units
+enum PPMUnit {
+    PPM_PERCENT_PREC0,
+    PPM_PERCENT_PREC1,
+    PPM_US
+};
 
 #endif // _DATACONSTANTS_H_

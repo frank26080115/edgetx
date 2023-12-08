@@ -25,6 +25,7 @@
 #include "io/multi_protolist.h"
 #include "telemetry/multi.h"
 #include "mixer_scheduler.h"
+#include "hal/abnormal_reboot.h"
 
 // for the  MULTI protocol definition
 // see https://github.com/pascallanger/DIY-Multiprotocol-TX-Module
@@ -115,12 +116,9 @@ static void sendFailsafeChannels(uint8_t*& p_buf, uint8_t module)
 static void setupPulsesMulti(uint8_t*& p_buf, uint8_t module)
 {
   static int counter[2] = {0,0}; //TODO
-  static uint8_t invert[2] = {0x00,        //internal
-#if defined(PCBTARANIS) || defined(PCBHORUS) || defined(PCBNV14)
+  static uint8_t invert[2] = {
+    0x00,       //internal
     0x08        //external
-#else
-    0x00	//external
-#endif
   };
   uint8_t type=MULTI_NORMAL;
 
@@ -139,8 +137,8 @@ static void setupPulsesMulti(uint8_t*& p_buf, uint8_t module)
   }
 
   // Invert telemetry if needed
-  if (invert[module] & 0x80 &&
-      !g_model.moduleData[module].multi.disableTelemetry) {
+  uint8_t disableTelemetry = modulePortHasRx(module) ? 0 : 1;
+  if (invert[module] & 0x80 && !disableTelemetry) {
     if (getMultiModuleStatus(module).isValid()) {
       invert[module] &= 0x08;  // Telemetry received, stop searching
     } else if (counter[module] % 100 == 0) {
@@ -170,7 +168,7 @@ static void setupPulsesMulti(uint8_t*& p_buf, uint8_t module)
                                 | (g_model.header.modelId[module] & 0x30)
                                 | (invert[module] & 0x08)
                                 //| 0x04 // Future use
-                                | (g_model.moduleData[module].multi.disableTelemetry << 1)
+                                | (disableTelemetry << 1)
                                 | g_model.moduleData[module].multi.disableMapping));
   }
 
@@ -210,7 +208,7 @@ static void* multiInit(uint8_t module)
     // serial port setup
     // TODO: error handling
     cfg.direction = ETX_Dir_TX_RX;
-    mod_st = modulePortInitSerial(module, ETX_MOD_PORT_UART, &cfg);
+    mod_st = modulePortInitSerial(module, ETX_MOD_PORT_UART, &cfg, false);
   }
 #endif
 
@@ -219,19 +217,14 @@ static void* multiInit(uint8_t module)
     // serial port setup
     cfg.direction = ETX_Dir_TX;
     cfg.polarity = ETX_Pol_Inverted;
-    mod_st = modulePortInitSerial(module, ETX_MOD_PORT_UART, &cfg);
 
-    if (!mod_st) {
-      mod_st = modulePortInitSerial(module, ETX_MOD_PORT_SOFT_INV, &cfg);
-    }
-
-    // no TX port: bail out
+    mod_st = modulePortInitSerial(module, ETX_MOD_PORT_UART, &cfg, true);
     if (!mod_st) return nullptr;
 
     // Init S.PORT RX channel
     cfg.direction = ETX_Dir_RX;
     cfg.polarity = ETX_Pol_Normal;
-    modulePortInitSerial(module, ETX_MOD_PORT_SPORT, &cfg);
+    modulePortInitSerial(module, ETX_MOD_PORT_SPORT, &cfg, false);
   }
 #endif
 
@@ -245,8 +238,10 @@ static void* multiInit(uint8_t module)
   getMultiModuleStatus(module).flags = 0;
 
 #if defined(MULTI_PROTOLIST)
-  TRACE("enablePulsesInternalModule(): trigger scan");
-  MultiRfProtocols::instance(module)->triggerScan();
+  if (!UNEXPECTED_SHUTDOWN()) {
+    TRACE("enablePulsesInternalModule(): trigger scan");
+    MultiRfProtocols::instance(module)->triggerScan();
+  }
 #endif
 
   return mod_st;
@@ -291,6 +286,8 @@ const etx_proto_driver_t MultiDriver = {
   .deinit = multiDeInit,
   .sendPulses = multiSendPulses,
   .processData = multiProcessData,
+  .processFrame = nullptr,
+  .onConfigChange = nullptr,
 };
 
 static void sendChannels(uint8_t*& p_buf, uint8_t module)
@@ -366,6 +363,8 @@ void sendFrameProtocolHeader(uint8_t*& p_buf, uint8_t module, bool failsafe)
       optionValue = 0x00;
     if (g_model.moduleData[module].multi.optionValue & 0x02)
       optionValue |= 0x40; // 11ms servo refresh
+    if (g_model.moduleData[module].multi.optionValue & 0x04)
+      optionValue |= 0x20; // Cloned
     optionValue |= sentModuleChannels(module); //add number of channels
   }
 

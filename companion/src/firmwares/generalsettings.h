@@ -180,6 +180,12 @@ class GeneralSettings {
       HATSMODE_COUNT
     };
 
+    enum PPMUnit {
+      PPM_PERCENT_PREC0,
+      PPM_PERCENT_PREC1,
+      PPM_US
+    };
+
     GeneralSettings() { clear(); }
     void clear();
     void init();
@@ -189,6 +195,7 @@ class GeneralSettings {
     int getDefaultStick(unsigned int channel) const;
     RawSource getDefaultSource(unsigned int channel) const;
     int getDefaultChannel(unsigned int stick) const;
+    bool fix6POSCalibration();
 
     char semver[8 + 1];
     unsigned int version;
@@ -263,6 +270,7 @@ class GeneralSettings {
     bool keysBacklight;
     unsigned int rotEncMode;
     unsigned int imperial;
+    unsigned int ppmunit;
     char ttsLanguage[TTS_LANGUAGE_LEN + 1];
     int beepVolume;
     int wavVolume;

@@ -19,14 +19,20 @@
  * GNU General Public License for more details.
  */
 
+#if !defined(SIMU)
+#include "stm32_ws2812.h"
+#include "boards/generic_stm32/rgb_leds.h"
+#endif
+
 #include "opentx.h"
 #include "io/frsky_firmware_update.h"
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
 #include "hal/storage.h"
+#include "hal/watchdog_driver.h"
+#include "hal/abnormal_reboot.h"
 
 #include "timers_driver.h"
-#include "watchdog_driver.h"
 
 #include "switches.h"
 #include "inactivity_timer.h"
@@ -41,11 +47,11 @@
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
-  // #include "shutdown_animation.h"
   #include "radio_calibration.h"
   #include "view_main.h"
   #include "view_text.h"
   #include "theme.h"
+  #include "switch_warn_dialog.h"
 
   #include "gui/colorlcd/LvglWrapper.h"
 #endif
@@ -53,6 +59,9 @@
 #if !defined(SIMU)
 #include <malloc.h>
 #endif
+
+extern void startSplash();
+extern void waitSplash();
 
 RadioData  g_eeGeneral;
 ModelData  g_model;
@@ -64,6 +73,8 @@ Clipboard clipboard;
 GlobalData globalData;
 
 uint32_t maxMixerDuration; // microseconds
+
+constexpr uint8_t HEART_TIMER_10MS = 0x01;
 uint8_t heartbeat;
 
 #if defined(OVERRIDE_CHANNEL_FUNCTION)
@@ -260,7 +271,7 @@ void generalDefault()
 {
   memclear(&g_eeGeneral, sizeof(g_eeGeneral));
 
-#if defined(PCBHORUS)
+#if defined(COLORLCD)
   g_eeGeneral.blOffBright = 20;
 #endif
 
@@ -268,9 +279,15 @@ void generalDefault()
   g_eeGeneral.contrast = LCD_CONTRAST_DEFAULT;
 #endif
 
+#if defined(LCD_BRIGHTNESS_DEFAULT)
+  g_eeGeneral.backlightBright = LCD_BRIGHTNESS_DEFAULT;
+#endif
+
 #if defined(DEFAULT_INTERNAL_MODULE)
     g_eeGeneral.internalModule = DEFAULT_INTERNAL_MODULE;
 #endif
+
+  adcCalibDefaults();
 
   g_eeGeneral.potsConfig = adcGetDefaultPotsConfig();
   g_eeGeneral.switchConfig = switchGetDefaultConfig();
@@ -289,7 +306,7 @@ void generalDefault()
 
 #if defined(SURFACE_RADIO)
   g_eeGeneral.stickMode = 0;
-  g_eeGeneral.templateSetup = 0;
+  g_eeGeneral.templateSetup = 1;
 #elif defined(DEFAULT_MODE)
   g_eeGeneral.stickMode = DEFAULT_MODE - 1;
   g_eeGeneral.templateSetup = DEFAULT_TEMPLATE_SETUP;
@@ -354,9 +371,12 @@ void generalDefault()
 uint16_t evalChkSum()
 {
   uint16_t sum = 0;
-  const int16_t * calibValues = (const int16_t *) &g_eeGeneral.calib[0];
-  for (int i=0; i<12; i++)
+  auto main_calib_bytes = adcGetMaxInputs(ADC_INPUT_MAIN) * sizeof(CalibData);
+
+  const uint8_t *calibValues = (const uint8_t *)&g_eeGeneral.calib[0];
+  for (unsigned i = 0; i < main_calib_bytes; i++) {
     sum += calibValues[i];
+  }
   return sum;
 }
 
@@ -398,18 +418,11 @@ int8_t getMovedSource(uint8_t min)
   if (result == 0) {
     for (uint8_t i = 0; i < MAX_ANALOG_INPUTS; i++) {
       if (abs(calibratedAnalogs[i] - sourcesStates[i]) > MULTIPOS_STEP_SIZE) {
-        auto offset = adcGetInputOffset(ADC_INPUT_POT);
+        auto offset = adcGetInputOffset(ADC_INPUT_FLEX);
         if (i >= offset) {
           result = MIXSRC_FIRST_POT + i - offset;
           break;
         }
-#if MAX_AXIS > 0
-        offset = adcGetInputOffset(ADC_INPUT_AXIS);
-        if (i >= offset) {
-          result = MIXSRC_FIRST_AXIS + i - offset;
-          break;
-        }
-#endif
         result = MIXSRC_FIRST_STICK + inputMappingConvertMode(i);
         break;
       }
@@ -533,11 +546,6 @@ void checkBacklight()
       }
       if (backlightOn) {
         currentBacklightBright = requiredBacklightBright;
-#if defined(COLORLCD)
-        // force backlight on for color lcd radios
-        if (currentBacklightBright > BACKLIGHT_LEVEL_MAX - BACKLIGHT_LEVEL_MIN)
-          currentBacklightBright = BACKLIGHT_LEVEL_MAX - BACKLIGHT_LEVEL_MIN;
-#endif
         BACKLIGHT_ENABLE();
       } else {
         BACKLIGHT_DISABLE();
@@ -555,58 +563,6 @@ void resetBacklightTimeout()
 #endif
   lightOffCounter = (autoOff*250) << 1;
 }
-
-#if defined(SPLASH)
-void doSplash()
-{
-#if defined(PWR_BUTTON_PRESS)
-  bool refresh = false;
-#endif
-
-  if (SPLASH_NEEDED()) {
-    resetBacklightTimeout();
-    drawSplash();
-
-    getADC(); // init ADC array
-
-    inactivityCheckInputs();
-
-    tmr10ms_t tgtime = get_tmr10ms() + SPLASH_TIMEOUT;
-
-    while (tgtime > get_tmr10ms()) {
-      RTOS_WAIT_TICKS(1);
-
-      getADC();
-
-      if (getEvent() || inactivityCheckInputs())
-        return;
-
-#if defined(PWR_BUTTON_PRESS)
-      uint32_t pwr_check = pwrCheck();
-      if (pwr_check == e_power_off) {
-        break;
-      }
-      else if (pwr_check == e_power_press) {
-        refresh = true;
-      }
-      else if (pwr_check == e_power_on && refresh) {
-        drawSplash();
-        refresh = false;
-      }
-#else
-      if (pwrCheck() == e_power_off) {
-        return;
-      }
-#endif
-
-      checkBacklight();
-    }
-#if defined(LIBOPENUI)
-    MainWindow::instance()->setActiveScreen();
-#endif
-  }
-}
-#endif
 
 
 #if defined(MULTIMODULE)
@@ -800,14 +756,10 @@ void checkThrottleStick()
       strcpy(throttleNotIdle, STR_THROTTLE_NOT_IDLE);
     }
     LED_ERROR_BEGIN();
-    AUDIO_ERROR_MESSAGE(AU_THROTTLE_ALERT);
-    auto dialog =
-        new FullScreenDialog(WARNING_TYPE_ALERT, TR_THROTTLE_UPPERCASE,
-                             throttleNotIdle, STR_PRESS_ANY_KEY_TO_SKIP);
-    dialog->setCloseCondition([]() { return !isThrottleWarningAlertNeeded(); });
+    auto dialog = new ThrottleWarnDialog(throttleNotIdle);
     dialog->runForever();
-    LED_ERROR_END();
   }
+  LED_ERROR_END();
 }
 #else
 void checkThrottleStick()
@@ -1085,9 +1037,9 @@ void flightReset(uint8_t check)
   }
 }
 
-void opentxClose(uint8_t shutdown)
+void edgeTxClose(uint8_t shutdown)
 {
-  TRACE("opentxClose");
+  TRACE("edgeTxClose");
 
   watchdogSuspend(2000/*20s*/);
 
@@ -1113,11 +1065,9 @@ void opentxClose(uint8_t shutdown)
   if (sessionTimer > 0) {
     g_eeGeneral.globalTimer += sessionTimer;
     sessionTimer = 0;
+    storageDirty(EE_GENERAL);
   }
 
-
-  g_eeGeneral.unexpectedShutdown = 0;
-  storageDirty(EE_GENERAL);
   storageCheck(true);
 
   while (IS_PLAYING(ID_PLAY_PROMPT_BASE + AU_BYE)) {
@@ -1148,9 +1098,9 @@ void opentxClose(uint8_t shutdown)
 #endif
 }
 
-void opentxResume()
+void edgeTxResume()
 {
-  TRACE("opentxResume");
+  TRACE("edgeTxResume");
 
   sdMount();
 #if defined(COLORLCD) && defined(LUA)
@@ -1171,11 +1121,6 @@ void opentxResume()
 #endif
 
   referenceSystemAudioFiles();
-
-  if (!g_eeGeneral.unexpectedShutdown) {
-    g_eeGeneral.unexpectedShutdown = 1;
-    storageDirty(EE_GENERAL);
-  }
 }
 
 #define INSTANT_TRIM_MARGIN 10 /* around 1% */
@@ -1315,11 +1260,14 @@ void runStartupAnimation()
     else if (!isPowerOn) {
       isPowerOn = true;
       pwrOn();
-      haptic.play(15, 3, PLAY_NOW);
+#if defined(HAPTIC)
+      if (g_eeGeneral.hapticMode != e_mode_quiet)
+        haptic.play(15, 3, PLAY_NOW);
+#endif
     }
   }
 
-  if (duration < PWR_PRESS_DURATION_MIN() || duration >= PWR_PRESS_DURATION_MAX) {
+  if (duration <= PWR_PRESS_DURATION_MIN() || duration >= PWR_PRESS_DURATION_MAX) {
     boardOff();
   }
 }
@@ -1368,26 +1316,15 @@ void moveTrimsToOffsets() // copy state of 3 primary to subtrim
   AUDIO_WARNING2();
 }
 
-#if !defined(OPENTX_START_DEFAULT_ARGS)
-  #define OPENTX_START_DEFAULT_ARGS  0
-#endif
+// Overridden by simulator startup
+uint8_t startOptions = 0;
 
-const uint8_t startOptions = OPENTX_START_DEFAULT_ARGS;
-
-void opentxInit()
+void edgeTxInit()
 {
-  TRACE("opentxInit");
+  TRACE("edgeTxInit");
 
-#if defined(SPLASH) && !defined(STARTUP_ANIMATION)
-  tmr10ms_t splashStartTime = 0;
-  bool waitSplash = false;
-  if (!UNEXPECTED_SHUTDOWN()) {
-    splashStartTime = get_tmr10ms();
-    waitSplash = true;
-    drawSplash();
-    TRACE("drawSplash() completed");
-  }
-#endif
+  // Show splash screen (color LCD)
+  startSplash();
 
 #if defined(HARDWARE_TOUCH) && !defined(PCBFLYSKY) && !defined(SIMU)
   touchPanelInit();
@@ -1402,18 +1339,28 @@ void opentxInit()
   menuHandlers[1] = menuModelSelect;
 #endif
 
+  switchInit();
+
 #if defined(STARTUP_ANIMATION)
   lcdRefreshWait();
   lcdClear();
   lcdRefresh();
   lcdRefreshWait();
+#endif
 
-  bool radioSettingsValid = storageReadRadioSettings(false);
-  (void)radioSettingsValid;
+  // Load radio.yml so radio settings can be used
+  bool radioSettingsValid = false;
+#if defined(RTC_BACKUP_RAM)
+  // Skip loading if EM startup and radio has RTC backup data
+  if (!UNEXPECTED_SHUTDOWN())
+    radioSettingsValid = storageReadRadioSettings(false);
+#else
+  // No RTC backup - try and load even for EM startup
+  radioSettingsValid = storageReadRadioSettings(false);
+#endif
 
 #if defined(GUI) && !defined(COLORLCD)
   lcdSetContrast();
-#endif
 #endif
 
   BACKLIGHT_ENABLE(); // we start the backlight during the startup animation
@@ -1425,29 +1372,17 @@ void opentxInit()
   else {
     runStartupAnimation();
   }
-#else // defined(PWR_BUTTON_PRESS)
+#else // defined(STARTUP_ANIMATION)
   pwrOn();
-  haptic.play(15, 3, PLAY_NOW);
+#if defined(HAPTIC)
+  if (g_eeGeneral.hapticMode != e_mode_quiet)
+    haptic.play(15, 3, PLAY_NOW);
 #endif
-
-  // Radios handle UNEXPECTED_SHUTDOWN() differently:
-  //  * radios with WDT and EEPROM and CPU controlled power use Reset status register
-  //    and eeGeneral.unexpectedShutdown
-  //  * radios with SDCARD model storage use Reset status register and special
-  //    variables in RAM. They can not use eeGeneral.unexpectedShutdown
-  //  * radios without CPU controlled power can only use Reset status register (if available)
-  if (UNEXPECTED_SHUTDOWN()) {
-    TRACE("Unexpected Shutdown detected");
-    globalData.unexpectedShutdown = 1;
-  }
-
-#if defined(RTC_BACKUP_RAM)
-  SET_POWER_REASON(0);
 #endif
 
 #if defined(SDCARD)
-  // SDCARD related stuff, only done if not unexpectedShutdown
-  if (!globalData.unexpectedShutdown) {
+  // SDCARD related stuff, only enable if normal boot
+  if (!UNEXPECTED_SHUTDOWN()) {
 
     if (!sdMounted())
       sdInit();
@@ -1479,14 +1414,17 @@ void opentxInit()
 #endif // defined(SDCARD)
 
 #if defined(EEPROM)
-  if (!radioSettingsValid)
+  if (!radioSettingsValid) {
     storageReadRadioSettings();
+  }
   storageReadCurrentModel();
+#else
+  (void)radioSettingsValid;
 #endif
 
 #if defined(COLORLCD) && defined(LUA)
-  if (!globalData.unexpectedShutdown) {
-    // ??? lua widget state must be prepared before the call to storageReadAll()
+  if (!UNEXPECTED_SHUTDOWN()) {
+    // lua widget state must be prepared before the call to storageReadAll()
     luaInitThemesAndWidgets();
   }
 #endif
@@ -1494,7 +1432,7 @@ void opentxInit()
   // handling of storage for radios that have no EEPROM
 #if !defined(EEPROM)
 #if defined(RTC_BACKUP_RAM) && !defined(SIMU)
-  if (globalData.unexpectedShutdown) {
+  if (UNEXPECTED_SHUTDOWN()) {
     // SDCARD not available, try to restore last model from RAM
     TRACE("rambackupRestore");
     rambackupRestore();
@@ -1507,11 +1445,6 @@ void opentxInit()
 #endif
 #endif  // #if !defined(EEPROM)
 
-// TODO: move to board on hook (onStorageReady()?)
-// #if defined(SPORT_UPDATE_PWR_GPIO)
-//   SPORT_UPDATE_POWER_INIT();
-// #endif
-  
   initSerialPorts();
 
   currentSpeakerVolume = requiredSpeakerVolume = g_eeGeneral.speakerVolume + VOLUME_LEVEL_DEF;
@@ -1542,7 +1475,7 @@ void opentxInit()
     resetBacklightTimeout();
   }
 
-  if (!globalData.unexpectedShutdown) {
+  if (!UNEXPECTED_SHUTDOWN()) {
 
     uint8_t calibration_needed = !(startOptions & OPENTX_START_NO_CALIBRATION) && (g_eeGeneral.chkSum != evalChkSum());
 
@@ -1551,48 +1484,8 @@ void opentxInit()
       if (!g_eeGeneral.dontPlayHello)
         AUDIO_HELLO();
 
-      // TODO: This needs some refactoring and cleanup
-#if defined(SPLASH)
-      // Handle B&W splash screen
-      doSplash();
-
-      // Handle color splash screen
-#if !defined(STARTUP_ANIMATION)
-      if (waitSplash) {
-        extern bool inactivityCheckInputs();
-        extern void checkSpeakerVolume();
-
-#if defined(SIMU)
-        // Simulator - inputsMoved() returns true immediately without this!
-        RTOS_WAIT_TICKS(30);
-#endif // defined(SIMU)
-
-        splashStartTime += SPLASH_TIMEOUT;
-        while (splashStartTime > get_tmr10ms()) {
-          WDG_RESET();
-          checkSpeakerVolume();
-          checkBacklight();
-          RTOS_WAIT_TICKS(10);
-          auto evt = getEvent();
-          if (evt || inactivityCheckInputs()) {
-            if (evt)
-              killEvents(evt);
-            break;
-          }
-#if defined(SIMU)
-          // Allow simulator to exit if closed while splash showing
-          uint32_t pwr_check = pwrCheck();
-          if (pwr_check == e_power_off) {
-            break;
-          }
-#endif // defined(SIMU)
-        }
-
-        // Reset timer so special/global functions set to !1x don't get triggered
-        START_SILENCE_PERIOD();
-      }
-#endif // !defined(STARTUP_ANIMATION)
-#endif // defined(SPLASH)
+      // Wait until splash screen done
+      waitSplash();
     }
 #endif // defined(GUI)
 
@@ -1638,18 +1531,15 @@ void opentxInit()
 #endif
   }
 
-#if !defined(RTC_BACKUP_RAM)
-  if (!g_eeGeneral.unexpectedShutdown) {
-    g_eeGeneral.unexpectedShutdown = 1;
-    storageDirty(EE_GENERAL);
-  }
-#endif
-
 #if defined(GUI) && !defined(COLORLCD) && !defined(STARTUP_ANIMATION)
   lcdSetContrast();
 #endif
 
   resetBacklightTimeout();
+
+#if defined(LED_STRIP_GPIO) && !defined(SIMU)
+  rgbLedStart();
+#endif
 
   pulsesStart();
   WDG_ENABLE(WDG_DURATION);
@@ -1778,12 +1668,15 @@ uint32_t pwrCheck()
 #if defined(COLORLCD)
         bool usbConfirmed = !usbPlugged() || getSelectedUsbMode() == USB_UNSELECTED_MODE;
         bool modelConnectedConfirmed = !TELEMETRY_STREAMING() || g_eeGeneral.disableRssiPoweroffAlarm;
+        bool trainerConfirmed = !isTrainerConnected();
 #endif
 #if defined(SHUTDOWN_CONFIRMATION)
         while (1)
 #else
-        while ((usbPlugged() && getSelectedUsbMode() != USB_UNSELECTED_MODE) ||
-               (TELEMETRY_STREAMING() && !g_eeGeneral.disableRssiPoweroffAlarm))
+        while (
+            (usbPlugged() && getSelectedUsbMode() != USB_UNSELECTED_MODE) ||
+            (TELEMETRY_STREAMING() && !g_eeGeneral.disableRssiPoweroffAlarm) ||
+            isTrainerConnected())
 #endif
         {
 
@@ -1800,7 +1693,10 @@ uint32_t pwrCheck()
             msg = STR_USB_STILL_CONNECTED;
             msg_len = sizeof(TR_USB_STILL_CONNECTED);
           }
-
+          else if (isTrainerConnected()) {
+            msg = STR_TRAINER_STILL_CONNECTED;
+            msg_len = sizeof(TR_TRAINER_STILL_CONNECTED);
+          }
           event_t evt = getEvent();
           SET_WARNING_INFO(msg, msg_len, 0);
           DISPLAY_WARNING(evt);
@@ -1839,6 +1735,12 @@ uint32_t pwrCheck()
               return !TELEMETRY_STREAMING() || g_eeGeneral.disableRssiPoweroffAlarm;
             };
           }
+          else if (!trainerConfirmed) {
+            message = STR_TRAINER_STILL_CONNECTED;
+            closeCondition = [](){
+              return !isTrainerConnected();
+            };
+          }
 
           // TODO: abort dialog condition (here, RSSI lost / USB connected)
           if (confirmationDialog(STR_MODEL_SHUTDOWN, message, false, closeCondition)) {
@@ -1862,7 +1764,10 @@ uint32_t pwrCheck()
 #endif // COLORLCD
         }
 
-        haptic.play(15, 3, PLAY_NOW);
+#if defined(HAPTIC)
+        if (g_eeGeneral.hapticMode != e_mode_quiet)
+          haptic.play(15, 3, PLAY_NOW);
+#endif
         pwr_check_state = PWR_CHECK_OFF;
         return e_power_off;
       }
@@ -1927,41 +1832,43 @@ uint32_t availableMemory()
 #endif
 }
 
+#define FEATURE_ENABLED(f) (g_model.f == OVERRIDE_GLOBAL && g_eeGeneral.f == 0) || (g_model.f == OVERRIDE_ON)
+
 // Radio menu tab state
 #if defined(COLORLCD)
 bool radioThemesEnabled() {
-  return (g_model.radioThemesDisabled == OVERRIDE_GLOBAL && g_eeGeneral.radioThemesDisabled == 0) || (g_model.radioThemesDisabled == 2);
+  return FEATURE_ENABLED(radioThemesDisabled);
 }
 #endif
 bool radioGFEnabled() {
-  return (g_model.radioGFDisabled == OVERRIDE_GLOBAL && g_eeGeneral.radioGFDisabled == 0) || (g_model.radioGFDisabled == 2);
+  return FEATURE_ENABLED(radioGFDisabled);
 }
 bool radioTrainerEnabled() {
-  return (g_model.radioTrainerDisabled == OVERRIDE_GLOBAL && g_eeGeneral.radioTrainerDisabled == 0) || (g_model.radioTrainerDisabled == 2);
+  return FEATURE_ENABLED(radioTrainerDisabled);
 }
 
 // Model menu tab state
 bool modelHeliEnabled() {
-  return (g_model.modelHeliDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelHeliDisabled == 0) || (g_model.modelHeliDisabled == 2);
+  return FEATURE_ENABLED(modelHeliDisabled);
 }
 bool modelFMEnabled() {
-  return (g_model.modelFMDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelFMDisabled == 0) || (g_model.modelFMDisabled == 2);
+  return FEATURE_ENABLED(modelFMDisabled);
 }
 bool modelCurvesEnabled() {
-  return (g_model.modelCurvesDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelCurvesDisabled == 0) || (g_model.modelCurvesDisabled == 2);
+  return FEATURE_ENABLED(modelCurvesDisabled);
 }
 bool modelGVEnabled() {
-  return (g_model.modelGVDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelGVDisabled == 0) || (g_model.modelGVDisabled == 2);
+  return FEATURE_ENABLED(modelGVDisabled);
 }
 bool modelLSEnabled() {
-  return (g_model.modelLSDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelLSDisabled == 0) || (g_model.modelLSDisabled == 2);
+  return FEATURE_ENABLED(modelLSDisabled);
 }
 bool modelSFEnabled() {
-  return (g_model.modelSFDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelSFDisabled == 0) || (g_model.modelSFDisabled == 2);
+  return FEATURE_ENABLED(modelSFDisabled);
 }
 bool modelCustomScriptsEnabled() {
-  return (g_model.modelCustomScriptsDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelCustomScriptsDisabled == 0) || (g_model.modelCustomScriptsDisabled == 2);
+  return FEATURE_ENABLED(modelCustomScriptsDisabled);
 }
 bool modelTelemetryEnabled() {
-  return (g_model.modelTelemetryDisabled == OVERRIDE_GLOBAL && g_eeGeneral.modelTelemetryDisabled == 0) || (g_model.modelTelemetryDisabled == 2);
+  return FEATURE_ENABLED(modelTelemetryDisabled);
 }

@@ -134,7 +134,7 @@ OpenTxSim::OpenTxSim(FXApp* a):
     sliders[i]->setValue(2047);
   }
 
-  auto max_pots = adcGetMaxInputs(ADC_INPUT_POT);
+  auto max_pots = adcGetMaxInputs(ADC_INPUT_FLEX);
   memset(knobs, 0, sizeof(knobs));
   
   for (int i = 0; i < max_pots; i++) {
@@ -348,7 +348,7 @@ long OpenTxSim::onMouseMove(FXObject*,FXSelector,void*v)
 void OpenTxSim::updateKeysAndSwitches(bool start)
 {
   static int keys[] = {
-#if defined(PCBNV14)
+#if defined(PCBFLYSKY)
     // no keys
 #elif defined(PCBHORUS)
     KEY_Page_Up,   KEY_PAGEUP,
@@ -369,7 +369,7 @@ void OpenTxSim::updateKeysAndSwitches(bool start)
     KEY_Left,      KEY_LEFT,
     KEY_Up,        KEY_UP,
     KEY_Down,      KEY_DOWN,
-#elif defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_ZORRO) || defined(RADIO_POCKET)
+#elif defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_ZORRO) || defined(RADIO_MT12) || defined(RADIO_POCKET)
     KEY_Page_Up,   KEY_PAGEUP,
     KEY_Page_Down, KEY_PAGEDN,
     KEY_Return,    KEY_ENTER,
@@ -673,14 +673,9 @@ uint16_t simu_get_analog(uint8_t idx)
 
   idx -= max_sticks;
 
-  auto max_pots = adcGetMaxInputs(ADC_INPUT_POT);
+  auto max_pots = adcGetMaxInputs(ADC_INPUT_FLEX);
   if (idx < max_pots)
     return opentxSim->knobs[idx]->getValue();
-
-  idx -= max_pots;
-
-  auto max_axes = adcGetMaxInputs(ADC_INPUT_AXIS);
-  if (idx < max_axes) return 0;
 
   // probably RTC_BAT
   return 0;

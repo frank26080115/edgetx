@@ -41,6 +41,8 @@ set(BOOTLOADER_SRC
   ../stm32_gpio_driver.cpp
   ../stm32_timer.cpp
   ../stm32_dma.cpp
+  ../watchdog_driver.cpp
+  ../abnormal_reboot.cpp
   init.c
   boot.cpp
   bin_files.cpp
@@ -67,8 +69,7 @@ if(DEBUG_SEGGER_RTT)
   )
 endif()
 
-
-if(PCB STREQUAL X10 OR PCB STREQUAL X12S OR PCB STREQUAL NV14)
+if(PCB STREQUAL X10 OR PCB STREQUAL X12S OR PCB STREQUAL NV14 OR PCB STREQUAL PL18)
   set(BOOTLOADER_SRC
     ${BOOTLOADER_SRC}
     ../../../../../gui/colorlcd/fonts.cpp
@@ -76,18 +77,33 @@ if(PCB STREQUAL X10 OR PCB STREQUAL X12S OR PCB STREQUAL NV14)
     ../../../../../fonts/lvgl/lv_font_roboto_bl_16.c
     ../../../../../thirdparty/libopenui/src/bitmapbuffer.cpp
     ../../../../../thirdparty/libopenui/thirdparty/lz4/lz4.c
-    ../../../../../targets/common/arm/stm32/diskio_sdio.cpp
+    ../../../../../targets/common/arm/stm32/dma2d.cpp
     ../../../../../targets/common/arm/stm32/rtc_driver.cpp
+    ../../../../../targets/common/arm/stm32/diskio_spi_flash.cpp
+    ../../../../../targets/common/arm/stm32/spi_flash.cpp
+    ../../../../../targets/common/arm/stm32/stm32_spi.cpp
+    ../../../../../drivers/frftl.cpp
+    ../../../../../crc.cpp
     ../../../../../targets/${TARGET_DIR}/sdram_driver.c
     ../../../../../targets/${TARGET_DIR}/haptic_driver.cpp
     )
 
+  if(NOT PCB STREQUAL PL18)
+    set(BOOTLOADER_SRC ${BOOTLOADER_SRC}
+      ../../../../../targets/common/arm/stm32/diskio_sdio.cpp
+    )
+  else()
+    set(BOOTLOADER_SRC ${BOOTLOADER_SRC}
+      ../../../../../targets/pl18/key_driver.cpp
+    )    
+  endif()
+  
   # Add LVGL sources
   foreach(LVGL_FILE ${LVGL_SRC_FILES_MINIMAL})
     set(BOOTLOADER_SRC ${BOOTLOADER_SRC} ../../../../../${LVGL_FILE})
   endforeach()
 
-  if(NOT PCB STREQUAL NV14)
+  if(NOT (PCB STREQUAL NV14 OR PCB STREQUAL PL18))
     set(BOOTLOADER_SRC
       ${BOOTLOADER_SRC}
       ../../../../../targets/${TARGET_DIR}/led_driver.cpp
@@ -131,11 +147,17 @@ remove_definitions(-DLUA)
 remove_definitions(-DCLI)
 remove_definitions(-DSEMIHOSTING)
 remove_definitions(-DUSB_SERIAL)
-remove_definitions(-DWATCHDOG)
+remove_definitions(-DUSE_WATCHDOG)
 
 add_definitions(-DBOOT)
 
-set(CMAKE_EXE_LINKER_FLAGS "-mcpu=${MCU} -mthumb -nostartfiles -lm -T${RADIO_SRC_DIR}/targets/${TARGET_DIR}/stm32_ramboot.ld -Wl,-Map=bootloader.map,--cref,--no-warn-mismatch,--gc-sections")
+set(CMAKE_EXE_LINKER_FLAGS "-mcpu=${MCU} -mthumb -nostartfiles -lm")
+
+set(LINKER_DIR ${RADIO_SRC_DIR}/boards/generic_stm32/linker)
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -T${LINKER_DIR}/bootloader.ld -L${LINKER_DIR} -L${LINKER_DIR}/${TARGET_LINKER_DIR}")
+
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -Wl,-Map=bootloader.map,--cref,--no-warn-mismatch,--gc-sections")
+
 # use smaller nano libc
 set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} --specs=nano.specs")
 

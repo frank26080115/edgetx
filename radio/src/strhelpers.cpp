@@ -407,7 +407,7 @@ char *getValueOrGVarString(char *dest, size_t len, gvar_t value, gvar_t vmin, gv
   }
 
   value += offset;
-  BitmapBuffer::formatNumberAsString(dest, len, value, flags, 0, nullptr, suffix);
+  formatNumberAsString(dest, len, value, flags, 0, nullptr, suffix);
   return dest;
 }
 #endif
@@ -511,6 +511,8 @@ char *getSwitchPositionName(char *dest, swsrc_t idx)
     strcpy(s, "Tele");
   } else if (idx == SWSRC_RADIO_ACTIVITY) {
     strcpy(s, "Act");
+  } else if (idx == SWSRC_TRAINER_CONNECTED) {
+    strcpy(s, "Trn");
   }
 #if defined(DEBUG_LATENCY)
   else if (idx == SWSRC_LATENCY_TOGGLE) {
@@ -536,7 +538,7 @@ const char* getAnalogLabel(uint8_t type, uint8_t idx)
     return adcGetInputShortLabel(type, idx);
   }
 
-  if (type == ADC_INPUT_POT) {
+  if (type == ADC_INPUT_FLEX) {
     return adcGetInputLabel(type, idx);
   }
   
@@ -560,10 +562,10 @@ const char* getAnalogShortLabel(uint8_t idx)
   }
 
   idx -= max;
-  max = adcGetMaxInputs(ADC_INPUT_POT);
+  max = adcGetMaxInputs(ADC_INPUT_FLEX);
 
   if (idx < max) {
-    return adcGetInputShortLabel(ADC_INPUT_POT, idx);
+    return adcGetInputShortLabel(ADC_INPUT_FLEX, idx);
   }
 
   // we only support short labels
@@ -602,7 +604,7 @@ const char* getTrimSourceLabel(uint16_t src_raw, int8_t trim_src)
 
 const char* getPotLabel(uint8_t idx)
 {
-  return getAnalogLabel(ADC_INPUT_POT, idx);
+  return getAnalogLabel(ADC_INPUT_FLEX, idx);
 }
 
 // this should be declared in header, but it used so much foreign symbols that
@@ -674,19 +676,12 @@ char *getSourceString(char (&dest)[L], mixsrc_t idx)
         pos = strAppend(pos, STR_CHAR_POT, sizeof(STR_CHAR_POT) - 1);
         dest_len -= sizeof(STR_CHAR_POT) - 1;
       }
+      // TODO: AXIS / SWITCH ???
       name = getPotLabel(idx);
     }
     strncpy(pos, name, dest_len - 1);
     pos[dest_len - 1] = '\0';
   }
-#if MAX_AXIS > 0
-  else if (idx <= MIXSRC_LAST_AXIS) {
-    idx -= MIXSRC_FIRST_AXIS;
-    auto name = adcGetInputName(ADC_INPUT_AXIS, idx);
-    strncpy(dest, name, dest_len - 1);
-    dest[dest_len - 1] = '\0';
-  }
-#endif
 #if defined(IMU)
   else if (idx <= MIXSRC_TILT_Y) {
     idx -= MIXSRC_TILT_X;
@@ -731,7 +726,15 @@ char *getSourceString(char (&dest)[L], mixsrc_t idx)
     }
   } else if (idx <= MIXSRC_LAST_GVAR) {
     idx -= MIXSRC_FIRST_GVAR;
+#if defined(LIBOPENUI)
+    char* s = strAppendStringWithIndex(dest, STR_GV, idx + 1);
+    if (g_model.gvars[idx].name[0]) {
+      s = strAppend(s, ":");
+      getGVarString(s, idx);
+    }
+#else
     strAppendStringWithIndex(dest, STR_GV, idx + 1);
+#endif
   } else if (idx < MIXSRC_FIRST_TIMER) {
     // Built-in sources: TX Voltage, Time, GPS (+ reserved)
     const char* src_str;
@@ -805,9 +808,9 @@ char *getValueWithUnit(char *dest, size_t len, int32_t val, uint8_t unit,
   if (unit == UNIT_CELLS) unit = UNIT_VOLTS;
   if ((flags & NO_UNIT) || (unit == UNIT_RAW)) {
     flags = flags & (~NO_UNIT);
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags);
+    formatNumberAsString(dest, len, val, flags);
   } else {
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags, 0, nullptr,
+    formatNumberAsString(dest, len, val, flags, 0, nullptr,
                                        STR_VTELEMUNIT[unit]);
   }
 
@@ -858,7 +861,7 @@ char *getSourceCustomValueString(char (&dest)[L], source_t source, int32_t val,
     return getTimerString(dest, val, timerOptions);
   }
   else if (source == MIXSRC_TX_VOLTAGE) {
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags | PREC1);
+    formatNumberAsString(dest, len, val, flags | PREC1);
     return dest;
   }
 #if defined(INTERNAL_GPS)
@@ -881,34 +884,75 @@ char *getSourceCustomValueString(char (&dest)[L], source_t source, int32_t val,
 #endif
 #if defined(LUA_INPUTS)
   else if (source >= MIXSRC_FIRST_LUA && source <= MIXSRC_LAST_LUA) {
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags);
+    formatNumberAsString(dest, len, val, flags);
   }
 #endif
   else if (source < MIXSRC_FIRST_CH) {
     val = calcRESXto100(val);
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags);
+    formatNumberAsString(dest, len, val, flags);
   }
   else if (source <= MIXSRC_LAST_CH) {
-#if defined(PPM_UNIT_PERCENT_PREC1)
-    val = calcRESXto1000(val);
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags | PREC1);
-#else
-    val = calcRESXto100(val);
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags);
-#endif
+    if (g_eeGeneral.ppmunit == PPM_PERCENT_PREC1) {
+      val = calcRESXto1000(val);
+      formatNumberAsString(dest, len, val, flags | PREC1);
+    } else {
+      val = calcRESXto100(val);
+      formatNumberAsString(dest, len, val, flags);
+    }
   }
   else {
-    BitmapBuffer::formatNumberAsString(dest, len, val, flags);
+    formatNumberAsString(dest, len, val, flags);
   }
 
   return dest;
+}
+
+void formatNumberAsString(char *buffer, uint8_t buffer_size, int32_t val, LcdFlags flags, uint8_t len, const char * prefix, const char * suffix)
+{
+  if (buffer) {
+    char str[48+1]; // max=16 for the prefix, 16 chars for the number, 16 chars for the suffix
+    char *s = str + 32;
+    *s = '\0';
+    int idx = 0;
+    int mode = MODE(flags);
+    bool neg = false;
+    if (val < 0) {
+      val = -val;
+      neg = true;
+    }
+    do {
+      *--s = '0' + (val % 10);
+      ++idx;
+      val /= 10;
+      if (mode != 0 && idx == mode) {
+        mode = 0;
+        *--s = '.';
+        if (val == 0)
+          *--s = '0';
+      }
+    } while (val != 0 || mode > 0 || (mode == MODE(LEADING0) && idx < len));
+    if (neg) *--s = '-';
+
+    // TODO needs check on all string lengths ...
+    if (prefix) {
+      int len = strlen(prefix);
+      if (len <= 16) {
+        s -= len;
+        strncpy(s, prefix, len);
+      }
+    }
+    if (suffix) {
+      strncpy(&str[32], suffix, 16);
+    }
+    strncpy(buffer, s, buffer_size);
+  }
 }
 
 std::string formatNumberAsString(int32_t val, LcdFlags flags, uint8_t len,
                                  const char *prefix, const char *suffix)
 {
   char s[49];
-  BitmapBuffer::formatNumberAsString(s, 49, val, flags, len, prefix, suffix);
+  formatNumberAsString(s, 49, val, flags, len, prefix, suffix);
   return std::string(s);
 }
 

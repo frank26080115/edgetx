@@ -25,6 +25,7 @@
 #include <limits.h>
 #include "opentx_types.h"
 #include "translations/untranslated.h"
+#include "audio.h"
 
 #if defined(TRANSLATIONS_FR)
 #include "translations/fr.h"
@@ -67,6 +68,9 @@
 #define LEN_SPECIAL_CHARS 0
 #elif defined(TRANSLATIONS_JP)
 #include "translations/jp.h"
+#define LEN_SPECIAL_CHARS 0
+#elif defined(TRANSLATIONS_RU)
+#include "translations/ru.h"
 #define LEN_SPECIAL_CHARS 0
 #elif defined(TRANSLATIONS_HE)
 #include "translations/he.h"
@@ -213,6 +217,7 @@ extern const char* const STR_MULTI_PROTOCOLS[];
 extern const char* const STR_MULTI_POWER[];
 extern const char* const STR_MULTI_BAYANG_OPTIONS[];
 extern const char* const STR_MULTI_DSM_OPTIONS[];
+extern const char* const STR_MULTI_DSM_CLONE[];
 extern const char* const STR_MULTI_WBUS_MODE[];
 extern const char* const STR_SPORT_MODES[];
 extern const char* const STR_FSGROUPS[];
@@ -239,6 +244,7 @@ extern const char STR_FILE_SIZE[];
 extern const char STR_FILE_OPEN[];
 extern const char* const STR_TIMER_MODES[];
 extern const char* const STR_MONTHS[];
+extern const char* const STR_PPMUNIT[];
 
 extern const char STR_BLUETOOTH[];
 extern const char STR_BLUETOOTH_DISC[];
@@ -321,6 +327,7 @@ extern const char STR_SF_SET_SCREEN[];
 extern const char STR_SF_SWITCH[];
 extern const char STR_SF_TRAINER[];
 extern const char STR_SF_VARIO[];
+extern const char STR_SF_RGBLEDS[];
 extern const char STR_SF_VOLUME[];
 extern const char STR_SF_RACING_MODE[];
 extern const char STR_SF_SCREENSHOT[];
@@ -395,6 +402,7 @@ extern const char STR_ALARMWARNING[];
 extern const char STR_RSSI_SHUTDOWN_ALARM[];
 extern const char STR_MODEL_STILL_POWERED[];
 extern const char STR_USB_STILL_CONNECTED[];
+extern const char STR_TRAINER_STILL_CONNECTED[];
 extern const char STR_MODEL_SHUTDOWN[];
 extern const char STR_PRESS_ENTER_TO_CONFIRM[];
 extern const char STR_THROTTLEREVERSE[];
@@ -565,9 +573,7 @@ extern const char STR_MODULE_SYNC[];
 extern const char STR_MULTI_SERVOFREQ[];
 extern const char STR_MULTI_MAX_THROW[];
 extern const char STR_MULTI_RFCHAN[];
-#if LCD_W < 212
 extern const char STR_SUBTYPE[];
-#endif
 
 #if defined(DSM2) || defined(PXX)
 extern const char STR_RECEIVER_NUM[];
@@ -615,6 +621,7 @@ extern const char STR_BATT_CALIB[];
 extern const char STR_VOLTAGE[];
 extern const char STR_CURRENT_CALIB[];
 extern const char STR_UNITS_SYSTEM[];
+extern const char STR_UNITS_PPM[];
 extern const char STR_VOICE_LANGUAGE[];
 extern const char STR_MODELIDUSED[];
 extern const char STR_MODELIDUNIQUE[];
@@ -741,11 +748,8 @@ extern const char STR_VOLUME[];
 extern const char STR_LCD[];
 extern const char STR_BRIGHTNESS[];
 extern const char STR_CPU_TEMP[];
-extern const char STR_CPU_CURRENT[];
-extern const char STR_CPU_MAH[];
 extern const char STR_COPROC[];
 extern const char STR_COPROC_TEMP[];
-extern const char STR_CAPAWARNING[];
 extern const char STR_TEMPWARNING[];
 extern const char STR_TTL_WARNING[];
 extern const char STR_FUNC[];
@@ -883,8 +887,8 @@ extern const char STR_MODEL_MENU_TABS[];
 struct LanguagePack {
   const char * id;
   const char * name;
-  void (*playNumber)(getvalue_t number, uint8_t unit, uint8_t flags, uint8_t id);
-  void (*playDuration)(int seconds, uint8_t flags, uint8_t id);
+  void (*playNumber)(getvalue_t number, uint8_t unit, uint8_t flags, uint8_t id, int8_t fragmentVolume);
+  void (*playDuration)(int seconds, uint8_t flags, uint8_t id, int8_t fragmentVolume);
 };
 
 extern const LanguagePack * currentLanguagePack;
@@ -906,6 +910,7 @@ extern const LanguagePack seLanguagePack;
 extern const LanguagePack skLanguagePack;
 extern const LanguagePack cnLanguagePack;
 extern const LanguagePack jpLanguagePack;
+extern const LanguagePack ruLanguagePack;
 extern const LanguagePack heLanguagePack;
 extern const LanguagePack * const languagePacks[];
 
@@ -948,14 +953,14 @@ const LanguagePack * const languagePacks[] = {
   const LanguagePack* currentLanguagePack = &lng##LanguagePack; \
   uint8_t currentLanguagePackIdx
 
-#define PLAY_FUNCTION(x, ...)    void x(__VA_ARGS__, uint8_t id)
+#define PLAY_FUNCTION(x, ...)    void x(__VA_ARGS__, uint8_t id, int8_t fragmentVolume = USE_SETTINGS_VOLUME)
 
 inline PLAY_FUNCTION(playNumber, getvalue_t number, uint8_t unit, uint8_t flags) {
-  currentLanguagePack->playNumber(number, unit, flags, id);
+  currentLanguagePack->playNumber(number, unit, flags, id, fragmentVolume);
 }
 
 inline PLAY_FUNCTION(playDuration, int seconds, uint8_t flags) {
-   currentLanguagePack->playDuration(seconds, flags, id);
+   currentLanguagePack->playDuration(seconds, flags, id, fragmentVolume);
 }
 
 extern const char STR_MODELNAME[];
@@ -1019,8 +1024,6 @@ extern const char STR_MODEL_SELECT[];
 extern const char STR_RESET_SUBMENU[];
 extern const char STR_LOWALARM[];
 extern const char STR_CRITICALALARM[];
-extern const char STR_RSSIALARM_WARN[];
-extern const char STR_NO_RSSIALARM[];
 extern const char STR_DISABLE_ALARM[];
 extern const char STR_TELEMETRY_TYPE[];
 extern const char STR_TELEMETRY_SENSORS[];
@@ -1029,6 +1032,7 @@ extern const char STR_PERIOD[];
 extern const char STR_INTERVAL[];
 extern const char STR_REPEAT[];
 extern const char STR_ENABLE[];
+extern const char STR_DISABLE[];
 extern const char STR_TOPLCDTIMER[];
 extern const char STR_UNIT[]; ;
 extern const char STR_TELEMETRY_NEWSENSOR[];
@@ -1257,6 +1261,16 @@ extern const char STR_USBJOYSTICK_AXIS_COLLISION[];
 extern const char STR_USBJOYSTICK_CIRC_COUTOUT[];
 extern const char* const STR_VUSBJOYSTICK_CIRC_COUTOUT[];
 extern const char STR_USBJOYSTICK_APPLY_CHANGES[];
+#endif
+
+extern const char STR_SELECT_MENU_ALL[];
+extern const char STR_SELECT_MENU_CLR[];
+extern const char STR_SELECT_MENU_INV[];
+
+#if defined(COLORLCD)
+extern const char* const STR_SORT_ORDERS[];
+extern const char STR_SORT_MODELS_BY[];
+extern const char STR_CREATE_NEW[];
 #endif
 
 #endif // _TRANSLATIONS_H_

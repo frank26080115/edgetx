@@ -42,7 +42,9 @@ QString RawSwitch::toString(Board::Type board, const GeneralSettings * const gen
     tr("ThrTrim Down"), tr("ThrTrim Up"),
     tr("AilTrim Left"), tr("AilTrim Right"),
     tr("Trim 5 Down"), tr("Trim 5 Up"),
-    tr("Trim 6 Down"), tr("Trim 6 Up")
+    tr("Trim 6 Down"), tr("Trim 6 Up"),
+    tr("Trim 7 Down"), tr("Trim 7 Up"),
+    tr("Trim 8 Down"), tr("Trim 8 Up")
   };
 
   static const QString trimsSwitches2[] = {
@@ -148,6 +150,9 @@ QString RawSwitch::toString(Board::Type board, const GeneralSettings * const gen
 
       case SWITCH_TYPE_TELEMETRY:
         return tr("Telemetry");
+
+      case SWITCH_TYPE_TRAINER:
+        return tr("Trn");
 
       default:
         return CPN_STR_UNKNOWN_ITEM;
@@ -280,6 +285,7 @@ StringTagMappingTable RawSwitch::getRawSwitchTypesLookupTable()
                           {std::to_string(SWITCH_TYPE_TELEMETRY),       "TELEMETRY_STREAMING"},
                           {std::to_string(SWITCH_TYPE_SENSOR),          "Tnn"},
                           {std::to_string(SWITCH_TYPE_ACT),             "RADIO_ACTIVITY"},
+                          {std::to_string(SWITCH_TYPE_TRAINER),         "TRAINER_CONNECTED"},
                           });
 
   return tbl;

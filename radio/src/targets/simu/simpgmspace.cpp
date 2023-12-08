@@ -43,7 +43,8 @@
 
 int g_snapshot_idx = 0;
 
-uint8_t simu_start_mode = 0;
+extern uint8_t startOptions;
+
 char * main_thread_error = nullptr;
 
 bool simu_shutdown = false;
@@ -159,7 +160,7 @@ void simuStart(bool tests, const char * sdPath, const char * settingsPath)
   menuLevel = 0;
 #endif
 
-  simu_start_mode = (tests ? 0 : OPENTX_START_NO_SPLASH | OPENTX_START_NO_CALIBRATION | OPENTX_START_NO_CHECKS);
+  startOptions = (tests ? 0 : OPENTX_START_NO_SPLASH | OPENTX_START_NO_CALIBRATION | OPENTX_START_NO_CHECKS);
   simu_shutdown = false;
 
   simuFatfsSetPaths(sdPath, settingsPath);
@@ -534,7 +535,7 @@ void boardOff()
 
 void hapticOff() {}
 
-#if defined(PCBFRSKY) || defined(PCBFLYSKY)
+#if defined(PCBFRSKY) || defined(PCBNV14)
 HardwareOptions hardwareOptions;
 #endif
 
@@ -613,6 +614,8 @@ static const etx_serial_driver_t _fake_drv = {
   .enableRx = nullptr,
   .getByte = _fake_drv_get_byte,
   .getLastByte = nullptr,
+  .getBufferedBytes = nullptr,
+  .copyRxBuffer = nullptr,
   .clearRxBuffer = nullptr,
   .getBaudrate = nullptr,
   .setBaudrate = nullptr,

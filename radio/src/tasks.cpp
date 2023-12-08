@@ -21,11 +21,12 @@
 
 #include "opentx.h"
 #include "timers_driver.h"
+#include "hal/abnormal_reboot.h"
+#include "hal/watchdog_driver.h"
 
 #include "tasks.h"
 #include "tasks/mixer_task.h"
 
-#include "watchdog_driver.h"
 
 RTOS_TASK_HANDLE menusTaskId;
 RTOS_DEFINE_STACK(menusTaskId, menusStack, MENUS_STACK_SIZE);
@@ -47,7 +48,7 @@ TASK_FUNCTION(menusTask)
   LvglWrapper::instance();
 #endif
 
-  opentxInit();
+  edgeTxInit();
 
   mixerTaskInit();
 
@@ -90,7 +91,7 @@ TASK_FUNCTION(menusTask)
 #endif
 
   drawSleepBitmap();
-  opentxClose();
+  edgeTxClose();
   boardOff();
 
   TASK_RETURN();

@@ -281,6 +281,7 @@
   #define ADC_EXT_CHANNELS              { ADC_CHANNEL_RTC_BATT }
   #define ADC_DMA                       DMA2
   #define ADC_DMA_CHANNEL               LL_DMA_CHANNEL_2
+  // TODO: use for SPI1_RX instead?
   #define ADC_DMA_STREAM                LL_DMA_STREAM_0
   #define ADC_DMA_STREAM_IRQ            DMA2_Stream0_IRQn
   #define ADC_DMA_STREAM_IRQHandler     DMA2_Stream0_IRQHandler
@@ -549,6 +550,11 @@
 #define TELEMETRY_TIMER_IRQn            TIM1_TRG_COM_TIM11_IRQn
 #define TELEMETRY_TIMER_IRQHandler      TIM1_TRG_COM_TIM11_IRQHandler
 
+// Software IRQ (Prio 5 -> FreeRTOS compatible)
+#define TELEMETRY_RX_FRAME_EXTI_LINE    LL_EXTI_LINE_4
+#define USE_EXTI4_IRQ
+#define EXTI4_IRQ_Priority 5
+
 // USB
 #define USB_RCC_AHB1Periph_GPIO         RCC_AHB1Periph_GPIOA
 #define USB_GPIO                        GPIOA
@@ -565,10 +571,10 @@
 #define LCD_RCC_APB2Periph              RCC_APB2Periph_LTDC
 #if defined(PCBX12S)
   #define LCD_GPIO_NRST                 GPIOF
-  #define LCD_GPIO_PIN_NRST             GPIO_Pin_10 // PF.10
+  #define LCD_GPIO_PIN_NRST             LL_GPIO_PIN_10 // PF.10
 #elif defined(PCBX10)
   #define LCD_GPIO_NRST                 GPIOI
-  #define LCD_GPIO_PIN_NRST             GPIO_Pin_10 // PI.10
+  #define LCD_GPIO_PIN_NRST             LL_GPIO_PIN_10 // PI.10
 #endif
 #if defined(PCBX10) && !defined(RADIO_T18)
   #define LCD_VERTICAL_INVERT
@@ -624,7 +630,7 @@
 #define SD_PRESENT_GPIO_PIN             GPIO_Pin_5  // PC.05
 #define SD_PRESENT_LL_GPIO_PIN          LL_GPIO_PIN_5  // PC.05
 #define SD_SDIO_DMA                     DMA2
-#define SD_SDIO_DMA_STREAM              DMA2_Stream3
+#define SD_SDIO_DMA_STREAM              DMA2_Stream3 // or Stream6
 #define SD_SDIO_DMA_CHANNEL             LL_DMA_CHANNEL_4
 #define SD_SDIO_DMA_IRQn                DMA2_Stream3_IRQn
 #define SD_SDIO_DMA_IRQHANDLER          DMA2_Stream3_IRQHandler
@@ -633,35 +639,49 @@
 #define SD_SDIO_TRANSFER_CLK_DIV        SD_SDIO_CLK_DIV(24000000)
 #define STORAGE_USE_SDIO
 
-// EEPROM
+// SPI NOR Flash 
 #if defined(PCBX12S) && PCBREV >= 13
-  #define EEPROM_RCC_AHB1Periph           RCC_AHB1Periph_GPIOA
-  #define EEPROM_RCC_APB1Periph           RCC_APB1Periph_SPI1
-  #define EEPROM_SPI_CS_GPIO              GPIOA
-  #define EEPROM_SPI_CS_GPIO_PIN          GPIO_Pin_15 // PA.15
-  #define EEPROM_SPI_SCK_GPIO             GPIOA
-  #define EEPROM_SPI_SCK_GPIO_PIN         GPIO_Pin_5  // PA.05
-  #define EEPROM_SPI_SCK_GPIO_PinSource   GPIO_PinSource5
-  #define EEPROM_SPI_MISO_GPIO            GPIOA
-  #define EEPROM_SPI_MISO_GPIO_PIN        GPIO_Pin_6  // PA.06
-  #define EEPROM_SPI_MISO_GPIO_PinSource  GPIO_PinSource6
-  #define EEPROM_SPI_MOSI_GPIO            GPIOA
-  #define EEPROM_SPI_MOSI_GPIO_PIN        GPIO_Pin_7  // PA.07
-  #define EEPROM_SPI_MOSI_GPIO_PinSource  GPIO_PinSource7
+  #define FLASH_SPI                      SPI1
+  #define FLASH_SPI_CS_GPIO              GPIOA
+  #define FLASH_SPI_CS_GPIO_PIN          LL_GPIO_PIN_15 // PA.15
+  #define FLASH_SPI_GPIO                 GPIOA
+  #define FLASH_SPI_SCK_GPIO_PIN         LL_GPIO_PIN_5  // PA.05
+  #define FLASH_SPI_MISO_GPIO_PIN        LL_GPIO_PIN_6  // PA.06
+  #define FLASH_SPI_MOSI_GPIO_PIN        LL_GPIO_PIN_7  // PA.07
+  // SPI1_TX: DMA2 Stream 3 (SDIO) / Stream 5 (Ext. module timer)
+  // #define FLASH_SPI_TX_DMA_CHANNEL       DMA_Channel_3
+  // #define FLASH_SPI_TX_DMA_STREAM        DMA2_Stream3
+  // #define FLASH_SPI_TX_DMA_IRQn          DMA2_Stream3_IRQn
+  // #define FLASH_SPI_TX_DMA_IRQHandler    DMA2_Stream3_IRQHandler
+  // #define FLASH_SPI_TX_DMA_FLAG_TC       DMA_IT_TCIF3
+  // #define FLASH_SPI_TX_DMA_STATUS_REG    HISR
+  // SPI1_RX: DMA2 Stream 0 / Stream 2 
+  // #define FLASH_SPI_RX_DMA_CHANNEL       DMA_Channel_3
+  // #define FLASH_SPI_RX_DMA_STREAM        DMA2_Stream5
+  // #define FLASH_SPI_RX_DMA_IRQn          DMA2_Stream5_IRQn
+  // #define FLASH_SPI_RX_DMA_IRQHandler    DMA2_Stream5_IRQHandler
+  // #define FLASH_SPI_RX_DMA_STATUS_REG    HISR
+  // #define FLASH_SPI_RX_DMA_FLAG_TC       DMA_IT_TCIF5
 #elif defined(PCBX10)
-  #define EEPROM_RCC_AHB1Periph           RCC_AHB1Periph_GPIOI
-  #define EEPROM_RCC_APB1Periph           RCC_APB1Periph_SPI2
-  #define EEPROM_SPI_CS_GPIO              GPIOI
-  #define EEPROM_SPI_CS_GPIO_PIN          GPIO_Pin_0  // PI.00
-  #define EEPROM_SPI_SCK_GPIO             GPIOI
-  #define EEPROM_SPI_SCK_GPIO_PIN         GPIO_Pin_1  // PI.01
-  #define EEPROM_SPI_SCK_GPIO_PinSource   GPIO_PinSource1
-  #define EEPROM_SPI_MISO_GPIO            GPIOI
-  #define EEPROM_SPI_MISO_GPIO_PIN        GPIO_Pin_2  // PI.02
-  #define EEPROM_SPI_MISO_GPIO_PinSource  GPIO_PinSource2
-  #define EEPROM_SPI_MOSI_GPIO            GPIOI
-  #define EEPROM_SPI_MOSI_GPIO_PIN        GPIO_Pin_3  // PI.03
-  #define EEPROM_SPI_MOSI_GPIO_PinSource  GPIO_PinSource3
+  #define FLASH_SPI                      SPI2
+  #define FLASH_SPI_CS_GPIO              GPIOI
+  #define FLASH_SPI_CS_GPIO_PIN          LL_GPIO_PIN_0  // PI.00
+  #define FLASH_SPI_GPIO                 GPIOI
+  #define FLASH_SPI_SCK_GPIO_PIN         LL_GPIO_PIN_1  // PI.01
+  #define FLASH_SPI_MISO_GPIO_PIN        LL_GPIO_PIN_2  // PI.02
+  #define FLASH_SPI_MOSI_GPIO_PIN        LL_GPIO_PIN_3  // PI.03
+  // #define FLASH_SPI_TX_DMA_CHANNEL       DMA_Channel_0
+  // #define FLASH_SPI_TX_DMA_STREAM        DMA1_Stream4
+  // #define FLASH_SPI_TX_DMA_IRQn          DMA1_Stream4_IRQn
+  // #define FLASH_SPI_TX_DMA_IRQHandler    DMA1_Stream4_IRQHandler
+  // #define FLASH_SPI_TX_DMA_FLAG_TC       DMA_IT_TCIF4
+  // #define FLASH_SPI_TX_DMA_STATUS_REG    HISR
+  // #define FLASH_SPI_RX_DMA_CHANNEL       DMA_Channel_0
+  // #define FLASH_SPI_RX_DMA_STREAM        DMA1_Stream3
+  // #define FLASH_SPI_RX_DMA_IRQn          DMA1_Stream3_IRQn
+  // #define FLASH_SPI_RX_DMA_IRQHandler    DMA1_Stream3_IRQHandler
+  // #define FLASH_SPI_RX_DMA_STATUS_REG    LISR
+  // #define FLASH_SPI_RX_DMA_FLAG_TC       DMA_IT_TCIF3
 #endif
 
 // Audio
@@ -819,7 +839,7 @@
   #define FLYSKY_HALL_SERIAL_USART_IRQn            UART4_IRQn
   #define FLYSKY_HALL_SERIAL_DMA                   DMA1
   #define FLYSKY_HALL_DMA_Stream_RX                LL_DMA_STREAM_2
-  #define FLYSKY_HALL_DMA_Stream_TX                LL_DMA_STREAM_4
+  // #define FLYSKY_HALL_DMA_Stream_TX                LL_DMA_STREAM_4
 
 #endif
 
@@ -1031,5 +1051,11 @@
   #define BT_EN_GPIO                    GPIOG
   #define BT_EN_GPIO_PIN                LL_GPIO_PIN_10 // PG.10
 #endif
+
+#define LCD_W                          480
+#define LCD_H                          272
+#define LCD_PHYS_H                     LCD_H
+#define LCD_PHYS_W                     LCD_W
+#define LCD_DEPTH                      16
 
 #endif // _HAL_H_

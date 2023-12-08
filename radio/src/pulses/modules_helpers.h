@@ -28,6 +28,7 @@
 #include "storage/storage.h"
 #include "globals.h"
 #include "MultiProtoDefs.h"
+#include "hal/module_port.h"
 
 #if defined(MULTIMODULE)
 #include "telemetry/multi.h"
@@ -628,6 +629,23 @@ inline bool isModuleFailsafeAvailable(uint8_t moduleIdx)
   return false;
 }
 
+#if defined(MULTIMODULE)
+constexpr int32_t MULTI_DSM_CLONE_VERSION = (1 << 24) | (3 << 16) | (3 << 8) | 30;
+
+inline bool isMultiProtocolDSMCloneAvailable(uint8_t moduleIdx)
+{
+  if (!isModuleMultimodule(moduleIdx))
+    return false;
+
+  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
+  if (status.isValid() && ((status.major << 24) | (status.minor << 16) | (status.revision << 8) | status.patch) < MULTI_DSM_CLONE_VERSION) {
+    return false;
+  }
+
+  return g_model.moduleData[moduleIdx].multi.rfProtocol == MODULE_SUBTYPE_MULTI_DSM2;
+}
+#endif
+
 inline bool isModuleBindRangeAvailable(uint8_t moduleIdx)
 {
   return isModulePXX2(moduleIdx) || isModulePXX1(moduleIdx) ||
@@ -711,25 +729,13 @@ inline bool isBindCh9To16Allowed(uint8_t moduleIndex)
   }
 }
 
-#if defined(PCBTARANIS) || defined(PCBHORUS)
-inline bool isSportLineUsedByInternalModule()
-{
-  return g_model.moduleData[INTERNAL_MODULE].type == MODULE_TYPE_XJT_PXX1;
-}
-#else
-inline bool isSportLineUsedByInternalModule()
-{
-  return false;
-}
-#endif
-
 inline bool isTelemAllowedOnBind(uint8_t moduleIndex)
 {
 #if defined(HARDWARE_INTERNAL_MODULE)
   if (moduleIndex == INTERNAL_MODULE)
     return true;
 
-  if (isSportLineUsedByInternalModule())
+  if (!modulePortIsPortUsedByModule(moduleIndex, ETX_MOD_PORT_SPORT))
     return false;
 #endif
 

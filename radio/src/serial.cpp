@@ -90,7 +90,7 @@ extern "C" void dbgSerialPrintf(const char * format, ...)
 
   const char *t = tmp;
   while (*t) {
-    SEGGER_RTT_Write(0, (const void *)t++, 1);
+    SEGGER_RTT_Write(0, (const void*)t++, 1);
   }
 }
 #else
@@ -294,7 +294,7 @@ static void serialSetupPort(int mode, etx_serial_init& params)
   case UART_MODE_TELEMETRY_MIRROR:
     // TODO: query telemetry baudrate / add setting for module
 #if defined(CROSSFIRE)
-    if (modelTelemetryProtocol() == PROTOCOL_TELEMETRY_CROSSFIRE) {
+    if (isModuleCrossfire(EXTERNAL_MODULE) || isModuleCrossfire(INTERNAL_MODULE)) {
       params.baudrate = CROSSFIRE_TELEM_MIRROR_BAUDRATE;
       break;
     }
@@ -303,7 +303,8 @@ static void serialSetupPort(int mode, etx_serial_init& params)
     break;
 
   case UART_MODE_TELEMETRY:
-    if (modelTelemetryProtocol() == PROTOCOL_TELEMETRY_FRSKY_D_SECONDARY) {
+    if (isModulePPM(EXTERNAL_MODULE) &&
+        g_model.telemetryProtocol == PROTOCOL_TELEMETRY_FRSKY_D_SECONDARY) {
       params.baudrate = FRSKY_D_BAUDRATE;
       params.direction = ETX_Dir_RX;
     }
@@ -449,12 +450,20 @@ void serialInit(uint8_t port_nr, int mode)
 
 void initSerialPorts()
 {
-  memset(serialPortStates, 0, sizeof(serialPortStates));
-
+#if defined(DEBUG)
+  // AUX1 and serialPortStates was already initialized early in DEBUG config
+  for (uint8_t port_nr = 0; port_nr < MAX_AUX_SERIAL; port_nr++) {
+    if (port_nr != SP_AUX1) {
+      auto mode = getSerialPortMode(port_nr);
+      serialInit(port_nr, mode);
+    }
+  }
+#else
   for (uint8_t port_nr = 0; port_nr < MAX_AUX_SERIAL; port_nr++) {
     auto mode = getSerialPortMode(port_nr);
     serialInit(port_nr, mode);
   }
+#endif
 }
 
 int serialGetMode(uint8_t port_nr)

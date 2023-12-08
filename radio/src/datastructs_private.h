@@ -174,7 +174,8 @@ PACK(struct CustomFunctionData {
       NOBACKUP(CFN_SPARE_TYPE val2);
     }) clear);
   }) NAME(fp) SKIP;
-  uint8_t active SKIP;
+  uint8_t active : 1 SKIP;
+  int8_t repeat:7 SKIP;
 
   bool isEmpty() const
   {
@@ -601,7 +602,7 @@ PACK(struct CustomScreenData {
   #define TOPBAR_DATA
 #endif
 
-#if defined(PCBHORUS) || defined(PCBTARANIS) || defined(PCBNV14)
+#if defined(PCBHORUS) || defined(PCBTARANIS) || defined(PCBNV14) || defined(PCBPL18)
   #define SCRIPT_DATA \
     NOBACKUP(ScriptData scriptsData[MAX_SCRIPTS]);
 #else
@@ -843,7 +844,7 @@ PACK(struct RadioData {
   NOBACKUP(uint8_t manuallyEdited:1);
   int8_t timezoneMinutes:3;    // -3 to +3 ==> (-45 to 45 minutes in 15 minute increments)
   NOBACKUP(uint8_t hatsMode:2 ENUM(HatsMode));
-  NOBACKUP(int8_t spare0:2 SKIP);
+  NOBACKUP(uint8_t ppmunit:2);  // PPMUnit enum
   CUST_ATTR(semver,nullptr,w_semver);
   CUST_ATTR(board,nullptr,w_board);
   CalibData calib[MAX_CALIB_ANALOG_INPUTS] NO_IDX;
@@ -882,7 +883,7 @@ PACK(struct RadioData {
   NOBACKUP(int8_t beepLength:3 CUST(r_5pos,w_5pos));
   NOBACKUP(int8_t hapticStrength:3 CUST(r_5pos,w_5pos));
   NOBACKUP(uint8_t gpsFormat:1);
-  NOBACKUP(uint8_t unexpectedShutdown:1 SKIP);
+  NOBACKUP(uint8_t __spare2:1 SKIP);
   NOBACKUP(uint8_t speakerPitch CUST(r_spPitch,w_spPitch));
   NOBACKUP(int8_t speakerVolume CUST(r_vol,w_vol));
   NOBACKUP(int8_t vBatMin CUST(r_vbat_min,w_vbat_min));
@@ -923,6 +924,7 @@ PACK(struct RadioData {
   CUST_ARRAY(slidersConfig, struct_sliderConfig, MAX_POTS, nullptr);
   potconfig_t potsConfig ARRAY(4,struct_potConfig,nullptr);
   swconfig_t switchConfig ARRAY(2,struct_switchConfig,nullptr);
+  CUST_ARRAY(flexSwitches, struct_flexSwitch, MAX_FLEX_SWITCHES, flex_sw_valid);
 
   EXTRA_GENERAL_FIELDS
 

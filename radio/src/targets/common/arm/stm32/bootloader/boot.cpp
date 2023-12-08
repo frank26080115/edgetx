@@ -35,8 +35,7 @@
 #include "debug.h"
 
 #include "timers_driver.h"
-#include "watchdog_driver.h"
-
+#include "hal/abnormal_reboot.h"
 #include "hal/rotary_encoder.h"
 
 #if defined(DEBUG_SEGGER_RTT)
@@ -45,6 +44,8 @@
 
 #if defined(PCBXLITE)
   #define BOOTLOADER_KEYS                 0x0F
+#elif defined(RADIO_MT12)
+  #define BOOTLOADER_KEYS                 0x09
 #else
   #define BOOTLOADER_KEYS                 0x42
 #endif
@@ -55,10 +56,15 @@
 
 #define APP_START_ADDRESS               (uint32_t)(FIRMWARE_ADDRESS + BOOTLOADER_SIZE)
 
-#if defined(EEPROM)
+#if defined(EEPROM) || defined(SPI_FLASH)
   #define MAIN_MENU_LEN 3
 #else
   #define MAIN_MENU_LEN 2
+#endif
+
+#if defined(SPI_FLASH)
+  #include "spi_flash.h"
+  #define SEL_CLEAR_FLASH_STORAGE_MENU_LEN 2
 #endif
 
 typedef void (*voidFunction)(void);
@@ -78,8 +84,6 @@ const uint8_t bootloaderVersion[] __attribute__ ((section(".version"), used)) =
   {'B', 'O', 'O', 'T', '1', '0'};
 #endif
 
-#define SOFTRESET_REQUEST 0xCAFEDEAD
-  
 volatile tmr10ms_t g_tmr10ms;
 volatile uint8_t tenms = 1;
 
@@ -307,13 +311,10 @@ int  bootloaderMain()
 
 #if defined(PWR_BUTTON_PRESS)
   // wait until power button is released
-  while (pwrPressed()) {
-    WDG_RESET();
-  }
+  while (pwrPressed()) {}
 #endif
 
   for (;;) {
-    WDG_RESET();
 
     if (tenms) {
       tenms = 0;
@@ -372,6 +373,10 @@ int  bootloaderMain()
             case 1:
               memoryType = MEM_EEPROM;
               state = ST_DIR_CHECK;
+              break;
+#elif defined(SPI_FLASH)
+            case 1:
+              state = ST_CLEAR_FLASH_CHECK;
               break;
 #endif
             default:
@@ -516,6 +521,35 @@ int  bootloaderMain()
           state = ST_FLASH_DONE; // Backstop
         }
 #endif
+#if defined(SPI_FLASH)
+      } else if (state == ST_CLEAR_FLASH_CHECK) {
+        bootloaderDrawScreen(state, vpos);
+        if (event == EVT_KEY_REPT(KEY_DOWN) || event == EVT_KEY_FIRST(KEY_DOWN)) {
+          if (vpos < SEL_CLEAR_FLASH_STORAGE_MENU_LEN - 1) { vpos++; }
+          continue;
+        }
+        if (event == EVT_KEY_REPT(KEY_UP) || event == EVT_KEY_FIRST(KEY_UP)) {
+          if (vpos > 0) { vpos--; }
+          continue;
+        }
+        if (event == EVT_KEY_LONG(KEY_ENTER) && vpos == 0)
+        {
+          state = ST_CLEAR_FLASH;
+        } else if (event == EVT_KEY_BREAK(KEY_EXIT) ||
+            (event == EVT_KEY_BREAK(KEY_ENTER) && vpos == 1) ) {
+          vpos = 0;
+          state = ST_START;
+          continue;
+        }
+      } else if (state == ST_CLEAR_FLASH) {
+        bootloaderDrawScreen(state, 0);
+        lcdRefresh();
+        if(event != EVT_KEY_BREAK(KEY_ENTER))
+          continue;
+        flashSpiEraseAll();
+        vpos = 0;
+        state = ST_START;
+#endif
       } else if (state == ST_RADIO_MENU) {
         if(bootloaderRadioMenu(radioMenuItem, event))
         {
@@ -550,16 +584,14 @@ int  bootloaderMain()
 
     if (state != ST_FLASHING && state != ST_USB) {
       if (pwrOffPressed()) {
+        sdDone();
         boardOff();
       }
     }
 
     if (state == ST_REBOOT) {
+      sdDone();
 #if !defined(SIMU)
-#if defined(RTC_BACKUP_RAM)
-      rtcInit();
-      RTC->BKP0R = SOFTRESET_REQUEST;
-#endif
       blExit();
       NVIC_SystemReset();
 #else
@@ -571,6 +603,6 @@ int  bootloaderMain()
   return 0;
 }
 
-#if !defined(SIMU) && (defined(PCBHORUS) || defined(PCBNV14))
+#if !defined(SIMU) && (defined(PCBHORUS) || defined(PCBFLYSKY))
 void *__dso_handle = nullptr;
 #endif

@@ -27,6 +27,8 @@
 #include "hal/adc_driver.h"
 #include "hal/trainer_driver.h"
 #include "hal/switch_driver.h"
+#include "hal/abnormal_reboot.h"
+#include "hal/watchdog_driver.h"
 
 #include "globals.h"
 #include "sdcard.h"
@@ -37,10 +39,8 @@
 #include "timers_driver.h"
 
 #include "lcd_driver.h"
-#include "lcd_driver.h"
 #include "battery_driver.h"
 #include "touch_driver.h"
-#include "watchdog_driver.h"
 
 #include "bitmapbuffer.h"
 #include "colors.h"
@@ -59,44 +59,7 @@ extern "C" {
 // common ADC driver
 extern const etx_hal_adc_driver_t _adc_driver;
 
-enum PowerReason {
-  SHUTDOWN_REQUEST = 0xDEADBEEF,
-  SOFTRESET_REQUEST = 0xCAFEDEAD,
-};
-
-constexpr uint32_t POWER_REASON_SIGNATURE = 0x0178746F;
-
-bool UNEXPECTED_SHUTDOWN()
-{
-#if defined(SIMU) || defined(NO_UNEXPECTED_SHUTDOWN)
-  return false;
-#else
-  if (WAS_RESET_BY_WATCHDOG())
-    return true;
-  else if (WAS_RESET_BY_SOFTWARE())
-    return RTC->BKP0R != SOFTRESET_REQUEST;
-  else
-    return RTC->BKP1R == POWER_REASON_SIGNATURE && RTC->BKP0R != SHUTDOWN_REQUEST;
-#endif
-}
-
-void SET_POWER_REASON(uint32_t value)
-{
-  RTC->BKP0R = value;
-  RTC->BKP1R = POWER_REASON_SIGNATURE;
-}
-
 HardwareOptions hardwareOptions;
-
-void watchdogInit(unsigned int duration)
-{
-  IWDG->KR = 0x5555;      // Unlock registers
-  IWDG->PR = 3;           // Divide by 32 => 1kHz clock
-  IWDG->KR = 0x5555;      // Unlock registers
-  IWDG->RLR = duration;   // 1.5 seconds nominal
-  IWDG->KR = 0xAAAA;      // reload
-  IWDG->KR = 0xCCCC;      // start
-}
 
 #if defined(SEMIHOSTING)
 extern "C" void initialise_monitor_handles();
@@ -109,7 +72,8 @@ void delay_self(int count)
        for (; count > 0; count--);
    }
 }
-#define RCC_AHB1PeriphMinimum (PWR_RCC_AHB1Periph |\
+
+#define RCC_AHB1PeriphMinimum (PWR_RCC_AHB1Periph |	\
                                LCD_RCC_AHB1Periph |\
                                BACKLIGHT_RCC_AHB1Periph |\
                                SDRAM_RCC_AHB1Periph \
@@ -207,7 +171,8 @@ void boardInit()
   hardwareOptions.pcbrev = boardGetPcbRev();
 
 #if defined(DEBUG)
-  serialInit(SP_AUX1, UART_MODE_DEBUG);
+  serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
+  serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
 #endif
 
   TRACE("\n%s board started :)",
@@ -276,6 +241,7 @@ void boardInit()
   rtcInit(); // RTC must be initialized before rambackupRestore() is called
 #endif
 
+  lcdSetInitalFrameBuffer(lcdFront->getData());
 
 #if defined(DEBUG)
   DBGMCU_APB1PeriphConfig(
@@ -308,12 +274,12 @@ void boardOff()
   if (usbPlugged())
   {
     delay_ms(100);  // Add a delay to wait for lcdOff
-    RTC->BKP0R = SOFTRESET_REQUEST;
+    // RTC->BKP0R = SOFTRESET_REQUEST;
     NVIC_SystemReset();
   }
   else
   {
-    RTC->BKP0R = SHUTDOWN_REQUEST;
+    // RTC->BKP0R = SHUTDOWN_REQUEST;
     pwrOff();
   }
 

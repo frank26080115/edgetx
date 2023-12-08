@@ -656,6 +656,19 @@ static bool luaLoadFunctionScript(uint8_t ref)
       return true;
     }
   }
+
+  if (fn -> func == FUNC_RGB_LED && ZEXIST(fn -> play.name)) {
+    if (luaScriptsCount < MAX_SCRIPTS) {
+      ScriptInternalData & sid = scriptInternalData[luaScriptsCount++];
+      sid.reference = ref;
+      return luaLoadFile(SCRIPTS_RGB_PATH, fn->play.name, sid);
+    }
+    else {
+      POPUP_WARNING(STR_TOO_MANY_LUA_SCRIPTS);
+      return true;
+    }
+  }
+
   return false;
 }
 
@@ -1116,15 +1129,16 @@ static bool resumeLua(bool init, bool allowLcdUsage)
             functionsContext = &globalFunctionsContext;
           }
 
-          tmr10ms_t tmr10ms = get_tmr10ms();
-
-          if (getSwitch(fn->swtch) && (functionsContext->lastFunctionTime[idx] == 0 || CFN_PLAY_REPEAT(fn) == 0)) {
-            lua_rawgeti(lsScripts, LUA_REGISTRYINDEX, sid.run);
-            functionsContext->lastFunctionTime[idx] = tmr10ms;
-          }
-          else {
-            if (sid.background == LUA_NOREF) continue;
-            lua_rawgeti(lsScripts, LUA_REGISTRYINDEX, sid.background);
+          if (CFN_ACTIVE(fn)) {
+            tmr10ms_t tmr10ms = get_tmr10ms();
+            if (getSwitch(fn->swtch) && (functionsContext->lastFunctionTime[idx] == 0 || CFN_PLAY_REPEAT(fn) == 0)) {
+              lua_rawgeti(lsScripts, LUA_REGISTRYINDEX, sid.run);
+              functionsContext->lastFunctionTime[idx] = tmr10ms;
+            }
+            else {
+              if (sid.background == LUA_NOREF) continue;
+              lua_rawgeti(lsScripts, LUA_REGISTRYINDEX, sid.background);
+            }
           }
         }
 #if defined(PCBTARANIS)
@@ -1242,13 +1256,10 @@ static bool resumeLua(bool init, bool allowLcdUsage)
 } //resumeLua(...)
 
 
-bool luaTask(event_t evt, bool allowLcdUsage)
+bool luaTask(bool allowLcdUsage)
 {
   bool init = false;
   bool scriptWasRun = false;
- 
-  // Add event to buffer
-  if (evt != 0) { luaPushEvent(evt); }
  
   // For preemption
   luaCycleStart = get_tmr10ms();

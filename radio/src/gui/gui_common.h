@@ -64,7 +64,6 @@ enum SwitchContext
   LogicalSwitchesContext,
   ModelCustomFunctionsContext,
   GeneralCustomFunctionsContext,
-  TimersContext,
   MixesContext
 };
 
@@ -74,7 +73,6 @@ int getFirstAvailable(int min, int max, IsValueAvailable isValueAvailable);
 bool isInputAvailable(int input);
 bool isSourceAvailableInInputs(int source);
 bool isThrottleSourceAvailable(int source);
-bool isLogicalSwitchFunctionAvailable(int function);
 bool isLogicalSwitchAvailable(int index);
 bool isAssignableFunctionAvailable(int function);
 bool isSourceAvailable(int source);
@@ -89,7 +87,6 @@ int  hasSerialMode(int mode);
 bool isSwitchAvailableInLogicalSwitches(int swtch);
 bool isSwitchAvailableInCustomFunctions(int swtch);
 bool isSwitchAvailableInMixes(int swtch);
-bool isSwitchAvailableInTimers(int swtch);
 bool isPxx2IsrmChannelsCountAllowed(int channels);
 bool isModuleUsingSport(uint8_t moduleBay, uint8_t moduleType);
 bool isTrainerUsingModuleBay();
@@ -99,6 +96,12 @@ bool isInternalModuleSupported(int moduleType);
 bool isRfProtocolAvailable(int protocol);
 bool isTrainerModeAvailable(int mode);
 bool isAssignableFunctionAvailable(int function, CustomFunctionData * functions);
+bool isPotTypeAvailable(uint8_t type);
+bool isFlexSwitchSourceValid(int source);
+bool getPotInversion(int index);
+void setPotInversion(int index, bool value);
+uint8_t getPotType(int index);
+void setPotType(int index, int value);
 
 bool isSensorUnit(int sensor, uint8_t unit);
 bool isCellsSensor(int sensor);
@@ -297,7 +300,10 @@ inline bool MULTIMODULE_HAS_SUBTYPE(uint8_t moduleIdx)
 inline uint8_t MULTIMODULE_RFPROTO_COLUMNS(uint8_t moduleIdx)
 {
 #if LCD_W < 212
-  return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 0 : HIDDEN_ROW);
+  if (g_model.moduleData[moduleIdx].multi.rfProtocol == MODULE_SUBTYPE_MULTI_DSM2)
+    return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 1 : HIDDEN_ROW);
+  else
+    return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 0 : HIDDEN_ROW);
 #else
   return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 1 : 0);
 #endif
@@ -324,6 +330,7 @@ inline uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx)
 #else
   #define MULTIMODULE_MODULE_ROWS(moduleIdx)      (MULTIMODULE_PROTOCOL_KNOWN(moduleIdx) && !IS_RX_MULTI(moduleIdx)) ? (uint8_t) 0 : HIDDEN_ROW, MULTI_DISABLE_CHAN_MAP_ROW(moduleIdx), // AUTOBIND, DISABLE CN.MAP
 #endif
+#define MULTIMODULE_DSM_CLONED_RAW(moduleIdx)   isMultiProtocolDSMCloneAvailable(moduleIdx) ? (uint8_t) 0 : HIDDEN_ROW
 #define MULTIMODULE_TYPE_ROW(moduleIdx)         isModuleMultimodule(moduleIdx) ? MULTIMODULE_RFPROTO_COLUMNS(moduleIdx) : HIDDEN_ROW,
 #define MULTIMODULE_STATUS_ROWS(moduleIdx)      isModuleMultimodule(moduleIdx) ? TITLE_ROW : HIDDEN_ROW, (isModuleMultimodule(moduleIdx) && getModuleSyncStatus(moduleIdx).isValid()) ? TITLE_ROW : HIDDEN_ROW,
 #define MULTIMODULE_MODE_ROWS(moduleIdx)        (g_model.moduleData[moduleIdx].multi.customProto) ? (uint8_t) 3 : MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t)2 : (uint8_t)1
@@ -333,6 +340,7 @@ inline uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx)
 #define MODULE_POWER_ROW(moduleIdx)            (MULTIMODULE_PROTOCOL_KNOWN(moduleIdx) || isModuleR9MNonAccess(moduleIdx) || isModuleAFHDS3(moduleIdx)) ? (isModuleR9MLiteNonPro(moduleIdx) ? (isModuleR9M_FCC_VARIANT(moduleIdx) ? READONLY_ROW : (uint8_t)0) : (uint8_t)0) : HIDDEN_ROW
 
 #else
+#define MULTIMODULE_DSM_CLONED_RAW(moduleIdx)
 #define MULTIMODULE_TYPE_ROWS(moduleIdx)
 #define MULTIMODULE_STATUS_ROWS(moduleIdx)
 #define MULTIMODULE_MODULE_ROWS(moduleIdx)
@@ -354,7 +362,7 @@ inline uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx)
 #define AFHDS3_MODULE_ROWS(moduleIdx)
 #endif
 
-#define FAILSAFE_ROWS(moduleIdx)               isModuleFailsafeAvailable(moduleIdx) ? (g_model.moduleData[moduleIdx].failsafeMode==FAILSAFE_CUSTOM ? (uint8_t)1 : (uint8_t)0) : HIDDEN_ROW
+#define FAILSAFE_ROW(moduleIdx)               isModuleFailsafeAvailable(moduleIdx) ? (g_model.moduleData[moduleIdx].failsafeMode==FAILSAFE_CUSTOM ? (uint8_t)1 : (uint8_t)0) : HIDDEN_ROW
 
 inline uint8_t MODULE_OPTION_ROW(uint8_t moduleIdx) {
   if(isModuleR9MNonAccess(moduleIdx) || isModuleSBUS(moduleIdx))

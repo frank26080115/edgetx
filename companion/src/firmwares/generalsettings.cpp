@@ -87,12 +87,6 @@ void GeneralSettings::clear()
 
 void GeneralSettings::init()
 {
-  for (int i = 0; i < CPN_MAX_ANALOGS; ++i) {
-    calibMid[i]     = 0x200;
-    calibSpanNeg[i] = 0x180;
-    calibSpanPos[i] = 0x180;
-  }
-
   Firmware * firmware = Firmware::getCurrentVariant();
   Board::Type board = firmware->getBoard();
 
@@ -125,6 +119,18 @@ void GeneralSettings::init()
 
   setDefaultControlTypes(board);
 
+  for (int i = 0; i < CPN_MAX_ANALOGS; ++i) {
+    if ((i >= CPN_MAX_STICKS) && (i < CPN_MAX_STICKS + CPN_MAX_POTS) && (potConfig[i-CPN_MAX_STICKS] == Board::POT_MULTIPOS_SWITCH)) {
+      calibMid[i]     = 773;;
+      calibSpanNeg[i] = 5388;
+      calibSpanPos[i] = 9758;
+    } else {
+      calibMid[i]     = 0x200;
+      calibSpanNeg[i] = 0x180;
+      calibSpanPos[i] = 0x180;
+    }
+  }
+
   backlightMode = 3; // keys and sticks
   backlightDelay = 2; // 2 * 5 = 10 secs
   inactivityTimer = 10;
@@ -148,6 +154,8 @@ void GeneralSettings::init()
     strcpy(bluetoothName, "t16");
   else if (IS_FLYSKY_NV14(board))
     strcpy(bluetoothName, "nv14");
+  else if (IS_FLYSKY_PL18(board))
+    strcpy(bluetoothName, "pl18");
   else if (IS_FAMILY_HORUS_OR_T16(board))
     strcpy(bluetoothName, "horus");
   else if (IS_TARANIS_X9E(board) || IS_TARANIS_SMALL(board))
@@ -263,7 +271,7 @@ void GeneralSettings::init()
 
   internalModule = g.profile[g.sessionId()].defaultInternalModule();
 
-  if (IS_FLYSKY_NV14(board))
+  if (IS_FLYSKY_NV14(board) || IS_FLYSKY_PL18(board))
     stickDeadZone = 2;
 
 }
@@ -279,7 +287,7 @@ void GeneralSettings::setDefaultControlTypes(Board::Type board)
     return;
 
   // TODO: move to Boards, like with switches
-  if (IS_FAMILY_HORUS_OR_T16(board) && !IS_FLYSKY_NV14(board)) {
+  if (IS_FAMILY_HORUS_OR_T16(board) && !IS_FLYSKY_NV14(board) && !IS_FLYSKY_PL18(board)) {
     potConfig[0] = Board::POT_WITH_DETENT;
     potConfig[1] = Board::POT_MULTIPOS_SWITCH;
     potConfig[2] = Board::POT_WITH_DETENT;
@@ -287,6 +295,11 @@ void GeneralSettings::setDefaultControlTypes(Board::Type board)
   else if (IS_FLYSKY_NV14(board)) {
     potConfig[0] = Board::POT_WITHOUT_DETENT;
     potConfig[1] = Board::POT_WITHOUT_DETENT;
+  }
+  else if (IS_FLYSKY_PL18(board)) {
+    potConfig[0] = Board::POT_WITHOUT_DETENT;
+    potConfig[1] = Board::POT_WITHOUT_DETENT;
+    potConfig[2] = Board::POT_WITHOUT_DETENT;
   }
   else if (IS_TARANIS_XLITE(board)) {
     potConfig[0] = Board::POT_WITHOUT_DETENT;
@@ -305,6 +318,13 @@ void GeneralSettings::setDefaultControlTypes(Board::Type board)
     potConfig[1] = Board::POT_WITH_DETENT;
     potConfig[2] = Board::POT_MULTIPOS_SWITCH;
   }
+  else if(IS_RADIOMASTER_POCKET(board)) {
+    potConfig[0] = Board::POT_WITHOUT_DETENT;
+  }
+  else if(IS_JUMPER_T20(board)) {
+    potConfig[0] = Board::POT_WITHOUT_DETENT;
+    potConfig[1] = Board::POT_WITHOUT_DETENT;
+  }
   else if (IS_FAMILY_T12(board)) {
     potConfig[0] = Board::POT_WITH_DETENT;
     potConfig[1] = Board::POT_WITH_DETENT;
@@ -319,7 +339,7 @@ void GeneralSettings::setDefaultControlTypes(Board::Type board)
     potConfig[2] = Board::POT_WITHOUT_DETENT;
   }
 
-  if (IS_HORUS_X12S(board) || IS_TARANIS_X9E(board)) {
+  if (IS_HORUS_X12S(board) || IS_TARANIS_X9E(board) || IS_JUMPER_T20(board)) {
     sliderConfig[0] = Board::SLIDER_WITH_DETENT;
     sliderConfig[1] = Board::SLIDER_WITH_DETENT;
     sliderConfig[2] = Board::SLIDER_WITH_DETENT;
@@ -680,6 +700,21 @@ AbstractStaticItemModel * GeneralSettings::uartSampleModeItemModel()
 QString GeneralSettings::hatsModeToString() const
 {
   return hatsModeToString(hatsMode);
+}
+
+bool GeneralSettings::fix6POSCalibration()
+{
+  bool changed = false;
+  // Fix default 6POS calibration
+  for (int i = CPN_MAX_STICKS; i < CPN_MAX_STICKS+CPN_MAX_POTS; i += 1) {
+    if ((potConfig[i-CPN_MAX_STICKS] == Board::POT_MULTIPOS_SWITCH) && (calibMid[i] == 0x200) && (calibSpanNeg[i] == 0x180) && (calibSpanPos[i] == 0x180)) {
+      calibMid[i] = 773;;
+      calibSpanNeg[i] = 5388;
+      calibSpanPos[i] = 9758;
+      changed = true;
+    }
+  }
+  return changed;
 }
 
 //  static

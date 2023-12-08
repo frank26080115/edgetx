@@ -21,8 +21,8 @@
 
 #include "menu_model.h"
 
-#include "translations.h"
-#include "view_channels.h"
+#include "menu_radio.h"
+#include "menu_screen.h"
 #include "model_curves.h"
 #include "model_flightmodes.h"
 #include "model_gvars.h"
@@ -32,16 +32,15 @@
 #include "model_mixer_scripts.h"
 #include "model_mixes.h"
 #include "model_outputs.h"
+#include "model_select.h"
 #include "model_setup.h"
 #include "model_telemetry.h"
 #include "opentx.h"
 #include "special_functions.h"
+#include "translations.h"
+#include "view_channels.h"
 
-ModelMenu::ModelMenu():
-  TabsGroup(ICON_MODEL)
-{
-  build();
-}
+ModelMenu::ModelMenu() : TabsGroup(ICON_MODEL) { build(); }
 
 void ModelMenu::build()
 {
@@ -56,32 +55,24 @@ void ModelMenu::build()
 
   addTab(new ModelSetupPage());
 #if defined(HELI)
-  if (_modelHeliEnabled)
-    addTab(new ModelHeliPage());
+  if (_modelHeliEnabled) addTab(new ModelHeliPage());
 #endif
 #if defined(FLIGHT_MODES)
-  if (_modelFMEnabled)
-    addTab(new ModelFlightModesPage());
+  if (_modelFMEnabled) addTab(new ModelFlightModesPage());
 #endif
   addTab(new ModelInputsPage());
   addTab(new ModelMixesPage());
   addTab(new ModelOutputsPage());
-  if (_modelCurvesEnabled)
-    addTab(new ModelCurvesPage());
+  if (_modelCurvesEnabled) addTab(new ModelCurvesPage());
 #if defined(GVARS)
-  if (_modelGVEnabled)
-    addTab(new ModelGVarsPage());
+  if (_modelGVEnabled) addTab(new ModelGVarsPage());
 #endif
-  if (_modelLSEnabled)
-    addTab(new ModelLogicalSwitchesPage());
-  if (_modelSFEnabled)
-    addTab(new SpecialFunctionsPage(g_model.customFn));
+  if (_modelLSEnabled) addTab(new ModelLogicalSwitchesPage());
+  if (_modelSFEnabled) addTab(new SpecialFunctionsPage(g_model.customFn));
 #if defined(LUA_MODEL_SCRIPTS)
-  if (_modelCustomScriptsEnabled)
-    addTab(new ModelMixerScriptsPage());
+  if (_modelCustomScriptsEnabled) addTab(new ModelMixerScriptsPage());
 #endif
-  if (_modelTelemetryEnabled)
-    addTab(new ModelTelemetryPage());
+  if (_modelTelemetryEnabled) addTab(new ModelTelemetryPage());
 
 #if defined(PCBNV14) || defined(PCBPL18)
   addGoToMonitorsButton();
@@ -106,26 +97,41 @@ void ModelMenu::checkEvents()
   }
 }
 
-void ModelMenu::onEvent(event_t event)
-{
-#if defined(HARDWARE_KEYS)
-  if (event == EVT_KEY_FIRST(KEY_MODEL)) {
-    killEvents(event);
-    new ChannelsViewMenu();
-  } else {
-    TabsGroup::onEvent(event);
-  }
-#endif
-}
-
 #if defined(PCBNV14) || defined(PCBPL18)
 void ModelMenu::addGoToMonitorsButton()
 {
   new TextButton(
-      &header, {LCD_W / 2 + 6, MENU_TITLE_TOP + 1, LCD_W / 2 - 8, MENU_TITLE_HEIGHT - 2},
+      &header,
+      {LCD_W / 2 + 6, MENU_TITLE_TOP + 1, LCD_W / 2 - 8, MENU_TITLE_HEIGHT - 2},
       STR_OPEN_CHANNEL_MONITORS, [=]() {
         pushEvent(EVT_KEY_FIRST(KEY_MODEL));
         return 0;
       });
 }
+#endif
+
+#if defined(HARDWARE_KEYS)
+void ModelMenu::onPressSYS()
+{
+  onCancel();
+  new RadioMenu();
+}
+void ModelMenu::onLongPressSYS()
+{
+  onCancel();
+  // Radio setup
+  (new RadioMenu())->setCurrentTab(2);
+}
+void ModelMenu::onPressMDL() { new ChannelsViewMenu(this); }
+void ModelMenu::onLongPressMDL()
+{
+  onCancel();
+  new ModelLabelsWindow();
+}
+void ModelMenu::onPressTELE()
+{
+  onCancel();
+  new ScreenMenu();
+}
+void ModelMenu::onLongPressTELE() { new ChannelsViewMenu(this); }
 #endif

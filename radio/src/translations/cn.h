@@ -51,7 +51,7 @@
 
 #define TR_AUX_SERIAL_MODES            "调试","回传镜像","回传输入","SBUS教练","LUA脚本","CLI","GPS","Debug","SpaceMouse","外置发射"
 #define TR_SWTYPES                     "无","回弹","2段","3段"
-#define TR_POTTYPES                    "无","有中点旋钮","多段旋钮","无中点旋钮","侧滑块"
+#define TR_POTTYPES                    "无","无中点旋钮","有中点旋钮","侧滑块","多段旋钮","Axis X","Axis Y","Switch"
 #define TR_VPERSISTENT                 "禁用","随飞行记录复位","随手动复位"
 #define TR_COUNTRY_CODES               "美国","日本","欧洲"
 #define TR_USBMODES                    "询问","游戏柄","U盘","串行"
@@ -75,11 +75,10 @@
 
 #define TR_CSWTIMER                  "定时"
 #define TR_CSWSTICKY                 "粘滞"
-#define TR_CSWRANGE                  "范围"
 #define TR_CSWSTAY                   "边沿"
 
 #define TR_CSWEQUAL                    "a=x"
-#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 
 #define TR_SF_TRAINER                  "教练"
@@ -90,16 +89,17 @@
 #define TR_SF_FAILSAFE                 "设置失控保护"
 #define TR_SF_RANGE_CHECK              "测距模式"
 #define TR_SF_MOD_BIND                 "模块对频"
+#define TR_SF_RGBLEDS                  "RGB leds"
 
 #define TR_SOUND                       "播放声音"
-#define TR_PLAY_TRACK                  "播放音频文件"
+#define TR_PLAY_TRACK                  TR("Ply Trk", "播放音频文件")
 #define TR_PLAY_VALUE                  "播放数值"
 #define TR_SF_HAPTIC                   "振动"
 #define TR_SF_BG_MUSIC                 "播放背景音乐"
 #define TR_SF_BG_MUSIC_PAUSE           "暂停背景音乐"
 #define TR_SF_LOGS                     "记录日志到SD卡"
 #define TR_ADJUST_GVAR                 "修改全局变量GV值"
-#define TR_SF_PLAY_SCRIPT              "Lua脚本"
+#define TR_SF_PLAY_SCRIPT              TR("Lua", "Lua脚本")
 #define TR_SF_BACKLIGHT                "背光"
 #define TR_SF_VARIO                    "Vario传感器"
 #define TR_SF_TEST                     "测试"
@@ -204,6 +204,7 @@
 #define TR_TEXT_SIZE                   "标准","小","较小","中等","双倍"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA "(中点)", "=(整体)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 #if defined(COLORLCD)
 #if defined(BOLD)
@@ -215,7 +216,7 @@
 
 #if defined(PCBFRSKY)
   #define TR_ENTER                     "[ENTER]"
-#elif defined(PCBNV14)
+#elif defined(PCBNV14) || defined(PCBPL18)
   #define TR_ENTER                     "[NEXT]"
 #else
   #define TR_ENTER                     "[MENU]"
@@ -345,6 +346,7 @@
 #define TR_ALARMWARNING                "静音"
 #define TR_RSSI_SHUTDOWN_ALARM         TR("关机检查RSSI", "关机时检查RSSI")
 #define TR_MODEL_STILL_POWERED         "模型未断电"
+#define TR_TRAINER_STILL_CONNECTED     "教练信号未断开"
 #define TR_USB_STILL_CONNECTED         "USB未断开"
 #define TR_MODEL_SHUTDOWN              "关机 ?"
 #define TR_PRESS_ENTER_TO_CONFIRM      "按ENTER键确认"
@@ -644,11 +646,8 @@
 #define TR_LCD                         "LCD"
 #define TR_BRIGHTNESS                  "亮度"
 #define TR_CPU_TEMP                    "CPU 温度"
-#define TR_CPU_CURRENT                 "电流"
-#define TR_CPU_MAH                     "消耗量"
 #define TR_COPROC                      "CoProc."
 #define TR_COPROC_TEMP                 "主板温度"
-#define TR_CAPAWARNING                 INDENT "电流过低"
 #define TR_TEMPWARNING                 INDENT "过热"
 #define TR_TTL_WARNING                 "注意串口使用逻辑电平3.3V"
 #define TR_FUNC                        "功能"
@@ -796,6 +795,7 @@
 #define TR_JACK_MODE                   "教练插口模式"
 #define TR_VOICE_LANGUAGE              "播报语言"
 #define TR_UNITS_SYSTEM                "单位"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                        "编辑"
 #define TR_INSERT_BEFORE               "在本条前插入"
 #define TR_INSERT_AFTER                "在本条后插入"
@@ -867,6 +867,7 @@
 #define TR_INTERVAL                    "间隔"
 #define TR_REPEAT                      "循环"
 #define TR_ENABLE                      "启用"
+#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "单位"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "添加新传感器..."
@@ -886,8 +887,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2        "经认证的固件"
 #define TR_LOWALARM                    INDENT "信号弱报警"
 #define TR_CRITICALALARM               INDENT "信号极弱报警"
-#define TR_RSSIALARM_WARN              "RSSI"
-#define TR_NO_RSSIALARM                TR(INDENT "回传报警已禁止", "回传报警已禁止")
 #define TR_DISABLE_ALARM               TR(INDENT "禁止回传报警", INDENT "禁止回传报警")
 #define TR_POPUP                       "弹窗提示"
 #define TR_MIN                         "最小"
@@ -1033,8 +1032,16 @@
   #define TR_BL_SELECT_KEY            "[R TRIM] to select file"
   #define TR_BL_FLASH_KEY             "Hold [R TRIM] long to flash"
   #define TR_BL_EXIT_KEY              " [L TRIM] to exit"
-  #define TR_BL_ENABLE                "Enable"
-  #define TR_BL_DISABLE               "Disable"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1239,3 +1246,11 @@
 #define TR_ENABLED_FEATURES       "启用的功能"
 #define TR_RADIO_MENU_TABS        "系统功能选项卡"
 #define TR_MODEL_MENU_TABS        "模型功能选项卡"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "名称 A-Z","名称 Z-A","不常用","常用"
+#define TR_SORT_MODELS_BY         "排序"
+#define TR_CREATE_NEW             "新建"

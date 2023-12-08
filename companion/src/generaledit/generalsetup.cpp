@@ -154,6 +154,8 @@ ui(new Ui::GeneralSetup)
     ui->units_CB->setCurrentIndex(generalSettings.imperial);
   }
 
+  ui->ppm_units_CB->setCurrentIndex(generalSettings.ppmunit);
+
   ui->gpsFormatCB->setCurrentIndex(generalSettings.gpsFormat);
 
   ui->timezoneLE->setTime((generalSettings.timezone * 3600) + (generalSettings.timezoneMinutes/*quarter hours*/ * 15 * 60));
@@ -173,7 +175,7 @@ ui(new Ui::GeneralSetup)
     ui->usbModeCB->hide();
   }
 
-  if (IS_FLYSKY_EL18(board) || IS_FLYSKY_NV14(board)) {
+  if (IS_FLYSKY_EL18(board) || IS_FLYSKY_NV14(board) || IS_FLYSKY_PL18(board)) {
     ui->hatsModeCB->setModel(new FilteredItemModel(GeneralSettings::hatsModeItemModel()));
     ui->hatsModeCB->setField(generalSettings.hatsMode, this);
   }
@@ -250,6 +252,10 @@ ui(new Ui::GeneralSetup)
   }
   else {
     populateRotEncCB(reCount);
+  }
+
+  if (Boards::getCapability(firmware->getBoard(), Board::HasColorLcd)) {
+    ui->backlightautoSB->setMinimum(5);
   }
 
   ui->contrastSB->setMinimum(firmware->getCapability(MinContrast));
@@ -468,10 +474,15 @@ void GeneralSetupPanel::setValues()
     ui->label_HL->hide();
     ui->hapticLengthCB->hide();
   }
+  ui->OFFBright_SB->setMinimum(firmware->getCapability(BacklightLevelMin));
+  if (generalSettings.backlightOffBright > 100-generalSettings.backlightBright)
+    generalSettings.backlightOffBright = 100-generalSettings.backlightBright;
   ui->BLBright_SB->setValue(100-generalSettings.backlightBright);
   ui->OFFBright_SB->setValue(generalSettings.backlightOffBright);
+  ui->BLBright_SB->setMinimum(ui->OFFBright_SB->value());
+  ui->OFFBright_SB->setMaximum(ui->BLBright_SB->value());
   ui->soundModeCB->setCurrentIndex(generalSettings.speakerMode);
-  ui->volume_SB->setValue(generalSettings.speakerVolume);
+  ui->volume_SB->setValue(generalSettings.speakerVolume + 12);
   ui->beeperlenCB->setCurrentIndex(generalSettings.beeperLength+2);
   ui->speakerPitchSB->setValue(generalSettings.speakerPitch);
   ui->hapticStrength->setValue(generalSettings.hapticStrength);
@@ -622,19 +633,29 @@ void GeneralSetupPanel::on_varioR0_SB_editingFinished()
 
 void GeneralSetupPanel::on_BLBright_SB_editingFinished()
 {
-  generalSettings.backlightBright = 100 - ui->BLBright_SB->value();
-  emit modified();
+  if (ui->BLBright_SB->value() < ui->OFFBright_SB->value()) {
+    ui->BLBright_SB->setValue(ui->OFFBright_SB->value());
+  } else {
+    ui->OFFBright_SB->setMaximum(ui->BLBright_SB->value());
+    generalSettings.backlightBright = 100 - ui->BLBright_SB->value();
+    emit modified();
+  }
 }
 
 void GeneralSetupPanel::on_OFFBright_SB_editingFinished()
 {
-  generalSettings.backlightOffBright = ui->OFFBright_SB->value();
-  emit modified();
+  if (ui->OFFBright_SB->value() > ui->BLBright_SB->value()) {
+    ui->OFFBright_SB->setValue(ui->BLBright_SB->value());
+  } else {
+    ui->BLBright_SB->setMinimum(ui->OFFBright_SB->value());
+    generalSettings.backlightOffBright = ui->OFFBright_SB->value();
+    emit modified();
+  }
 }
 
 void GeneralSetupPanel::on_volume_SB_editingFinished()
 {
-  generalSettings.speakerVolume = ui->volume_SB->value();
+  generalSettings.speakerVolume = ui->volume_SB->value() - 12;
   emit modified();
 }
 
@@ -677,6 +698,12 @@ void GeneralSetupPanel::on_countrycode_CB_currentIndexChanged(int index)
 void GeneralSetupPanel::on_units_CB_currentIndexChanged(int index)
 {
   generalSettings.imperial = ui->units_CB->currentIndex();
+  emit modified();
+}
+
+void GeneralSetupPanel::on_ppm_units_CB_currentIndexChanged(int index)
+{
+  generalSettings.ppmunit = ui->ppm_units_CB->currentIndex();
   emit modified();
 }
 

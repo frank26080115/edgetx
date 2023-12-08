@@ -102,10 +102,10 @@
 
 // ADC
 
-#define ADC_GPIO_PIN_STICK_LH
-#define ADC_GPIO_PIN_STICK_LV
-#define ADC_GPIO_PIN_STICK_RV
-#define ADC_GPIO_PIN_STICK_RH
+#define ADC_GPIO_PIN_STICK_LH           LL_GPIO_PIN_2      // PA.02
+#define ADC_GPIO_PIN_STICK_LV           LL_GPIO_PIN_3      // PA.03
+#define ADC_GPIO_PIN_STICK_RH           LL_GPIO_PIN_4      // PA.04
+#define ADC_GPIO_PIN_STICK_RV           LL_GPIO_PIN_5      // PA.05
 
 #define ADC_GPIO_PIN_POT1               LL_GPIO_PIN_6      // PA.06 VRA
 #define ADC_GPIO_PIN_POT2               LL_GPIO_PIN_4      // PC.04 VRB
@@ -122,16 +122,17 @@
 
 // FLYSKY_HALL_STICKS
 // #define ADC_GPIOA_PINS_FS               (GPIO_Pin_6 | GPIO_Pin_7)
-#define ADC_GPIOA_PINS                  (ADC_GPIO_PIN_POT1 | ADC_GPIO_PIN_SWH)
+#define ADC_GPIOA_PINS                  (ADC_GPIO_PIN_STICK_LH | ADC_GPIO_PIN_STICK_LV | ADC_GPIO_PIN_STICK_RV | ADC_GPIO_PIN_STICK_RH \
+                                         | ADC_GPIO_PIN_POT1 | ADC_GPIO_PIN_SWH)
 #define ADC_GPIOB_PINS                  (ADC_GPIO_PIN_SWA | ADC_GPIO_PIN_SWC)
 #define ADC_GPIOC_PINS \
   (ADC_GPIO_PIN_POT2 | ADC_GPIO_PIN_SWE | ADC_GPIO_PIN_SWF | ADC_GPIO_PIN_SWG | ADC_GPIO_PIN_BATT)
 #define ADC_GPIOF_PINS                  (ADC_GPIO_PIN_SWB | ADC_GPIO_PIN_SWD)
 
-#define ADC_CHANNEL_STICK_LH
-#define ADC_CHANNEL_STICK_LV
-#define ADC_CHANNEL_STICK_RV
-#define ADC_CHANNEL_STICK_RH
+#define ADC_CHANNEL_STICK_LH             LL_ADC_CHANNEL_2  // ADC123_IN2 -> ADC1_IN2
+#define ADC_CHANNEL_STICK_LV             LL_ADC_CHANNEL_3  // ADC123_IN3 -> ADC1_IN3
+#define ADC_CHANNEL_STICK_RH             LL_ADC_CHANNEL_4  // ADC12_IN4  -> ADC1_IN4
+#define ADC_CHANNEL_STICK_RV             LL_ADC_CHANNEL_5  // ADC12_IN5  -> ADC1_IN5
 
 #define ADC_CHANNEL_POT1                LL_ADC_CHANNEL_6   // ADC12_IN6  -> ADC1_IN6
 #define ADC_CHANNEL_POT2                LL_ADC_CHANNEL_14  // ADC12_IN14 -> ADC1_IN14
@@ -246,6 +247,12 @@
 #define TELEMETRY_TX_POL_INV()          TELEMETRY_REV_GPIO->BSRRL = TELEMETRY_TX_REV_GPIO_PIN
 #define TELEMETRY_RX_POL_NORM()         TELEMETRY_REV_GPIO->BSRRH = TELEMETRY_RX_REV_GPIO_PIN
 #define TELEMETRY_RX_POL_INV()          TELEMETRY_REV_GPIO->BSRRL = TELEMETRY_RX_REV_GPIO_PIN
+
+// Software IRQ (Prio 5 -> FreeRTOS compatible)
+#define TELEMETRY_RX_FRAME_EXTI_LINE    LL_EXTI_LINE_4
+#define USE_EXTI4_IRQ
+#define EXTI4_IRQ_Priority 5
+
 // USB
 #define USB_RCC_AHB1Periph_GPIO         RCC_AHB1Periph_GPIOA
 #define USB_GPIO                        GPIOA
@@ -265,12 +272,12 @@
 #define LCD_RCC_APB1Periph              0
 #define LCD_RCC_APB2Periph              RCC_APB2Periph_LTDC
 #define LCD_NRST_GPIO                   GPIOG
-#define LCD_NRST_GPIO_PIN               GPIO_Pin_9  // PG.09
+#define LCD_NRST_GPIO_PIN               LL_GPIO_PIN_9  // PG.09
 #define LCD_SPI_GPIO                    GPIOE
-#define LCD_SPI_CS_GPIO_PIN             GPIO_Pin_4  // PE.04
-#define LCD_SPI_SCK_GPIO_PIN            GPIO_Pin_2  // PE.02
-#define LCD_SPI_MISO_GPIO_PIN           GPIO_Pin_5  // PE.05
-#define LCD_SPI_MOSI_GPIO_PIN           GPIO_Pin_6  // PE.06
+#define LCD_SPI_CS_GPIO_PIN             LL_GPIO_PIN_4  // PE.04
+#define LCD_SPI_SCK_GPIO_PIN            LL_GPIO_PIN_2  // PE.02
+#define LCD_SPI_MISO_GPIO_PIN           LL_GPIO_PIN_5  // PE.05
+#define LCD_SPI_MOSI_GPIO_PIN           LL_GPIO_PIN_6  // PE.06
 #define LTDC_IRQ_PRIO                   4
 #define DMA_SCREEN_IRQ_PRIO             6
 
@@ -306,6 +313,15 @@
 #define SD_SDIO_INIT_CLK_DIV            SD_SDIO_CLK_DIV(400000)
 #define SD_SDIO_TRANSFER_CLK_DIV        SD_SDIO_CLK_DIV(24000000)
 #define STORAGE_USE_SDIO
+
+// SPI NOR Flash 
+#define FLASH_SPI                      SPI6
+#define FLASH_SPI_CS_GPIO              GPIOG
+#define FLASH_SPI_CS_GPIO_PIN          LL_GPIO_PIN_6  // PG.06
+#define FLASH_SPI_GPIO                 GPIOG
+#define FLASH_SPI_SCK_GPIO_PIN         LL_GPIO_PIN_13 // PG.13
+#define FLASH_SPI_MISO_GPIO_PIN        LL_GPIO_PIN_12 // PG.12
+#define FLASH_SPI_MOSI_GPIO_PIN        LL_GPIO_PIN_14 // PG.14
 
 // SDRAM
 #define SDRAM_RCC_AHB1Periph            (RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_GPIOE | RCC_AHB1Periph_GPIOF | RCC_AHB1Periph_GPIOG | RCC_AHB1Periph_GPIOH)
@@ -359,8 +375,9 @@
 #define I2C_B1_GPIO                   GPIOB
 #define I2C_B1_SCL_GPIO_PIN           LL_GPIO_PIN_8  // PB.08
 #define I2C_B1_SDA_GPIO_PIN           LL_GPIO_PIN_7  // PB.09
-#define I2C_B1_GPIO_AF                GPIO_AF4_I2C1
+#define I2C_B1_GPIO_AF                LL_GPIO_AF_4
 
+// Touch
 #define TOUCH_I2C_BUS                 I2C_Bus_1
 #define TOUCH_I2C_CLK_RATE            400000
 
@@ -373,8 +390,12 @@
 #define TOUCH_INT_EXTI_Line           LL_EXTI_LINE_9
 #define TOUCH_INT_EXTI_Port           LL_SYSCFG_EXTI_PORTB
 #define TOUCH_INT_EXTI_SysCfgLine     LL_SYSCFG_EXTI_LINE9
-#define TOUCH_INT_EXTI_IRQn           EXTI9_5_IRQn
-#define TOUCH_INT_EXTI_IRQHandler     EXTI9_5_IRQHandler
+
+// TOUCH_INT_EXTI IRQ
+#if !defined(USE_EXTI9_5_IRQ)
+  #define USE_EXTI9_5_IRQ
+  #define EXTI9_5_IRQ_Priority  9
+#endif
 
 // Haptic: TIM1_CH1
 #define HAPTIC_PWM
@@ -554,5 +575,14 @@
 #define MIXER_SCHEDULER_TIMER_FREQ           (PERI1_FREQUENCY * TIMER_MULT_APB1)
 #define MIXER_SCHEDULER_TIMER_IRQn           TIM8_BRK_TIM12_IRQn
 #define MIXER_SCHEDULER_TIMER_IRQHandler     TIM8_BRK_TIM12_IRQHandler
+
+#define LCD_W                           320
+#define LCD_H                           480
+
+#define LCD_PHYS_W                      320
+#define LCD_PHYS_H                      480
+
+#define LCD_DEPTH                       16
+#define LCD_CONTRAST_DEFAULT            20
 
 #endif // _HAL_H_

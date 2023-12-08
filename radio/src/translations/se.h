@@ -61,7 +61,7 @@
   #define TR_SWTYPES                    "Ingen","Flipp","2 pos","3 pos"
 #endif
 
-#define TR_POTTYPES                     "Ingen",TR("Vred m. mitt","Vred med mittläge"),TR("Multipos","Flerlägesväljare"),"Vred","Reglage"
+#define TR_POTTYPES                     "Ingen","Vred",TR("Vred m. mitt","Vred med mittläge"),"Reglage",TR("Multipos","Flerlägesväljare"),"Axel X","Axel Y","Brytare"
 #define TR_VPERSISTENT                  "Av","Flygning","Nolla själv"
 #define TR_COUNTRY_CODES                TR("US","Amerika"),TR("JP","Japan"),TR("EU","Europa")
 #define TR_USBMODES                     "Fråga","Joystick",TR("SD-kort","SD-kortlagring"),"Seriell"
@@ -84,17 +84,15 @@
 #if LCD_W >= 212
   #define TR_CSWTIMER                   "Timer"
   #define TR_CSWSTICKY                  "Seg"
-  #define TR_CSWRANGE                   "Vidd"
   #define TR_CSWSTAY                    "Kant"
 #else
   #define TR_CSWTIMER                   "Tim"
   #define TR_CSWSTICKY                  "Seg"
-  #define TR_CSWRANGE                   "Vidd"
   #define TR_CSWSTAY                    "Kant"
 #endif
 
 #define TR_CSWEQUAL                     "a=x"
-#define TR_VCSWFUNC                     "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC                     "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 #define TR_TEXT_SIZE                    "Std","XS","S","M","L"
 
@@ -106,12 +104,13 @@
 #define TR_SF_FAILSAFE                 "Sätt failsafe"
 #define TR_SF_RANGE_CHECK              "Range check"
 #define TR_SF_MOD_BIND                 "Bind modul"
+#define TR_SF_RGBLEDS                  "RGB leds"
  
 #define TR_SOUND                       "Spela ljud"
-#define TR_PLAY_TRACK                  "Spela upp"
+#define TR_PLAY_TRACK                  TR("Ply Trk", "Spela upp")
 #define TR_PLAY_VALUE                  "Säg värdet"
 #define TR_SF_HAPTIC                   "Haptisk"
-#define TR_SF_PLAY_SCRIPT              "Lua-skript"
+#define TR_SF_PLAY_SCRIPT              TR("Lua", "Lua-skript")
 #define TR_SF_BG_MUSIC                 "Musik"
 #define TR_SF_BG_MUSIC_PAUSE           "Pausa Musik"
 #define TR_SF_LOGS                     "Logga data"
@@ -221,6 +220,7 @@
 #define TR_VCELLINDEX                   "Lägsta","1","2","3","4","5","6","7","8","Högsta","Skillnad"
 #define TR_SUBTRIMMODES                 STR_CHAR_DELTA " (endast center)","= (symmetrisk)"
 #define TR_TIMER_DIR                    TR("Återst.", "Visa återstående"), TR("Förbrukad", "Visa förbrukad")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 #if defined(COLORLCD)
   #if defined(BOLD)
@@ -366,6 +366,7 @@
 #define TR_ALARMWARNING                 "Ljud av"
 #define TR_RSSI_SHUTDOWN_ALARM          TR("RSSI avstängn.", "Kolla RSSI vid avstängning")
 #define TR_MODEL_STILL_POWERED          TR("Modell på","Modellen är på")
+#define TR_TRAINER_STILL_CONNECTED      "Lärare fortfarande ansluten"
 #define TR_USB_STILL_CONNECTED          "USB är ansluten"
 #define TR_MODEL_SHUTDOWN               "Stänga av?"
 #define TR_PRESS_ENTER_TO_CONFIRM       "Tryck [ENTER] för att bekräfta"
@@ -671,11 +672,8 @@
 #define TR_LCD                          "LCD"
 #define TR_BRIGHTNESS                   "Ljusstyrka"
 #define TR_CPU_TEMP                     "CPU temp.\016>"
-#define TR_CPU_CURRENT                  "Ström\022>"
-#define TR_CPU_MAH                      "Förbrukn."
 #define TR_COPROC                       "CoProc."
 #define TR_COPROC_TEMP                  "MB temp. \016>"
-#define TR_CAPAWARNING                  INDENT "Låg kapacitet"
 #define TR_TEMPWARNING                  TR(INDENT "Hög temp", INDENT "Hög temperatur")
 #define TR_TTL_WARNING                  "Varning: använd 3.3V logiska nivåer"
 #define TR_FUNC                         "Funktion"
@@ -824,6 +822,7 @@
 #define TR_JACK_MODE                    "Uttagsläge"
 #define TR_VOICE_LANGUAGE               "Röstspråk"
 #define TR_UNITS_SYSTEM                 "Enheter"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                         "Redigera"
 #define TR_INSERT_BEFORE                "Addera före"
 #define TR_INSERT_AFTER                 "Addera efter"
@@ -899,6 +898,7 @@
 #define TR_INTERVAL                     "Intervall"
 #define TR_REPEAT                       "Upprepa"
 #define TR_ENABLE                       "Aktivera"
+#define TR_DISABLE                      "Inaktivera"
 #define TR_TOPLCDTIMER                  "Översta LCD timer"
 #define TR_UNIT                         "Enhet"
 #define TR_TELEMETRY_NEWSENSOR          INDENT "Lägg till..."
@@ -925,8 +925,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2             "certifierad firmware"
 #define TR_LOWALARM                     INDENT "Lågalarm"
 #define TR_CRITICALALARM                INDENT "Kritiskt alarm"
-#define TR_RSSIALARM_WARN               TR("RSSI","TELEMETRI RSSI")
-#define TR_NO_RSSIALARM                 TR(INDENT "Alarm inaktiverade", INDENT "Telemetrialarm inaktiverade")
 #define TR_DISABLE_ALARM                TR(INDENT "Inaktivera alarm", INDENT "Inaktivera telemetrialarm")
 #define TR_POPUP                        "Popup"
 #define TR_MIN                          "Min"
@@ -1008,6 +1006,7 @@
   #define TR_TIMER_SOURCE               "Timerkälla"
   #define TR_SIZE                       "Storlek"
   #define TR_SHADOW                     "Skugga"
+  #define TR_ALIGNMENT                  "Justering"
   #define TR_ALIGN_LABEL                "Justera etikett"
   #define TR_ALIGN_VALUE                "Justera värde"
   #define TR_ALIGN_OPTS                 { "Vänster", "Mitten", "Höger" }
@@ -1072,8 +1071,16 @@
   #define TR_BL_SELECT_KEY              "[R TRIM] foer att vaelja fil"
   #define TR_BL_FLASH_KEY               "Tryck [R TRIM] foer att flasha"
   #define TR_BL_EXIT_KEY                " [L TRIM] för att avsluta"
-  #define TR_BL_ENABLE                  "Aktivera"
-  #define TR_BL_DISABLE                 "Inaktivera"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1286,3 +1293,11 @@
 #define TR_ENABLED_FEATURES             "Aktiverade funktioner"
 #define TR_RADIO_MENU_TABS              "Radiomenyflikar"
 #define TR_MODEL_MENU_TABS              "Modellmenyflikar"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "Namn A-Z","Namn Z-A","Minst använda","Mest använda"
+#define TR_SORT_MODELS_BY         "Sortera modeller"
+#define TR_CREATE_NEW             "Skapa"

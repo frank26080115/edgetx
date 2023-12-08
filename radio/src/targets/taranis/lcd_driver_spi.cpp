@@ -23,13 +23,15 @@
 #include "debug.h"
 #include "lcd.h"
 
+#include "hal/abnormal_reboot.h"
+
 #if !defined(BOOT)
   #include "opentx.h"
 #endif
 
 #if defined(OLED_SCREEN)
   #define LCD_CONTRAST_OFFSET            0
-#elif defined(RADIO_FAMILY_JUMPER_T12) || defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_ZORRO) || defined(RADIO_POCKET) || defined(RADIO_T8) || defined(RADIO_COMMANDO8) || defined(RADIO_TPRO)
+#elif defined(RADIO_FAMILY_JUMPER_T12) || defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_ZORRO) || defined(RADIO_POCKET) || defined(RADIO_T8) || defined(RADIO_COMMANDO8) || defined(RADIO_TPRO) || defined(RADIO_MT12)
   #define LCD_CONTRAST_OFFSET            -10
 #else
   #define LCD_CONTRAST_OFFSET            160
@@ -110,6 +112,7 @@ void lcdHardwareInit()
 #endif
   LCD_DMA_Stream->FCR = 0x05; // DMA_SxFCR_DMDIS | DMA_SxFCR_FTH_0;
 
+  NVIC_SetPriority(LCD_DMA_Stream_IRQn, 7);
   NVIC_EnableIRQ(LCD_DMA_Stream_IRQn);
 }
 
@@ -201,12 +204,10 @@ void lcdWriteAddress(uint8_t x, uint8_t y)
 
 volatile bool lcd_busy;
 
-#if !defined(LCD_DUAL_BUFFER)
 void lcdRefreshWait()
 {
   WAIT_FOR_DMA_END();
 }
-#endif
 
 void lcdRefresh(bool wait)
 {
@@ -253,12 +254,6 @@ void lcdRefresh(bool wait)
 
   LCD_DMA_Stream->CR &= ~DMA_SxCR_EN; // Disable DMA
   LCD_DMA->HIFCR = LCD_DMA_FLAGS; // Write ones to clear bits
-
-#if defined(LCD_DUAL_BUFFER)
-  // Switch LCD buffer
-  LCD_DMA_Stream->M0AR = (uint32_t)displayBuf;
-  displayBuf = (displayBuf == displayBuf1) ? displayBuf2 : displayBuf1;
-#endif
 
   LCD_DMA_Stream->CR |= DMA_SxCR_EN | DMA_SxCR_TCIE; // Enable DMA & TC interrupts
   LCD_SPI->CR2 |= SPI_CR2_TXDMAEN;

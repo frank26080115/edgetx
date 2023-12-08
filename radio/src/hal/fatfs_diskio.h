@@ -28,6 +28,8 @@ struct diskio_driver_t
 {
   DSTATUS (*initialize)(BYTE pdrv);
 
+  DSTATUS (*deinit)(BYTE pdrv);
+
   DSTATUS (*status)(BYTE pdrv);
 
   DRESULT (*read)(BYTE pdrv, BYTE* buff, DWORD sector, UINT count);
@@ -39,6 +41,9 @@ struct diskio_driver_t
 
 // returns 1 if successful, 0 otherwise
 int fatfsRegisterDriver(const diskio_driver_t* drv, uint8_t lun);
+
+// gracefully tear down all drivers
+void fatfsUnregisterDrivers();
 
 // returns a pyhsical disk driver or NULL
 const diskio_driver_t* fatfsGetDriver(uint8_t pdrv);

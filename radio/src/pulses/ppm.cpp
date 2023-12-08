@@ -111,12 +111,7 @@ static etx_serial_init ppmMLinkSerialParams = {
 static bool ppmInitMLinkTelemetry(uint8_t module)
 {
   // Try S.PORT hardware USART (requires HW inverters)
-  if (modulePortInitSerial(module, ETX_MOD_PORT_SPORT, &ppmMLinkSerialParams) != nullptr) {
-    return true;
-  }
-
-  // fall-back to softserial
-  if (modulePortInitSerial(module, ETX_MOD_PORT_SPORT_INV, &ppmMLinkSerialParams) != nullptr) {
+  if (modulePortInitSerial(module, ETX_MOD_PORT_SPORT, &ppmMLinkSerialParams, true) != nullptr) {
     return true;
   }
 
@@ -147,7 +142,6 @@ static void* ppmInit(uint8_t module)
 
   auto delay = GET_MODULE_PPM_DELAY(module) * 2;
   etx_timer_config_t cfg = {
-    .type = ETX_PWM,
     .polarity = !GET_MODULE_PPM_POLARITY(module),
     .cmp_val = (uint16_t)delay,
   };
@@ -188,7 +182,6 @@ static void ppmSendPulses(void* ctx, uint8_t* buffer, int16_t* channels, uint8_t
 
   auto delay = GET_MODULE_PPM_DELAY(module) * 2;
   etx_timer_config_t cfg = {
-    .type = ETX_PWM,
     .polarity = !GET_MODULE_PPM_POLARITY(module),
     .cmp_val = (uint16_t)delay,
   };
@@ -226,5 +219,6 @@ const etx_proto_driver_t PpmDriver = {
   .deinit = ppmDeInit,
   .sendPulses = ppmSendPulses,
   .processData = ppmProcessTelemetryData,
+  .processFrame = nullptr,
   .onConfigChange = ppmOnConfigChange,
 };

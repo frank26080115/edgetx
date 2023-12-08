@@ -32,7 +32,7 @@ OUTDIR=$2
 
 COMMON_OPTIONS="-DGVARS=YES -DHELI=YES -DLUA=YES -Wno-dev -DCMAKE_BUILD_TYPE=Release"
 if [ "$(uname)" = "Darwin" ]; then
-    COMMON_OPTIONS="${COMMON_OPTIONS} -DCMAKE_OSX_DEPLOYMENT_TARGET='10.9'"
+    COMMON_OPTIONS="${COMMON_OPTIONS} -DCMAKE_OSX_DEPLOYMENT_TARGET='10.15'"
 elif [ "$(uname)" != "Linux" ]; then # Assume Windows and MSYS2
     if [ "${MSYSTEM,,}" == "mingw32" ]; then # MSYS 32bit detected
         COMMON_OPTIONS="${COMMON_OPTIONS} -DSDL2_LIBRARY_PATH=/mingw32/bin/"
@@ -66,12 +66,11 @@ cd build
 declare -a simulator_plugins=(x9lite x9lites
                               x7 x7-access
                               t8 t12 tx12 tx12mk2
-                              zorro pocket commando8 boxer
+                              zorro commando8 boxer
                               tlite tpro lr3pro
-                              t20
                               x9d x9dp x9dp2019 x9e
                               xlite xlites
-                              nv14
+                              nv14 pl18 pl18ev
                               x10 x10-access x12s
                               t16 t18 tx16s)
 
@@ -170,6 +169,12 @@ do
             ;;
         commando8)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=COMMANDO8"
+            ;;
+        pl18)
+            BUILD_OPTIONS+="-DPCB=PL18"
+            ;;
+        pl18ev)
+            BUILD_OPTIONS+="-DPCB=PL18 -DPCBREV=PL18EV"
             ;;
         *)
             echo "Unknown target: $target_name"

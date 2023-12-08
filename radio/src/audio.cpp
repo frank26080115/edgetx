@@ -19,14 +19,17 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
 #include <math.h>
 
+#include "opentx.h"
+#include "strhelpers.h"
 #include "switches.h"
 
 #if defined(LIBOPENUI)
-  #include "libopenui.h"
+#include "libopenui.h"
 #endif
+
+#include "model_audio.h"
 
 extern RTOS_MUTEX_HANDLE audioMutex;
 
@@ -191,6 +194,7 @@ const char * const audioFilenames[] = {
   "rssi_org",
   "rssi_red",
   "swr_red",
+  "telemco",
   "telemko",
   "telemok",
   "trainco",
@@ -306,133 +310,51 @@ void referenceSystemAudioFiles()
   }
 }
 
-const char * const suffixes[] = { "-off", "-on" };
-
-char *getModelAudioPath(char *path)
-{
-  strcpy(path, SOUNDS_PATH "/");
-  strncpy(path + SOUNDS_PATH_LNG_OFS, currentLanguagePack->id, 2);
-  char *buf = strcat_currentmodelname(path + sizeof(SOUNDS_PATH), ' ');
-
-  if (!isFileAvailable(path)) {
-    buf = strcat_currentmodelname(path + sizeof(SOUNDS_PATH), 0);
-  }
-
-  *buf++ = '/';
-  *buf = '\0';
-  return buf;
-}
-
-void getFlightmodeAudioFile(char * filename, int index, unsigned int event)
-{
-  char * str = getModelAudioPath(filename);
-  char * tmp = strcatFlightmodeName(str, index);
-  strcpy(tmp, suffixes[event]);
-  strcat(tmp, SOUNDS_EXT);
-}
-
-void getSwitchAudioFile(char * filename, swsrc_t index)
-{
-  char * str = getModelAudioPath(filename);
-
-  if (index <= MAX_SWITCHES * 3) {
-    div_t swinfo = switchInfo(index);
-    *str++ = 'S';
-    *str++ = switchGetLetter(swinfo.quot);
-    const char * positions[] = { "-up", "-mid", "-down" };
-    strcpy(str, positions[swinfo.rem]);
-  }
-  else {
-    index -= MAX_SWITCHES * 3;
-    div_t swinfo = div((int)index, XPOTS_MULTIPOS_COUNT);
-    *str++ = 'S';
-    *str++ = '1' + swinfo.quot;
-    *str++ = '1' + swinfo.rem;
-    *str = '\0';
-  }
-  strcat(str, SOUNDS_EXT);
-}
-
-void getLogicalSwitchAudioFile(char * filename, int index, unsigned int event)
-{
-  char * str = getModelAudioPath(filename);
-
-  *str++ = 'L';
-  if (index >= 9) {
-    div_t qr = div(index+1, 10);
-    *str++ = '0' + qr.quot;
-    *str++ = '0' + qr.rem;
-  }
-  else {
-    *str++ = '1' + index;
-  }
-
-  strcpy(str, suffixes[event]);
-  strcat(str, SOUNDS_EXT);
-}
-
 void referenceModelAudioFiles()
 {
-  char path[AUDIO_FILENAME_MAXLEN+1];
-  FILINFO fno;
   DIR dir;
+  FILINFO fno;
+  char path[AUDIO_FILENAME_MAXLEN + 1];
 
   sdAvailableFlightmodeAudioFiles.reset();
   sdAvailableSwitchAudioFiles.reset();
   sdAvailableLogicalSwitchAudioFiles.reset();
 
-  char * filename = getModelAudioPath(path);
-  *(filename-1) = '\0';
+  getModelAudioPath(path, false);
 
-  FRESULT res = f_opendir(&dir, path);        /* Open the directory */
+  FRESULT res = f_opendir(&dir, path); /* Open the directory */
   if (res == FR_OK) {
     for (;;) {
-      res = f_readdir(&dir, &fno);                   /* Read a directory item */
-      if (res != FR_OK || fno.fname[0] == 0) break;  /* Break on error or end of dir */
+      res = f_readdir(&dir, &fno); /* Read a directory item */
+      if (res != FR_OK || fno.fname[0] == 0)
+        break; /* Break on error or end of dir */
       uint8_t len = strlen(fno.fname);
-      bool found = false;
 
       // Eliminates directories / non wav files
-      if (len < 5 || strcasecmp(fno.fname+len-4, SOUNDS_EXT) || (fno.fattrib & AM_DIR)) continue;
+      if (fno.fattrib & AM_DIR) continue;
+      if (len < sizeof(SOUNDS_EXT)) continue;
+
+      char *ext = fno.fname + len - (sizeof(SOUNDS_EXT) - 1);
+      if (strcasecmp(ext, SOUNDS_EXT)) continue;
+
       TRACE("referenceModelAudioFiles(): using file: %s", fno.fname);
 
-      // Flight modes Audio Files <flightmodename>-[on|off].wav
-      for (int i=0; i<MAX_FLIGHT_MODES && !found; i++) {
-        for (int event=0; event<2; event++) {
-          getFlightmodeAudioFile(path, i, event);
-          // TRACE("referenceModelAudioFiles(): searching for %s in %s", filename, fno.fname);
-          if (!strcasecmp(filename, fno.fname)) {
-            sdAvailableFlightmodeAudioFiles.setBit(INDEX_PHASE_AUDIO_FILE(i, event));
-            found = true;
-            TRACE("\tfound: %s", filename);
-            break;
-          }
-        }
+      int idx, event;
+      if (matchModeAudioFile(fno.fname, idx, event)) {
+        sdAvailableFlightmodeAudioFiles.setBit(
+            INDEX_PHASE_AUDIO_FILE(idx, event));
+        continue;
       }
 
-      // Switches Audio Files <switchname>-[up|mid|down].wav
-      for (unsigned i = 0; i <= MAX_SWITCH_POSITIONS && !found; i++) {
-        getSwitchAudioFile(path, i);
-        // TRACE("referenceModelAudioFiles(): searching for %s in %s (%d)", path, fno.fname, i);
-        if (!strcasecmp(filename, fno.fname)) {
-          sdAvailableSwitchAudioFiles.setBit(i);
-          found = true;
-          TRACE("\tfound: %s", filename);
-        }
+      if (matchSwitchAudioFile(fno.fname, idx)) {
+        sdAvailableSwitchAudioFiles.setBit(idx);
+        continue;
       }
 
-      // Logical Switches Audio Files <switchname>-[on|off].wav
-      for (int i=0; i<MAX_LOGICAL_SWITCHES && !found; i++) {
-        for (int event=0; event<2; event++) {
-          getLogicalSwitchAudioFile(path, i, event);
-          // TRACE("referenceModelAudioFiles(): searching for %s in %s", filename, fno.fname);
-          if (!strcasecmp(filename, fno.fname)) {
-            sdAvailableLogicalSwitchAudioFiles.setBit(INDEX_LOGICAL_SWITCH_AUDIO_FILE(i, event));
-            found = true;
-            TRACE("\tfound: %s", filename);
-            break;
-          }
-        }
+      if (matchLogicalSwitchAudioFile(fno.fname, idx, event)) {
+        sdAvailableLogicalSwitchAudioFiles.setBit(
+            INDEX_LOGICAL_SWITCH_AUDIO_FILE(idx, event));
+        continue;
       }
     }
     f_closedir(&dir);
@@ -461,7 +383,7 @@ bool isAudioFileReferenced(uint32_t i, char * filename)
   }
   else if (category == SWITCH_AUDIO_CATEGORY) {
     if (sdAvailableSwitchAudioFiles.getBit(index)) {
-      getSwitchAudioFile(filename, SWSRC_FIRST_SWITCH+index);
+      getSwitchAudioFile(filename, SWSRC_FIRST_SWITCH + index);
       return true;
     }
   }
@@ -555,6 +477,9 @@ int WavContext::mixBuffer(AudioBuffer *buffer, int volume, unsigned int fade)
 {
   FRESULT result = FR_OK;
   UINT read = 0;
+
+  if(fragment.fragmentVolume != USE_SETTINGS_VOLUME)
+    volume = fragment.fragmentVolume;
 
   if (fragment.file[1]) {
     result = f_open(&state.file, fragment.file, FA_OPEN_EXISTING | FA_READ);
@@ -651,6 +576,9 @@ int ToneContext::mixBuffer(AudioBuffer * buffer, int volume, unsigned int fade)
 {
   int duration = 0;
   int result = 0;
+
+  if(fragment.fragmentVolume != USE_SETTINGS_VOLUME)
+    volume = fragment.fragmentVolume;
 
   int remainingDuration = fragment.tone.duration - state.duration;
   if (remainingDuration > 0) {
@@ -837,7 +765,7 @@ bool AudioQueue::isPlaying(uint8_t id)
          fragmentsFifo.hasPromptId(id);
 }
 
-void AudioQueue::playTone(uint16_t freq, uint16_t len, uint16_t pause, uint8_t flags, int8_t freqIncr)
+void AudioQueue::playTone(uint16_t freq, uint16_t len, uint16_t pause, uint8_t flags, int8_t freqIncr, int8_t fragmentVolume)
 {
 #if defined(SIMU) && !defined(SIMU_AUDIO)
   return;
@@ -848,7 +776,7 @@ void AudioQueue::playTone(uint16_t freq, uint16_t len, uint16_t pause, uint8_t f
   freq = limit<uint16_t>(BEEP_MIN_FREQ, freq, BEEP_MAX_FREQ);
 
   if (flags & PLAY_BACKGROUND) {
-    varioContext.setFragment(freq, len, pause, 0, 0, (flags & PLAY_NOW));
+    varioContext.setFragment(freq, len, pause, 0, 0, (flags & PLAY_NOW), fragmentVolume);
   }
   else {
     // adjust frequency and length according to the user preferences
@@ -858,11 +786,11 @@ void AudioQueue::playTone(uint16_t freq, uint16_t len, uint16_t pause, uint8_t f
     if (flags & PLAY_NOW) {
       if (priorityContext.isFree()) {
         priorityContext.clear();
-        priorityContext.setFragment(freq, len, pause, flags & 0x0f, freqIncr, false);
+        priorityContext.setFragment(freq, len, pause, flags & 0x0f, freqIncr, false, fragmentVolume);
       }
     }
     else {
-      fragmentsFifo.push(AudioFragment(freq, len, pause, flags & 0x0f, freqIncr, false));
+      fragmentsFifo.push(AudioFragment(freq, len, pause, flags & 0x0f, freqIncr, false, fragmentVolume));
     }
   }
 
@@ -870,10 +798,10 @@ void AudioQueue::playTone(uint16_t freq, uint16_t len, uint16_t pause, uint8_t f
 }
 
 #if defined(SDCARD)
-void AudioQueue::playFile(const char * filename, uint8_t flags, uint8_t id)
+void AudioQueue::playFile(const char * filename, uint8_t flags, uint8_t id, int8_t fragmentVolume)
 {
 #if defined(SIMU)
-  TRACE("playFile(\"%s\", flags=%x, id=%d)", filename, flags, id);
+  TRACE("playFile(\"%s\", flags=%x, id=%d fragmentVolume=%d ee_general=%d)", filename, flags, id, fragmentVolume, g_eeGeneral.wavVolume);
   if (strlen(filename) > AUDIO_FILENAME_MAXLEN) {
     TRACE("file name too long! maximum length is %d characters", AUDIO_FILENAME_MAXLEN);
     return;
@@ -898,10 +826,10 @@ void AudioQueue::playFile(const char * filename, uint8_t flags, uint8_t id)
 
   if (flags & PLAY_BACKGROUND) {
     backgroundContext.clear();
-    backgroundContext.setFragment(filename, 0, id);
+    backgroundContext.setFragment(filename, 0, fragmentVolume, id);
   }
   else {
-    fragmentsFifo.push(AudioFragment(filename, flags & 0x0f, id));
+    fragmentsFifo.push(AudioFragment(filename, flags & 0x0f, fragmentVolume, id));
   }
 
   RTOS_UNLOCK_MUTEX(audioMutex);
@@ -1223,14 +1151,14 @@ void audioEvent(unsigned int index)
 }
 
 #if defined(SDCARD)
-void pushUnit(uint8_t unit, uint8_t idx, uint8_t id)
+void pushUnit(uint8_t unit, uint8_t idx, uint8_t id, uint8_t fragmentVolume)
 {
   if (unit < DIM(unitsFilenames)) {
     char path[AUDIO_FILENAME_MAXLEN+1];
     char * tmp = strAppendSystemAudioPath(path);
     tmp = strAppendStringWithIndex(tmp, unitsFilenames[unit], idx);
     strcpy(tmp, SOUNDS_EXT);
-    audioQueue.playFile(path, 0, id);
+    audioQueue.playFile(path, 0, id, fragmentVolume);
   }
   else {
     TRACE("pushUnit: out of bounds unit : %d", unit); // We should never get here, but given the nature of TTS files, this prevent segfault in case of bug there.
@@ -1238,7 +1166,7 @@ void pushUnit(uint8_t unit, uint8_t idx, uint8_t id)
 }
 #endif
 
-void pushPrompt(uint16_t prompt, uint8_t id)
+void pushPrompt(uint16_t prompt, uint8_t id, uint8_t fragmentVolume)
 {
 #if defined(SDCARD)
   char filename[AUDIO_FILENAME_MAXLEN+1];
@@ -1248,7 +1176,7 @@ void pushPrompt(uint16_t prompt, uint8_t id)
     str[i] = '0' + (prompt%10);
     prompt /= 10;
   }
-  audioQueue.playFile(filename, 0, id);
+  audioQueue.playFile(filename, 0, id, fragmentVolume);
 #endif
 }
 

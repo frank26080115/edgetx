@@ -442,15 +442,25 @@ std::string ModelMap::toCSV(const LabelsVector &labels)
  * @return vector of all labels
  */
 
-LabelsVector ModelMap::fromCSV(const char *str)
+LabelsVector ModelMap::fromCSV(const char* str)
 {
   LabelsVector lbls;
-  std::istringstream f(str);
-  std::string lbl;
-  while (std::getline(f, lbl, ',')) {
+  const char* prev_c = str;
+  const char* c = strchr(prev_c, ',');
+  while(c != nullptr) {
+    std::string lbl(prev_c, c - prev_c);
+    unEscapeCSV(lbl);
+    lbls.push_back(lbl);
+    prev_c = ++c;
+    c = strchr(c, ',');
+  }
+
+  {
+    std::string lbl(prev_c);
     unEscapeCSV(lbl);
     lbls.push_back(lbl);
   }
+  
   return lbls;
 }
 
@@ -1350,7 +1360,7 @@ void ModelsList::updateCurrentModelCell()
   if (currentModel) {
 #if LEN_BITMAP_NAME > 0
     strncpy(currentModel->modelBitmap, g_model.header.bitmap, LEN_BITMAP_NAME);
-    currentModel->modelBitmap[LEN_BITMAP_NAME - 1] = '\0';
+    currentModel->modelBitmap[LEN_BITMAP_NAME] = '\0';
 #endif
     strncpy(currentModel->modelFilename, g_eeGeneral.currModelFilename, LEN_MODEL_FILENAME);
     currentModel->modelFilename[LEN_MODEL_FILENAME] = '\0';

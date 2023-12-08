@@ -20,8 +20,10 @@
  */
 
 #include "opentx.h"
+
 #include "hal/adc_driver.h"
 #include "hal/storage.h"
+#include "hal/abnormal_reboot.h"
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
@@ -32,6 +34,10 @@
 
 #if defined(CLI)
   #include "cli.h"
+#endif
+
+#if defined(LUA)
+  #include "lua/lua_event.h"
 #endif
 
 uint8_t currentSpeakerVolume = 255;
@@ -160,7 +166,7 @@ void handleUsbConnection()
     if (getSelectedUsbMode() != USB_UNSELECTED_MODE) {
 
       if (getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
-        opentxClose(false);
+        edgeTxClose(false);
       }
 #if defined(USB_SERIAL)
       else if (getSelectedUsbMode() == USB_SERIAL_MODE) {
@@ -177,7 +183,7 @@ void handleUsbConnection()
     usbStop();
     TRACE("USB stopped");
     if (getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
-      opentxResume();
+      edgeTxResume();
       pushEvent(EVT_ENTRY);
     } else if (getSelectedUsbMode() == USB_SERIAL_MODE) {
       serialStop(SP_VCP);
@@ -308,7 +314,7 @@ void checkEeprom()
 {
 #if defined(RTC_BACKUP_RAM) && !defined(SIMU)
   if (TIME_TO_BACKUP_RAM()) {
-    if (!globalData.unexpectedShutdown) {
+    if (!UNEXPECTED_SHUTDOWN()) {
       rambackupWrite();
     }
     rambackupDirtyMsk = 0;
@@ -394,7 +400,7 @@ void guiMain(event_t evt)
   }
 
   DEBUG_TIMER_START(debugTimerLua);
-  luaTask(0, false);
+  luaTask(false);
   DEBUG_TIMER_STOP(debugTimerLua);
 
   t0 = get_tmr10ms() - t0;
@@ -429,14 +435,17 @@ void guiMain(event_t evt)
 bool handleGui(event_t event) {
   bool refreshNeeded;
 #if defined(LUA)
-  refreshNeeded = luaTask(event, true);
-  if (menuHandlers[menuLevel] == menuViewTelemetry &&
-      TELEMETRY_SCREEN_TYPE(s_frsky_view) == TELEMETRY_SCREEN_TYPE_SCRIPT) {
-      menuHandlers[menuLevel](event);
-  }
+  bool isTelemView =
+      menuHandlers[menuLevel] == menuViewTelemetry &&
+      TELEMETRY_SCREEN_TYPE(s_frsky_view) == TELEMETRY_SCREEN_TYPE_SCRIPT;
+  bool isStandalone = scriptInternalData[0].reference == SCRIPT_STANDALONE;
+  if (isTelemView || isStandalone) luaPushEvent(event);
+  refreshNeeded = luaTask(true);
+  if (isTelemView)
+    menuHandlers[menuLevel](event);
   else if (scriptInternalData[0].reference != SCRIPT_STANDALONE)
 #endif
-// No foreground Lua script is running - clear the screen show normal menu
+  // No foreground Lua script is running - clear the screen show normal menu
   {
     lcdClear();
     menuHandlers[menuLevel](event);
@@ -460,7 +469,7 @@ void guiMain(event_t evt)
   }
 
   // run Lua scripts that don't use LCD (to use CPU time while LCD DMA is running)
-  luaTask(0, false);
+  luaTask(false);
 
   t0 = get_tmr10ms() - t0;
   if (t0 > maxLuaDuration) {
@@ -558,12 +567,8 @@ void perMain()
   checkHatsAsKeys();
 #endif
 
-#if !defined(LIBOPENUI)
-  event_t evt = getEvent();
-#endif
-
 #if defined(RTC_BACKUP_RAM)
-  if (globalData.unexpectedShutdown) {
+  if (UNEXPECTED_SHUTDOWN()) {
     drawFatalErrorScreen(STR_EMERGENCY_MODE);
     return;
   }
@@ -577,7 +582,7 @@ void perMain()
 #if !defined(EEPROM)
   // In case the SD card is removed during the session
   if ((!usbPlugged() || (getSelectedUsbMode() == USB_UNSELECTED_MODE))
-      && !SD_CARD_PRESENT() && !globalData.unexpectedShutdown) {
+      && !SD_CARD_PRESENT() && !UNEXPECTED_SHUTDOWN()) {
 
     // TODO: implement for b/w
 #if defined(COLORLCD)
@@ -605,7 +610,11 @@ void perMain()
 #if defined(MULTIMODULE)
   checkFailsafeMulti();
 #endif
-  
+
+#if !defined(LIBOPENUI)
+  event_t evt = getEvent();
+#endif
+
 #if defined(KEYS_GPIO_REG_BIND) && defined(BIND_KEY)
   bindButtonHandler(evt);
 #endif

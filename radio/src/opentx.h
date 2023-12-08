@@ -41,159 +41,6 @@
   #include "libopenui/src/libopenui_file.h"
 #endif
 
-#if defined(SIMU)
-  #define SWITCH_SIMU(a, b)  (a)
-#else
-  #define SWITCH_SIMU(a, b)  (b)
-#endif
-
-#if defined(VARIO)
-  #define CASE_VARIO(x) x,
-#else
-  #define CASE_VARIO(x)
-#endif
-
-#if defined(IMU)
-#define CASE_IMU(x) x,
-#else
-#define CASE_IMU(x)
-#endif
-
-#if defined(BACKLIGHT_GPIO)
-#define CASE_BACKLIGHT(x) x,
-#else
-#define CASE_BACKLIGHT(x)
-#endif
-
-#if defined(OLED_SCREEN)
-#define CASE_CONTRAST(x)
-#else
-#define CASE_CONTRAST(x) x,
-#endif
-
-
-#if defined(LUA)
-  #define CASE_LUA(x) x,
-#else
-  #define CASE_LUA(x)
-#endif
-
-#if defined(RTCLOCK)
-  #define CASE_RTCLOCK(x) x,
-#else
-  #define CASE_RTCLOCK(x)
-#endif
-
-#if defined(BUZZER)
-  #define CASE_BUZZER(x) x,
-#else
-  #define CASE_BUZZER(x)
-#endif
-
-#if defined(AUDIO)
-  #define CASE_AUDIO(x) x,
-#else
-  #define CASE_AUDIO(x)
-#endif
-
-#if defined(PWM_BACKLIGHT)
-  #define CASE_PWM_BACKLIGHT(x) x,
-#else
-  #define CASE_PWM_BACKLIGHT(x)
-#endif
-
-#if defined(GPS)
-  #define CASE_GPS(x) x,
-#else
-  #define CASE_GPS(x)
-#endif
-
-#if defined(VARIO)
-  #define CASE_VARIO(x) x,
-#else
-  #define CASE_VARIO(x)
-#endif
-
-#if defined(HAPTIC)
-  #define CASE_HAPTIC(x) x,
-#else
-  #define CASE_HAPTIC(x)
-#endif
-
-#if defined(SPLASH)
-  #define CASE_SPLASH(x) x,
-#else
-  #define CASE_SPLASH(x)
-#endif
-
-#if defined(PWR_BUTTON_PRESS)
-  #define CASE_PWR_BUTTON_PRESS(x) x,
-#else
-  #define CASE_PWR_BUTTON_PRESS(x)
-#endif
-
-#if defined(PXX1)
-  #define CASE_PXX1(x) x,
-#else
-  #define CASE_PXX1(x)
-#endif
-
-#if defined(PXX2)
-  #define CASE_PXX2(x) x,
-#else
-  #define CASE_PXX2(x)
-#endif
-
-#if defined(SDCARD)
-  #define CASE_SDCARD(x) x,
-#else
-  #define CASE_SDCARD(x)
-#endif
-
-#if defined(BLUETOOTH)
-  #define CASE_BLUETOOTH(x) x,
-#else
-  #define CASE_BLUETOOTH(x)
-#endif
-
-#if defined(HELI)
-  #define CASE_HELI(x) x,
-#else
-  #define CASE_HELI(x)
-#endif
-
-#if defined(FLIGHT_MODES)
-  #define CASE_FLIGHT_MODES(x) x,
-#else
-  #define CASE_FLIGHT_MODES(x)
-#endif
-
-#if defined(GVARS)
-  #define CASE_GVARS(x) x,
-#else
-  #define CASE_GVARS(x)
-#endif
-
-#if defined(LUA_MODEL_SCRIPTS)
-  #define CASE_LUA_MODEL_SCRIPTS(x) x,
-#else
-  #define CASE_LUA_MODEL_SCRIPTS(x)
-#endif
-
-#if defined(PCBX9DP) || defined(PCBX9E)
-  #define CASE_PCBX9E_PCBX9DP(x) x,
-#else
-  #define CASE_PCBX9E_PCBX9DP(x)
-#endif
-
-#if defined(PCBX9E)
-  #define CASE_PCBX9E(x) x,
-#else
-  #define CASE_PCBX9E(x)
-#endif
-
-  #define CASE_CAPACITY(x)
-
 #if defined(FAI)
   #define IS_FAI_ENABLED() true
   #define IF_FAI_CHOICE(x)
@@ -256,15 +103,21 @@ enum RotaryEncoderMode {
 void memswap(void * a, void * b, uint8_t size);
 
 // TODO: move these config check macros somewhere else
-#define POT_CONFIG(x) \
-  ((g_eeGeneral.potsConfig >> POT_CONFIG_POS(x)) & POT_CFG_MASK)
+#define POT_CONFIG(x) (getPotType(x))
 
-#define IS_POT_MULTIPOS(x)             (POT_CONFIG(x) == POT_MULTIPOS_SWITCH)
-#define IS_POT_WITHOUT_DETENT(x)       (POT_CONFIG(x) == POT_WITHOUT_DETENT)
-#define IS_SLIDER(x)                   (POT_CONFIG(x) == POT_SLIDER_WITH_DETENT)
-#define IS_POT_AVAILABLE(x)            (POT_CONFIG(x) != POT_NONE)
-#define IS_POT_SLIDER_AVAILABLE(x)     (IS_POT_AVAILABLE(x))
-#define IS_MULTIPOS_CALIBRATED(cal)    (cal->count > 0 && cal->count < XPOTS_MULTIPOS_COUNT)
+#define IS_POT_MULTIPOS(x) (POT_CONFIG(x) == FLEX_MULTIPOS)
+
+#define IS_POT_WITHOUT_DETENT(x) (POT_CONFIG(x) == FLEX_POT)
+
+#define IS_SLIDER(x) (POT_CONFIG(x) == FLEX_SLIDER)
+
+#define IS_POT_AVAILABLE(x)						\
+  (POT_CONFIG(x) != FLEX_NONE && POT_CONFIG(x) <= FLEX_MULTIPOS)
+
+#define IS_POT_SLIDER_AVAILABLE(x) (IS_POT_AVAILABLE(x))
+
+#define IS_MULTIPOS_CALIBRATED(cal)			\
+  (cal->count > 0 && cal->count < XPOTS_MULTIPOS_COUNT)
 
 #define IS_SWITCH_MULTIPOS(x) \
   (SWSRC_FIRST_MULTIPOS_SWITCH <= (x) && (x) <= SWSRC_LAST_MULTIPOS_SWITCH)
@@ -328,34 +181,16 @@ struct CustomFunctionsContext {
 
 #define THRCHK_DEADBAND                16
 
+#if !defined(COLORLCD)
 inline bool SPLASH_NEEDED()
 {
-#if defined(COLORLCD)
-  return false;
-#else
   return g_eeGeneral.splashMode != 3;
-#endif
 }
-
-#if defined(SPLASH)
-  #define SPLASH_TIMEOUT (g_eeGeneral.splashMode == -4 ? 1500 : (g_eeGeneral.splashMode <= 0 ? (400-g_eeGeneral.splashMode * 200) : (400 - g_eeGeneral.splashMode * 100)))
 #endif
 
-constexpr uint8_t HEART_TIMER_10MS = 0x01;
-constexpr uint8_t HEART_TIMER_PULSES = 0x02; // when multiple modules this is the first one
-
-constexpr uint8_t HEART_WDT_CHECK = HEART_TIMER_10MS
-#if defined(HARDWARE_INTERNAL_MODULE)
-                                    + (HEART_TIMER_PULSES << INTERNAL_MODULE)
-#endif
-#if defined(HARDWARE_EXTERNAL_MODULE)
-                                    + (HEART_TIMER_PULSES << EXTERNAL_MODULE)
-#endif
-    ;  // end of HEART_WDT_CHECK
+#define SPLASH_TIMEOUT (g_eeGeneral.splashMode == -4 ? 1500 : (g_eeGeneral.splashMode <= 0 ? (400-g_eeGeneral.splashMode * 200) : (400 - g_eeGeneral.splashMode * 100)))
 
 extern uint8_t heartbeat;
-
-#define MAX_ALERT_TIME   60
 
 #define LEN_STD_CHARS 40
 
@@ -367,10 +202,6 @@ extern uint8_t heartbeat;
 
 #include "keys.h"
 #include "pwr.h"
-
-// #if defined(PCBFRSKY) || defined(PCBNV14)
-// extern uint8_t potsPos[NUM_XPOTS];
-// #endif
 
 bool trimDown(uint8_t idx);
 
@@ -493,10 +324,6 @@ void flightReset(uint8_t check=true);
   #define RESET_THR_TRACE() s_timeCum16ThrP = s_timeCumThr = 0
 #endif
 
-#if defined(SPLASH)
-  void doSplash();
-#endif
-
 // disabled function (not used anywhere)
 #define READ_ONLY() false
 #define READ_ONLY_UNLOCKED() true
@@ -607,14 +434,6 @@ inline void getMixSrcRange(const int source, int16_t & valMin, int16_t & valMax,
     valMin = -valMax;
   }
 }
-#if defined(GVAR_MAX)
-inline void getGVarIncDecRange(int16_t & valMin, int16_t & valMax)
-{
-  int16_t rng = abs(valMax - valMin);
-  valMin = -rng;
-  valMax = rng;
-}
-#endif
 
 void applyExpos(int16_t * anas, uint8_t mode, uint8_t ovwrIdx=0, int16_t ovwrValue=0);
 int16_t applyLimits(uint8_t channel, int32_t value);
@@ -664,7 +483,7 @@ enum FunctionsActive {
   FUNCTION_DISABLE_TOUCH,
 #endif
 #if defined(AUDIO_MUTE_GPIO)
-  FUNCTION_DISABLE_AUDIO_AMP
+  FUNCTION_DISABLE_AUDIO_AMP,
 #endif
 };
 
@@ -707,6 +526,7 @@ enum AUDIO_SOUNDS {
   AU_RSSI_ORANGE,
   AU_RSSI_RED,
   AU_RAS_RED,
+  AU_TELEMETRY_CONNECTED,
   AU_TELEMETRY_LOST,
   AU_TELEMETRY_BACK,
   AU_TRAINER_CONNECTED,
@@ -801,9 +621,9 @@ enum AUDIO_SOUNDS {
 
 
 void checkBattery();
-void opentxClose(uint8_t shutdown=true);
-void opentxInit();
-void opentxResume();
+void edgeTxClose(uint8_t shutdown=true);
+void edgeTxInit();
+void edgeTxResume();
 
 constexpr uint8_t OPENTX_START_NO_SPLASH = 0x01;
 constexpr uint8_t OPENTX_START_NO_CALIBRATION = 0x02;
@@ -824,7 +644,6 @@ constexpr uint8_t OPENTX_START_NO_CHECKS = 0x04;
   #define LED_ERROR_END()
 #endif
 
-// Re-useable byte array to save having multiple buffers
 #if LCD_W <= 212
 constexpr uint8_t SD_SCREEN_FILE_LENGTH = 32;
 #else
@@ -841,6 +660,7 @@ constexpr uint8_t TEXT_FILENAME_MAXLEN = 40;
   #include "telemetry/ghost_menu.h"
 #endif
 
+// Re-useable byte array to save having multiple buffers
 union ReusableBuffer
 {
   struct {
@@ -1133,15 +953,6 @@ enum JackMode {
 #if defined(DEBUG_LATENCY)
 extern uint8_t latencyToggleSwitch;
 #endif
-
-inline bool isAsteriskDisplayed()
-{
-#if defined(ASTERISK) || !defined(WATCHDOG) || defined(LOG_TELEMETRY) || defined(LOG_BLUETOOTH) || defined(DEBUG_LATENCY)
-  return true;
-#endif
-
-  return globalData.unexpectedShutdown;
-}
 
 #include "module.h"
 

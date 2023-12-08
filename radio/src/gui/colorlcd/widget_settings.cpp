@@ -61,7 +61,7 @@ WidgetSettings::WidgetSettings(Window* parent, Widget* widget) :
 
     switch (option.type) {
       case ZoneOption::Integer:
-        new NumberEdit(
+        (new NumberEdit(
             line, rect_t{}, option.min.signedValue,
             option.max.signedValue,
             [=]() -> int {
@@ -70,7 +70,7 @@ WidgetSettings::WidgetSettings(Window* parent, Widget* widget) :
             [=](int32_t newValue) {
               widget->getOptionValue(optIdx)->signedValue = newValue;
               SET_DIRTY();
-            });
+            }))->setDefault(option.deflt.signedValue);
         break;
 
       case ZoneOption::Source:
@@ -154,14 +154,13 @@ WidgetSettings::WidgetSettings(Window* parent, Widget* widget) :
       case ZoneOption::Switch:
         new SwitchChoice(
             line, rect_t{},
-            option.min.unsignedValue,  // min
-            option.max.unsignedValue,  // max
-            [=]() -> int16_t {         // getValue
-              return (uint8_t)widget->getOptionValue(optIdx)->unsignedValue;
+            option.min.signedValue,  // min
+            option.max.signedValue,  // max
+            [=]() -> int16_t {       // getValue
+              return widget->getOptionValue(optIdx)->signedValue;
             },
             [=](int16_t newValue) {  // setValue
-              widget->getOptionValue(optIdx)->unsignedValue =
-                  (uint32_t)newValue;
+              widget->getOptionValue(optIdx)->signedValue = newValue;
               SET_DIRTY();
             });
         break;

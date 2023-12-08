@@ -27,7 +27,9 @@
 
 #include "board_common.h"
 #include "hal.h"
+
 #include "hal/serial_port.h"
+#include "hal/watchdog_driver.h"
 
 #define FLASHSIZE                       0x200000
 #define BOOTLOADER_SIZE                 0x20000
@@ -113,36 +115,17 @@ extern HardwareOptions hardwareOptions;
 #endif // defined(SIMU)
 
 #define EXTERNAL_MODULE_PWR_OFF         EXTERNAL_MODULE_OFF
-#define IS_UART_MODULE(port)            (port == INTERNAL_MODULE)
-#define IS_PXX2_INTERNAL_ENABLED()      (false)
 
 #if !defined(NUM_FUNCTIONS_SWITCHES)
 #define NUM_FUNCTIONS_SWITCHES        0
 #endif
 
-#define NUM_TRIMS_KEYS                  (NUM_TRIMS * 2)
-
-#define DEFAULT_STICK_DEADZONE          2
-
-// 2 pots without detent
-#define DEFAULT_POTS_CONFIG   \
-  (POT_WITHOUT_DETENT << 0) + \
-      (POT_WITHOUT_DETENT << 2)
+#define DEFAULT_STICK_DEADZONE        2
 
 #define BATTERY_WARN                  36 // 3.6V
 #define BATTERY_MIN                   35 // 3.5V
 #define BATTERY_MAX                   42 // 4.2V
-
-enum EnumPowerupState
-{
-  BOARD_POWER_OFF = 0xCAFEDEAD,
-  BOARD_POWER_ON = 0xDEADBEEF,
-  BOARD_STARTED = 0xBAADF00D,
-  BOARD_REBOOT = 0xC00010FF,
-};
-
-bool UNEXPECTED_SHUTDOWN();
-void SET_POWER_REASON(uint32_t value);
+#define BATTERY_DIVIDER               2942
 
 #if defined(__cplusplus) && !defined(SIMU)
 extern "C" {
@@ -172,23 +155,10 @@ uint32_t pwrPressedDuration();;
 const etx_serial_port_t* auxSerialGetPort(int port_nr);
   
 // LCD driver
-#define LCD_W                           320
-#define LCD_H                           480
-
-#define LCD_PHYS_W                      320
-#define LCD_PHYS_H                      480
-
-#define LCD_DEPTH                       16
-#define LCD_CONTRAST_DEFAULT            20
-
+void lcdSetInitalFrameBuffer(void* fbAddress);
 void lcdInit();
 void lcdCopy(void * dest, void * src);
 
-void DMAFillRect(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, uint16_t w, uint16_t h, uint16_t color);
-void DMACopyBitmap(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint16_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h);
-void DMACopyAlphaBitmap(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint16_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h);
-void DMACopyAlphaMask(uint16_t * dest, uint16_t destw, uint16_t desth, uint16_t x, uint16_t y, const uint8_t * src, uint16_t srcw, uint16_t srch, uint16_t srcx, uint16_t srcy, uint16_t w, uint16_t h, uint16_t bg_color);
-void DMABitmapConvert(uint16_t * dest, const uint8_t * src, uint16_t w, uint16_t h, uint32_t format);
 
 void lcdOff();
 void lcdOn();
@@ -207,22 +177,19 @@ void backlightEnable(uint8_t dutyCycle);
 void backlightFullOn();
 bool isBacklightEnabled();
 
-#define BACKLIGHT_ENABLE()                                               \
-  {                                                                      \
-    boardBacklightOn = true;                                             \
-    backlightEnable(globalData.unexpectedShutdown                        \
-                        ? BACKLIGHT_LEVEL_MAX                            \
-                        : BACKLIGHT_LEVEL_MAX - currentBacklightBright); \
+#define BACKLIGHT_ENABLE()                                         \
+  {                                                                \
+    boardBacklightOn = true;                                       \
+    backlightEnable(BACKLIGHT_LEVEL_MAX - currentBacklightBright); \
   }
 
-#define BACKLIGHT_DISABLE()                                                 \
-  {                                                                         \
-    boardBacklightOn = false;                                               \
-    backlightEnable(globalData.unexpectedShutdown ? BACKLIGHT_LEVEL_MAX     \
-                    : ((g_eeGeneral.blOffBright == BACKLIGHT_LEVEL_MIN) &&  \
-                       (g_eeGeneral.backlightMode != e_backlight_mode_off)) \
-                        ? 0                                                 \
-                        : g_eeGeneral.blOffBright);                         \
+#define BACKLIGHT_DISABLE()                                               \
+  {                                                                       \
+    boardBacklightOn = false;                                             \
+    backlightEnable(((g_eeGeneral.blOffBright == BACKLIGHT_LEVEL_MIN) &&  \
+                     (g_eeGeneral.backlightMode != e_backlight_mode_off)) \
+                        ? 0                                               \
+                        : g_eeGeneral.blOffBright);                       \
   }
 
 #if !defined(SIMU)
@@ -299,7 +266,5 @@ void checkTrainerSettings();
 bool touchPanelEventOccured();
 struct TouchState touchPanelRead();
 struct TouchState getInternalTouchState();
-
-#define BATTERY_DIVIDER 2942
 
 #endif // _BOARD_H_

@@ -70,11 +70,14 @@ class AnaViewWindow: public FormWindow {
     {
       char s[10];
 
+      auto pot_offset = adcGetInputOffset(ADC_INPUT_FLEX);
       auto max_inputs = adcGetMaxInputs(ADC_INPUT_MAIN)
-        + adcGetMaxInputs(ADC_INPUT_POT);
+        + adcGetMaxInputs(ADC_INPUT_FLEX);
 
       for (uint8_t i = 0; i < max_inputs; i++) {
-        if (i > adcGetMaxInputs(ADC_INPUT_MAIN) && !IS_POT_AVAILABLE(i - adcGetMaxInputs(ADC_INPUT_MAIN))) continue;
+        if (i >= pot_offset && (POT_CONFIG(i - pot_offset) == FLEX_NONE))
+          continue;
+
 #if LCD_W > LCD_H
         if ((i & 1) == 0)
           line = newLine(grid);
@@ -174,7 +177,7 @@ class AnaCalibratedViewWindow: public AnaViewWindow {
       }, COLOR_THEME_PRIMARY1);
       lv_obj_set_grid_cell(lbl->getLvObj(), LV_GRID_ALIGN_STRETCH, 0, 5, LV_GRID_ALIGN_CENTER, 0, 1);
 
-#if !defined(SIMU) && !defined(PCBNV14)
+#if !defined(SIMU) && !defined(PCBNV14) && !defined(PCBPL18)
       line = newLine(grid);
       auto lbl2 = new StaticText(line, rect_t{}, std::string("Touch GT911 FW ver: ") + std::to_string(touchGT911fwver), COLOR_THEME_PRIMARY1);
       lv_obj_set_grid_cell(lbl2->getLvObj(), LV_GRID_ALIGN_STRETCH, 0, 5, LV_GRID_ALIGN_CENTER, 0, 1);
@@ -316,7 +319,7 @@ class AnaFilteredDevViewWindow: public AnaViewWindow {
       AnaViewWindow(parent)
     {
       auto max_inputs = adcGetMaxInputs(ADC_INPUT_MAIN)
-        + adcGetMaxInputs(ADC_INPUT_POT);
+        + adcGetMaxInputs(ADC_INPUT_FLEX);
 
       for (uint8_t i = 0; i < max_inputs; i++)
         stats[i].clear();
@@ -325,7 +328,7 @@ class AnaFilteredDevViewWindow: public AnaViewWindow {
     void checkEvents() override
     {
       auto max_inputs = adcGetMaxInputs(ADC_INPUT_MAIN)
-        + adcGetMaxInputs(ADC_INPUT_POT);
+        + adcGetMaxInputs(ADC_INPUT_FLEX);
 
       for (uint8_t i = 0; i < max_inputs; i++) {
         stats[i].write(getAnalogValue(i));
@@ -419,7 +422,7 @@ class AnaMinMaxViewWindow: public AnaViewWindow {
       AnaViewWindow(parent)
     {
       auto max_inputs = adcGetMaxInputs(ADC_INPUT_MAIN)
-        + adcGetMaxInputs(ADC_INPUT_POT);
+        + adcGetMaxInputs(ADC_INPUT_FLEX);
       
       for (uint8_t i = 0; i < max_inputs; i++)
         minmax[i].clear();
@@ -437,7 +440,7 @@ class AnaMinMaxViewWindow: public AnaViewWindow {
     void checkEvents() override
     {
       auto max_inputs = adcGetMaxInputs(ADC_INPUT_MAIN)
-        + adcGetMaxInputs(ADC_INPUT_POT);
+        + adcGetMaxInputs(ADC_INPUT_FLEX);
       
       for (uint8_t i = 0; i < max_inputs; i++) {
         minmax[i].write(getAnalogValue(i));

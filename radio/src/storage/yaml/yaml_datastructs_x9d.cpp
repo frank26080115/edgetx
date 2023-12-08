@@ -90,6 +90,8 @@ const struct YamlIdStr enum_Functions[] = {
   {  FUNC_SCREENSHOT, "SCREENSHOT"  },
   {  FUNC_RACING_MODE, "RACING_MODE"  },
   {  FUNC_DISABLE_AUDIO_AMP, "DISABLE_AUDIO_AMP"  },
+  {  FUNC_RGB_LED, "RGB_LED"  },
+  {  FUNC_TEST, "TEST"  },
   {  0, NULL  }
 };
 const struct YamlIdStr enum_TimerModes[] = {
@@ -117,6 +119,8 @@ const struct YamlIdStr enum_MixSources[] = {
   {  MIXSRC_TrimAil, "TrimAil"  },
   {  MIXSRC_TrimT5, "TrimT5"  },
   {  MIXSRC_TrimT6, "TrimT6"  },
+  {  MIXSRC_TrimT7, "TrimT7"  },
+  {  MIXSRC_TrimT8, "TrimT8"  },
   {  MIXSRC_TX_VOLTAGE, "TX_VOLTAGE"  },
   {  MIXSRC_TX_TIME, "TX_TIME"  },
   {  MIXSRC_TX_GPS, "TX_GPS"  },
@@ -128,7 +132,6 @@ const struct YamlIdStr enum_LogicalSwitchesFunctions[] = {
   {  LS_FUNC_VALMOSTEQUAL, "FUNC_VALMOSTEQUAL"  },
   {  LS_FUNC_VPOS, "FUNC_VPOS"  },
   {  LS_FUNC_VNEG, "FUNC_VNEG"  },
-  {  LS_FUNC_RANGE, "FUNC_RANGE"  },
   {  LS_FUNC_APOS, "FUNC_APOS"  },
   {  LS_FUNC_ANEG, "FUNC_ANEG"  },
   {  LS_FUNC_AND, "FUNC_AND"  },
@@ -158,6 +161,7 @@ const struct YamlIdStr enum_SwitchSources[] = {
   {  SWSRC_ONE, "ONE"  },
   {  SWSRC_TELEMETRY_STREAMING, "TELEMETRY_STREAMING"  },
   {  SWSRC_RADIO_ACTIVITY, "RADIO_ACTIVITY"  },
+  {  SWSRC_TRAINER_CONNECTED, "TRAINER_CONNECTED"  },
   {  SWSRC_OFF, "OFF"  },
   {  0, NULL  }
 };
@@ -275,7 +279,7 @@ static const struct YamlNode struct_RadioData[] = {
   YAML_UNSIGNED( "manuallyEdited", 1 ),
   YAML_SIGNED( "timezoneMinutes", 3 ),
   YAML_ENUM("hatsMode", 2, enum_HatsMode),
-  YAML_PADDING( 2 ),
+  YAML_UNSIGNED( "ppmunit", 2 ),
   YAML_CUSTOM("semver",nullptr,w_semver),
   YAML_CUSTOM("board",nullptr,w_board),
   YAML_ARRAY("calib", 48, 12, struct_CalibData, NULL),
@@ -349,6 +353,7 @@ static const struct YamlNode struct_RadioData[] = {
   YAML_ARRAY("slidersConfig", 0, MAX_POTS, struct_sliderConfig, nullptr),
   YAML_ARRAY("potsConfig", 4, 8, struct_potConfig, nullptr),
   YAML_ARRAY("switchConfig", 2, 32, struct_switchConfig, nullptr),
+  YAML_ARRAY("flexSwitches", 0, MAX_FLEX_SWITCHES, struct_flexSwitch, flex_sw_valid),
   YAML_UNSIGNED( "backlightColor", 8 ),
   YAML_PADDING( 8 ),
   YAML_STRING("bluetoothName", 10),

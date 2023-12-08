@@ -32,6 +32,10 @@
 #include "hal/rotary_encoder.h"
 #include "switches.h"
 #include "input_mapping.h"
+#if defined(LED_STRIP_GPIO)
+#include "boards/generic_stm32/rgb_leds.h"
+#endif
+
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
@@ -462,6 +466,7 @@ bool luaFindFieldByName(const char * name, LuaField & field, unsigned int flags)
     return true;
 
   // check switches from 'sa' to 'sz'
+  // TODO: does not work with function switches!
   if (len == 2 && name[0] == 's' && name[1] >= 'a' && name[1] <= 'z') {
     auto c = name[1] - 'a' + 'A';
     auto sw_idx = switchLookupIdx(c);
@@ -1421,35 +1426,53 @@ static int luaGetFlightMode(lua_State * L)
 }
 
 /*luadoc
-@function playFile(name)
+@function playFile(filename [, volume])
 
 Play a file from the SD card
 
-@param path (string) full path to wav file (i.e. “/SOUNDS/en/system/tada.wav”)
+@param filename (string) full path to wav file (i.e. “/SOUNDS/en/system/tada.wav”)
 Introduced in 2.1.0: If you use a relative path, the current language is appended
 to the path (example: for English language: `/SOUNDS/en` is appended)
 
-@status current Introduced in 2.0.0, changed in 2.1.0
+@param volume (number):
+ - (1..5) override radio settings Wav volume for the duration of file
+ - omitting the parameter uses radio settings Wav volume
+
+@retval none 
+
+@status current Introduced in 2.0.0, changed in 2.1.0, changed in 2.10
+
+// targets: BW, COLOR
+//
+// EXAMPLES:
+// playFile("armed.wav", 5) -- play file armed.wav, use Wav volume 2
+// playFile("armed.wav", 1) -- play file armed.wav, use Wav volume 1
+// playFile("armed.wav")		-- play file armed.wav, use radio settings Wav volume
 */
 static int luaPlayFile(lua_State * L)
 {
   const char * filename = luaL_checkstring(L, 1);
+  int volume = luaL_optinteger(L, 2, USE_SETTINGS_VOLUME);
+
+  if(volume != USE_SETTINGS_VOLUME)
+    volume = limit(-2, volume-3, 2);  // (rescale 1..5) to internal format and limit to (-2..2)
+
   if (filename[0] != '/') {
     // relative sound file path - use current language dir for absolute path
     char file[AUDIO_FILENAME_MAXLEN+1];
     char * str = getAudioPath(file);
     strncpy(str, filename, AUDIO_FILENAME_MAXLEN - (str-file));
     file[AUDIO_FILENAME_MAXLEN] = 0;
-    PLAY_FILE(file, 0, 0);
+    audioQueue.playFile(file, 0, 0, volume);
   }
   else {
-    PLAY_FILE(filename, 0, 0);
+    audioQueue.playFile(filename, 0, 0, volume);
   }
   return 0;
 }
 
 /*luadoc
-@function playNumber(value, unit [, attributes])
+@function playNumber(value, unit [, attributes [, volume]])
 
 Play a numerical value (text to speech)
 
@@ -1461,21 +1484,39 @@ Play a numerical value (text to speech)
  * `0 or not present` plays integral part of the number (for a number 123 it plays 123)
  * `PREC1` plays a number with one decimal place (for a number 123 it plays 12.3)
  * `PREC2` plays a number with two decimal places (for a number 123 it plays 1.23)
+ 
+ @param volume (number):
+ - (1..5) override radio settings Wav volume for the duration of file
+ - omitting the parameter uses radio settings Wav volume
 
-@status current Introduced in 2.0.0
+@retval none 
 
+@status current Introduced in 2.0.0, changed in 2.10
+
+// targets: BW, COLOR
+//
+// EXAMPLES:
+// playNumber(123, 3, 0, 5) -- play number 123, unit mAh, use Wav volume 5
+// playNumber(123, 3, 0, 1) -- play number 123, unit mAh, use Wav volume 1
+// playNumber(123, 3, 0)    -- play number 123, unit mAh, use radio settings Wav volume
 */
+
 static int luaPlayNumber(lua_State * L)
 {
   int number = luaL_checkinteger(L, 1);
   int unit = luaL_checkinteger(L, 2);
   unsigned int att = luaL_optunsigned(L, 3, 0);
-  playNumber(number, unit, att, 0);
+  int volume = luaL_optinteger(L, 4, USE_SETTINGS_VOLUME);
+
+  if(volume != USE_SETTINGS_VOLUME)
+    volume = limit(-2, volume-3, 2);  // (rescale 1..5) to internal format and limit to (-2..2)
+
+  playNumber(number, unit, att, 0, volume);
   return 0;
 }
 
 /*luadoc
-@function playDuration(duration [, hourFormat])
+@function playDuration(duration [, hourFormat [, volume]])
 
 Play a time value (text to speech)
 
@@ -1484,19 +1525,38 @@ Play a time value (text to speech)
 @param hourFormat (number):
  * `0 or not present` play format: minutes and seconds.
  * `!= 0` play format: hours, minutes and seconds.
+ * 
+@param volume (number):
+ - (1..5) override radio settings Wav volume for the duration of file
+ - omitting the parameter uses radio settings Wav volume
 
-@status current Introduced in 2.1.0
+@retval none 
+
+@status current Introduced in 2.1.0, changed in 2.10
+
+// targets: BW, COLOR
+//
+// EXAMPLES:
+// playDuration(101, 0, 5) -- play duration 101s, seconds format, use Wav volume 5
+// playDuration(101, 0, 1) -- play duration 101s, seconds format, use Wav volume 1
+// playDuration(101, 1)    -- play duration 101s, hour format, use radio settings Wav volume
 */
+
 static int luaPlayDuration(lua_State * L)
 {
   int duration = luaL_checkinteger(L, 1);
   bool playTime = (luaL_optinteger(L, 2, 0) != 0);
-  playDuration(duration, playTime ? PLAY_TIME : 0, 0);
+  int volume = luaL_optinteger(L, 3, USE_SETTINGS_VOLUME);
+
+  if(volume != USE_SETTINGS_VOLUME)
+    volume = limit(-2, volume-3, 2);  // (rescale 1..5) to internal format and limit to (-2..2)
+
+  playDuration(duration, playTime ? PLAY_TIME : 0, 0, volume);
   return 0;
 }
 
 /*luadoc
-@function playTone(frequency, duration, pause [, flags [, freqIncr]])
+@function playTone(frequency, duration, pause [, flags [, freqIncr [, volume]]])
 
 Play a tone
 
@@ -1515,7 +1575,20 @@ Play a tone
 negative number decreases it. The frequency changes every 10 milliseconds, the change is `freqIncr * 10Hz`.
 The valid range is from -127 to 127.
 
-@status current Introduced in 2.1.0
+@param volume (number):
+ - (1..5) override radio settings Beep volume for the duration of file
+ - omitting the parameter uses radio settings Beep volume
+
+@retval none 
+
+@status current Introduced in 2.1.0, changed in 2.10
+
+// targets: BW, COLOR
+//
+// EXAMPLES:
+// playTone(2550, 160, 20, 3, -10, 5) -- play tone, use Beep volume 5
+// playTone(2550, 160, 20, 3, -10, 1) -- play tone, use Beep volume 1
+// playTone(2550, 160, 20, 3, -10)		-- play tone, use radio settings Beep volume
 */
 static int luaPlayTone(lua_State * L)
 {
@@ -1524,7 +1597,12 @@ static int luaPlayTone(lua_State * L)
   int pause = luaL_checkinteger(L, 3);
   int flags = luaL_optinteger(L, 4, 0);
   int freqIncr = luaL_optinteger(L, 5, 0);
-  audioQueue.playTone(frequency, length, pause, flags, freqIncr);
+  int volume = luaL_optinteger(L, 6, USE_SETTINGS_VOLUME);
+
+  if(volume != USE_SETTINGS_VOLUME)
+    volume = limit(-2, volume-3, 2);  // (rescale 1..5) to internal format and limit to (-2..2)
+
+  audioQueue.playTone(frequency, length, pause, flags, freqIncr, volume);
   return 0;
 }
 
@@ -2772,6 +2850,50 @@ static int luaGetTrainerStatus(lua_State * L)
   return 1;
 }
 
+#if defined(LED_STRIP_GPIO)
+/*luadoc
+@function setRGBLedColor(id, rvalue, bvalue, cvalue)
+
+@param id: integer identifying a led in the led chain
+
+@param rvalue: interger, value of red channel
+
+@param gvalue: interger, value of green channel
+
+@param bvalue: interger, value of blue channel
+
+@status current Introduced in 2.10
+*/
+
+static int luaSetRgbLedColor(lua_State * L)
+{
+  uint8_t id = luaL_checkunsigned(L, 1);
+  uint8_t r = luaL_checkunsigned(L, 2);
+  uint8_t g = luaL_checkunsigned(L, 3);
+  uint8_t b = luaL_checkunsigned(L, 4);
+
+  rgbSetLedColor(id, r, g, b);
+
+  return 1;
+}
+
+/*luadoc
+@function applyRGBLedColors()
+
+ Apply RGB led colors previously defined by setRGBLedColor
+
+@status current Introduced in 2.10
+*/
+
+static int luaApplyRGBLedColors(lua_State * L)
+{
+
+  rgbLedColorApply();
+
+  return 1;
+}
+
+#endif
 
 #define KEY_EVENTS(xxx, yyy)                                    \
   { "EVT_"#xxx"_FIRST", LRO_NUMVAL(EVT_KEY_FIRST(yyy)) },       \
@@ -2859,6 +2981,10 @@ LROT_BEGIN(etxlib, NULL, 0)
   LROT_FUNCENTRY( getSourceIndex, luaGetSourceIndex )
   LROT_FUNCENTRY( getSourceName, luaGetSourceName )
   LROT_FUNCENTRY( sources, luaSources )
+#if defined(LED_STRIP_GPIO)
+  LROT_FUNCENTRY(setRGBLedColor, luaSetRgbLedColor )
+  LROT_FUNCENTRY(applyRGBLedColors, luaApplyRGBLedColors )
+#endif
 LROT_END(etxlib, NULL, 0)
 
 LROT_BEGIN(etxcst, NULL, 0)
@@ -2912,7 +3038,6 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( LS_FUNC_VALMOSTEQUAL, LS_FUNC_VALMOSTEQUAL )
   LROT_NUMENTRY( LS_FUNC_VPOS, LS_FUNC_VPOS )
   LROT_NUMENTRY( LS_FUNC_VNEG, LS_FUNC_VNEG )
-  LROT_NUMENTRY( LS_FUNC_RANGE, LS_FUNC_RANGE )
   LROT_NUMENTRY( LS_FUNC_APOS, LS_FUNC_APOS )
   LROT_NUMENTRY( LS_FUNC_ANEG, LS_FUNC_ANEG )
   LROT_NUMENTRY( LS_FUNC_AND, LS_FUNC_AND )
@@ -2960,6 +3085,7 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( TIMER, ZoneOption::Timer )
   LROT_NUMENTRY( TEXT_SIZE, ZoneOption::TextSize )
   LROT_NUMENTRY( ALIGNMENT, ZoneOption::Align )
+  LROT_NUMENTRY( SWITCH, ZoneOption::Switch )
   LROT_NUMENTRY( MENU_HEADER_HEIGHT, COLOR2FLAGS(MENU_HEADER_HEIGHT) )
 
   // Colors gui/colorlcd/colors.h
@@ -3075,7 +3201,7 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( EVT_VIRTUAL_ENTER_LONG, EVT_KEY_LONG(KEY_ENTER) )
   LROT_NUMENTRY( EVT_VIRTUAL_EXIT, EVT_KEY_BREAK(KEY_EXIT) )
 #elif defined(NAVIGATION_X7) || defined(NAVIGATION_X9D)
-#if defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_ZORRO) || defined(RADIO_POCKET) || defined(RADIO_T8) || defined(RADIO_COMMANDO8)
+#if defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_ZORRO) || defined(RADIO_POCKET) || defined(RADIO_T8) || defined(RADIO_COMMANDO8) || defined(RADIO_MT12)
   LROT_NUMENTRY( EVT_VIRTUAL_PREV_PAGE, EVT_KEY_BREAK(KEY_PAGEUP) )
   LROT_NUMENTRY( EVT_VIRTUAL_NEXT_PAGE, EVT_KEY_BREAK(KEY_PAGEDN) )
   LROT_NUMENTRY( EVT_VIRTUAL_MENU, EVT_KEY_BREAK(KEY_MODEL) )
@@ -3196,7 +3322,9 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( PLAY_NOW, PLAY_NOW )
   LROT_NUMENTRY( PLAY_BACKGROUND, PLAY_BACKGROUND )
   LROT_NUMENTRY( TIMEHOUR, TIMEHOUR )
-
+#if defined(LED_STRIP_GPIO)
+  LROT_NUMENTRY( LED_STRIP_LENGTH, LED_STRIP_LENGTH )
+#endif
   LROT_NUMENTRY( UNIT_RAW, UNIT_RAW )
   LROT_NUMENTRY( UNIT_VOLTS, UNIT_VOLTS )
   LROT_NUMENTRY( UNIT_AMPS, UNIT_AMPS )

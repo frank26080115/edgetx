@@ -24,6 +24,8 @@
 #include "opentx.h"
 #include "tabsgroup.h"
 
+class ModelMenu;
+
 class ChannelsViewPage: public PageTab
 {
   public:
@@ -40,5 +42,16 @@ class ChannelsViewPage: public PageTab
 
 class ChannelsViewMenu: public TabsGroup {
   public:
-    ChannelsViewMenu();
+    ChannelsViewMenu(ModelMenu* parent = nullptr);
+
+  protected:
+    ModelMenu* parentMenu = nullptr;
+
+#if defined(HARDWARE_KEYS)
+  void onPressSYS() override;
+  void onLongPressSYS() override;
+  void onPressMDL() override;
+  void onLongPressMDL() override;
+  void onPressTELE() override;
+#endif
 };

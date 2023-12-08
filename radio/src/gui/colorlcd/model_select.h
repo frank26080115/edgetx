@@ -19,59 +19,14 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _MODEL_SELECT_H_
-#define _MODEL_SELECT_H_
-
-#include <algorithm>
-#include <functional>
+#pragma once
 
 #include "libopenui.h"
 #include "listbox.h"
 #include "storage/modelslist.h"
 #include "tabsgroup.h"
 
-class ModelButton;
-
-class ModelsPageBody : public FormWindow
-{
- public:
-  ModelsPageBody(Window *parent, const rect_t &rect);
-
-  void update();
-
-  void setLabels(LabelsVector labels)
-  {
-    selectedLabels = labels;
-    update();
-  }
-
-  inline void setSortOrder(ModelsSortBy sortOrder)
-  {
-    modelslabels.setSortOrder(sortOrder);
-    update();
-  }
-
-  void setLblRefreshFunc(std::function<void()> fnc)
-  {
-    refreshLabels = std::move(fnc);
-  }
-
- protected:
-  ModelsSortBy _sortOrder;
-  bool isDirty = false;
-  bool refresh = false;
-  std::string selectedLabel;
-  LabelsVector selectedLabels;
-  ModelCell *focusedModel = nullptr;
-  std::function<void()> refreshLabels = nullptr;
-
-  void openMenu();
-  void selectModel(ModelCell* model);
-  void duplicateModel(ModelCell* model);
-  void deleteModel(ModelCell* model);
-  void editLabels(ModelCell* model);
-  void saveAsTemplate(ModelCell *model);
-};
+class ModelsPageBody;
 
 class ModelLabelsWindow : public Page
 {
@@ -93,10 +48,6 @@ class ModelLabelsWindow : public Page
     return labels;
   }
 
-#if defined(HARDWARE_KEYS)
-  void onEvent(event_t event) override;
-#endif
-
   void newModel();
   void newLabel();
   void buildHead(PageHeader *window);
@@ -104,6 +55,15 @@ class ModelLabelsWindow : public Page
   void updateFilteredLabels(std::set<uint32_t> selected, bool setdirty = true);
   void labelRefreshRequest();
   void setTitle();
-};
 
-#endif  // _MODEL_SELECT_H_
+#if defined(HARDWARE_KEYS)
+  void onPressSYS() override;
+  void onLongPressSYS() override;
+  void onPressMDL() override;
+  void onPressTELE() override;
+  void onLongPressTELE() override;
+  void onPressPG(bool isNext);
+  void onPressPGUP() override;
+  void onPressPGDN() override;
+#endif
+};

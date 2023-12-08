@@ -20,6 +20,7 @@
  */
 
 #include "opentx.h"
+#include "opentx_types.h"
 #include "timers.h"
 #include "switches.h"
 #include "input_mapping.h"
@@ -296,6 +297,18 @@ int16_t applyLimits(uint8_t channel, int32_t value)
   return ofs;
 }
 
+static const getvalue_t _switch_2pos_lookup[] = {
+  -1024, // SWITCH_HW_UP
+  +1024, // SWITCH_HW_MID
+  +1024, // SWITCH_HW_DOWN 
+};
+
+static const getvalue_t _switch_3pos_lookup[] = {
+  -1024, // SWITCH_HW_UP
+  0,     // SWITCH_HW_MID
+  +1024, // SWITCH_HW_DOWN 
+};
+
 // TODO same naming convention than the drawSource
 // *valid added to return status to Lua for invalid sources
 getvalue_t getValue(mixsrc_t i, bool* valid)
@@ -329,23 +342,12 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
   }
   else if (i <= MIXSRC_LAST_POT) {
     i -= MIXSRC_FIRST_POT;
-    if (i >= adcGetMaxInputs(ADC_INPUT_POT)) {
+    if (i >= adcGetMaxInputs(ADC_INPUT_FLEX)) {
       if (valid != nullptr) *valid = false;
       return 0;
     }
-    return calibratedAnalogs[i + adcGetInputOffset(ADC_INPUT_POT)];
+    return calibratedAnalogs[i + adcGetInputOffset(ADC_INPUT_FLEX)];
   }
-
-#if MAX_AXIS > 0
-  else if (i <= MIXSRC_LAST_AXIS) {
-    i -= MIXSRC_FIRST_AXIS;
-    if (i >= adcGetMaxInputs(ADC_INPUT_AXIS)) {
-      if (valid != nullptr) *valid = false;
-      return 0;
-    }
-    return calibratedAnalogs[i + adcGetInputOffset(ADC_INPUT_AXIS)];
-  }
-#endif
 
 #if defined(IMU)
   else if (i == MIXSRC_TILT_X) {
@@ -383,31 +385,30 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
     auto trim_value = getTrimValue(mixerCurrentFlightMode, i);
     return calc1000toRESX((int16_t)8 * trim_value);
   }
-#if defined(FUNCTION_SWITCHES)
-  else if (i >= MIXSRC_FIRST_SWITCH && i <= MIXSRC_LAST_REGULAR_SWITCH) {
-    mixsrc_t sw = i - MIXSRC_FIRST_SWITCH;
-    if (SWITCH_EXISTS(sw)) {
-      return (switchState(3*sw) ? -1024 : (IS_CONFIG_3POS(sw) && switchState(3*sw+1) ? 0 : 1024));
-    }
-    else {
-      if (valid != nullptr) *valid = false;
-      return 0;
-    }
-  } else if (i >= MIXSRC_FIRST_FS_SWITCH && i <= MIXSRC_LAST_SWITCH) {
-    return getFSLogicalState(i - MIXSRC_FIRST_SWITCH - switchGetMaxSwitches()) ? +1024 : -1024;
-  }
-#else
   else if (i >= MIXSRC_FIRST_SWITCH && i <= MIXSRC_LAST_SWITCH) {
-    mixsrc_t sw = i - MIXSRC_FIRST_SWITCH;
-    if (SWITCH_EXISTS(sw)) {
-      return (switchState(3*sw) ? -1024 : (IS_CONFIG_3POS(sw) && switchState(3*sw+1) ? 0 : 1024));
+    auto sw_idx = (uint8_t)(i - MIXSRC_FIRST_SWITCH);
+#if defined(FUNCTION_SWITCHES)
+    auto max_reg_switches = switchGetMaxSwitches();
+    if (sw_idx >= max_reg_switches) {
+      auto fct_idx = sw_idx - max_reg_switches;
+      auto max_fct_switches = switchGetMaxFctSwitches();
+      if (fct_idx < max_fct_switches) {
+	return _switch_2pos_lookup[getFSLogicalState(fct_idx)];
+      }
     }
-    else {
+#endif
+    auto sw_cfg = (SwitchConfig)SWITCH_CONFIG(sw_idx);
+    switch(sw_cfg) {
+    case SWITCH_NONE:
       if (valid != nullptr) *valid = false;
       return 0;
+    case SWITCH_TOGGLE:
+    case SWITCH_2POS:
+      return _switch_2pos_lookup[switchGetPosition(sw_idx)];
+    case SWITCH_3POS:
+      return _switch_3pos_lookup[switchGetPosition(sw_idx)];
     }
   }
-#endif
 
   else if (i <= MIXSRC_LAST_LOGICAL_SWITCH) {
     return getSwitch(SWSRC_FIRST_LOGICAL_SWITCH + i - MIXSRC_FIRST_LOGICAL_SWITCH) ? 1024 : -1024;
@@ -460,10 +461,10 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
       default:
         return telemetryItem.value;
     }
-  } else {
-    if (valid != nullptr) *valid = false;
-    return 0;
   }
+  
+  if (valid != nullptr) *valid = false;
+  return 0;
 }
 
 void evalTrims()
@@ -486,60 +487,30 @@ void evalInputs(uint8_t mode)
   BeepANACenter anaCenter = 0;
 
 #if defined(STICK_DEAD_ZONE)
-  static int16_t P_OFFSET = 0;
-  static int16_t N_OFFSET = 0;
-  static float aParam = 0.0f;
-  static float bParam = 0.0f;
-  static int16_t lastDeadZone = -1;
-
-  if (lastDeadZone != g_eeGeneral.stickDeadZone) {
-    P_OFFSET =
-        (g_eeGeneral.stickDeadZone ? 2 << (g_eeGeneral.stickDeadZone - 1) : 0);
-    N_OFFSET = (-1) * P_OFFSET;
-    aParam = 1024.0 / (1024.0 - (float)P_OFFSET);
-    bParam = 1024.0 * (aParam - 1.0f);
-    lastDeadZone = g_eeGeneral.stickDeadZone;
-  }
+  int16_t deadZoneOffset = g_eeGeneral.stickDeadZone ? 2 << (g_eeGeneral.stickDeadZone - 1) : 0;
 #endif
 
   auto max_calib_analogs = adcGetInputOffset(ADC_INPUT_VBAT);
-  auto pots_offset = adcGetInputOffset(ADC_INPUT_POT);
+  auto pots_offset = adcGetInputOffset(ADC_INPUT_FLEX);
   
   for (uint8_t i = 0; i < max_calib_analogs; i++) {
-    // normalization [0..2048] -> [-1024..1024]
     int16_t v = anaIn(i);
     uint8_t ch = (i < pots_offset ? inputMappingConvertMode(i) : i);
 
-    if (i >= pots_offset && IS_POT_MULTIPOS(i - pots_offset)) {
-      v -= RESX;
-    }
-    else {
-#if defined(SIMU)
-      // Simu uses normed inputs
-      v -= RESX;
-#else
-      CalibData * calib = &g_eeGeneral.calib[i];
-      v -= calib->mid;
-      v = v * (int32_t) RESX / (max((int16_t) 100, (v > 0 ? calib->spanPos : calib->spanNeg)));
-#endif
-    }
-
-    // Limit values to supported range
-    if (v < -RESX) v = -RESX;
-    if (v >  RESX) v =  RESX;
+    // [0..2048] -> [-1024..1024]
+    v -= RESX;
 
 #if defined(STICK_DEAD_ZONE)
     // dead zone invented by FlySky in my opinion it should goes into ADC
-    // float calculations are not efficient
     if (g_eeGeneral.stickDeadZone && ch != inputMappingGetThrottle()) {
-      if (v > P_OFFSET) {
+      if (v > deadZoneOffset) {
         // y=ax+b
-        v = (int)((aParam * (float)v) - bParam);
-      } else if ((v <= P_OFFSET) && (v >= N_OFFSET)) {
+        v = (int16_t)((int32_t)(v - deadZoneOffset) * 1024L / (1024L - deadZoneOffset));
+      } else if (v < -deadZoneOffset) {
+        // y=ax+b
+        v = (int16_t)((int32_t)(v + deadZoneOffset) * 1024L / (1024L - deadZoneOffset));
+      } else {
         v = 0;
-      } else if (v < N_OFFSET) {
-        // y=ax+b
-        v = (int)((aParam * (float)v) + bParam);
       }
     }
 #endif
@@ -650,6 +621,31 @@ int getSourceTrimValue(int source, int stickValue=0)
   }
 }
 
+constexpr bitfield_channels_t all_channels_dirty = (bitfield_channels_t)-1;
+
+static inline bitfield_channels_t channel_bit(uint16_t ch)
+{
+  return (bitfield_channels_t)1 << ch;
+}
+
+static inline bitfield_channels_t channel_dirty(bitfield_channels_t mask, uint16_t ch)
+{
+  return mask & channel_bit(ch);
+}
+
+static inline bitfield_channels_t upper_channels_mask(uint16_t ch)
+{
+  // take the 2's complement to generate a bit pattern
+  // that has all bits of 'ch' order and above set
+  //
+  // Examples (mask for max 8 channels):
+  // - channel 0: 0b11111111
+  // - channel 1: 0b11111110
+  // - channel 2: 0b11111100
+
+  return ~(channel_bit(ch)) + 1;
+}
+
 uint8_t mixerCurrentFlightMode;
 
 void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
@@ -730,11 +726,10 @@ void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
   memclear(chans, sizeof(chans)); // all outputs to 0
 
   //========== MIXER LOOP ===============
-  uint8_t lv_mixWarning = 0;
 
   uint8_t pass = 0;
-
-  bitfield_channels_t dirtyChannels = (bitfield_channels_t)-1; // all dirty when mixer starts
+  uint8_t lv_mixWarning = 0;
+  bitfield_channels_t dirtyChannels = all_channels_dirty;
 
   do {
     bitfield_channels_t passDirtyChannels = 0;
@@ -745,62 +740,76 @@ void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
 
       MixData * md = mixAddress(i);
 
-      if (md->srcRaw == 0)
+      if (md->srcRaw == 0) {
 #if defined(COLORLCD)
         continue;
 #else
         break;
 #endif
+      }
 
-      mixsrc_t stickIndex = md->srcRaw - MIXSRC_FIRST_STICK;
-
-      if (!(dirtyChannels & ((bitfield_channels_t)1 << md->destCh)))
+      if (!channel_dirty(dirtyChannels, md->destCh))
         continue;
 
-      // if this is the first calculation for the destination channel, initialize it with 0 (otherwise would be random)
-      if (i == 0 || md->destCh != (md-1)->destCh)
+      // if this is the first calculation for the destination channel,
+      // initialize it with 0 (otherwise would be random)
+      if (i == 0 || md->destCh != (md - 1)->destCh)
         chans[md->destCh] = 0;
 
       //========== FLIGHT MODE && SWITCH =====
-      bool mixCondition = (md->flightModes != 0 || md->swtch);
-      delayval_t mixEnabled = (!(md->flightModes & (1 << mixerCurrentFlightMode)) && getSwitch(md->swtch)) ? DELAY_POS_MARGIN+1 : 0;
+      bool fmEnabled = (md->flightModes & (1 << mixerCurrentFlightMode)) == 0;
+      bool mixLineActive = fmEnabled && getSwitch(md->swtch);
 
-#define MIXER_LINE_DISABLE()   (mixCondition = true, mixEnabled = 0)
-
-      if (mixEnabled && md->srcRaw >= MIXSRC_FIRST_TRAINER && md->srcRaw <= MIXSRC_LAST_TRAINER && !is_trainer_connected()) {
-        MIXER_LINE_DISABLE();
-      }
+      if (mixLineActive) {
+        // disable mixer using trainer channels if not connected
+        if (md->srcRaw >= MIXSRC_FIRST_TRAINER &&
+            md->srcRaw <= MIXSRC_LAST_TRAINER && !is_trainer_connected()) {
+          mixLineActive = false;
+        }
 
 #if defined(LUA_MODEL_SCRIPTS)
-      // disable mixer if Lua script is used as source and script was killed
-      if (mixEnabled && md->srcRaw >= MIXSRC_FIRST_LUA && md->srcRaw <= MIXSRC_LAST_LUA) {
-        div_t qr = div(md->srcRaw-MIXSRC_FIRST_LUA, MAX_SCRIPT_OUTPUTS);
-        if (scriptInternalData[qr.quot].state != SCRIPT_OK) {
-          MIXER_LINE_DISABLE();
+        // disable mixer if Lua script is used as source and script was killed
+        if (md->srcRaw >= MIXSRC_FIRST_LUA && md->srcRaw <= MIXSRC_LAST_LUA) {
+          div_t qr = div(md->srcRaw - MIXSRC_FIRST_LUA, MAX_SCRIPT_OUTPUTS);
+          if (scriptInternalData[qr.quot].state != SCRIPT_OK) {
+            mixLineActive = false;
+          }
         }
-      }
 #endif
+      }
 
       //========== VALUE ===============
       getvalue_t v = 0;
+
       if (mode > e_perout_mode_inactive_flight_mode) {
-        if (mixEnabled)
-          v = getValue(md->srcRaw);
-        else
-          continue;
-      }
-      else {
-        mixsrc_t srcRaw = MIXSRC_FIRST_STICK + stickIndex;
+        if (!mixLineActive) continue;
+        v = getValue(md->srcRaw);
+      } else {
+        mixsrc_t srcRaw = md->srcRaw;
         v = getValue(srcRaw);
-        srcRaw -= MIXSRC_FIRST_CH;
-        if (srcRaw <= MIXSRC_LAST_CH-MIXSRC_FIRST_CH && md->destCh != srcRaw) {
-          if (dirtyChannels & ((bitfield_channels_t)1 << srcRaw) & (passDirtyChannels|~(((bitfield_channels_t) 1 << md->destCh)-1)))
-            passDirtyChannels |= (bitfield_channels_t) 1 << md->destCh;
-          if (srcRaw < md->destCh || pass > 0)
-            v = chans[srcRaw] >> 8;
-        }
-        if (!mixCondition) {
-          mixEnabled = v;
+
+        if (srcRaw >= MIXSRC_FIRST_CH) {
+
+          auto srcChan = srcRaw - MIXSRC_FIRST_CH;
+          if (srcChan <= MAX_OUTPUT_CHANNELS && md->destCh != srcChan) {
+
+            // check whether we need to recompute the current channel later
+            bitfield_channels_t upperChansMask = upper_channels_mask(md->destCh);
+            bitfield_channels_t srcChanDirtyMask = channel_dirty(dirtyChannels, srcChan);
+
+            // if the source is any of the channels marked as dirty
+            // or contained in [ destCh, MAX_OUTPUT_CHANNELS [
+            if (srcChanDirtyMask & (passDirtyChannels | upperChansMask)) {
+              passDirtyChannels |= channel_bit(md->destCh);
+            }
+
+            // if the source has already be computed,
+            // then use it!
+            if (srcChan < md->destCh || pass > 0) {
+              // channels are in [ -1024 * 256, 1024 * 256 ]
+              v = chans[srcChan] >> 8;
+            }
+          }
         }
       }
 
@@ -809,41 +818,35 @@ void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
       //========== DELAYS ===============
       delayval_t _swOn = swOn[i].now;
       delayval_t _swPrev = swOn[i].prev;
-      bool swTog = (mixEnabled > _swOn+DELAY_POS_MARGIN || mixEnabled < _swOn-DELAY_POS_MARGIN);
+
+      delayval_t v_active = mixLineActive ? v : 0;
+
+      bool swTog = (v_active > _swOn + DELAY_POS_MARGIN || v_active < _swOn - DELAY_POS_MARGIN);
       if (mode == e_perout_mode_normal && swTog) {
-        if (!swOn[i].delay)
-          _swPrev = _swOn;
-        swOn[i].delay = (mixEnabled > _swOn ? md->delayUp : md->delayDown) * 10;
-        swOn[i].now = mixEnabled;
-        swOn[i].prev = _swPrev;
+        if (!swOn[i].delay) { swOn[i].prev = _swOn; }
+        swOn[i].now = v_active;
+        swOn[i].delay = (v_active > _swOn ? md->delayUp : md->delayDown) * 10;
       }
       if (mode == e_perout_mode_normal && swOn[i].delay > 0) {
         swOn[i].delay = max<int16_t>(0, (int16_t)swOn[i].delay - tick10ms);
-        if (!mixCondition)
-          v = _swPrev;
-        else if (mixEnabled)
-          continue;
+        v = _swPrev;
       }
       else {
-        if (mode==e_perout_mode_normal) {
-          swOn[i].now = swOn[i].prev = mixEnabled;
+        if (mode == e_perout_mode_normal) {
+          swOn[i].now = swOn[i].prev = v_active;
         }
-        if (!mixEnabled) {
-          if ((md->speedDown || md->speedUp) && md->mltpx!=MLTPX_REPL) {
-            if (mixCondition) {
-              v = (md->mltpx == MLTPX_ADD ? 0 : RESX);
-              applyOffsetAndCurve = false;
-            }
-          }
-          else if (mixCondition) {
+        if (!mixLineActive) {
+          if ((md->speedDown || md->speedUp) && md->mltpx != MLTPX_REPL) {
+            v = (md->mltpx == MLTPX_ADD ? 0 : RESX);
+            applyOffsetAndCurve = false;
+          } else  {
             continue;
           }
         }
       }
 
-      if (mode==e_perout_mode_normal && (!mixCondition || mixEnabled || swOn[i].delay)) {
-        if (md->mixWarn)
-          lv_mixWarning |= 1 << (md->mixWarn - 1);
+      if (mode == e_perout_mode_normal && (mixLineActive || swOn[i].delay)) {
+        if (md->mixWarn) lv_mixWarning |= 1 << (md->mixWarn - 1);
         swOn[i].activeMix = true;
       }
 
@@ -1072,6 +1075,7 @@ void evalMixes(uint8_t tick10ms)
   // must be done before limits because of the applyLimit function: it checks for safety switches which would be not initialized otherwise
   if (tick10ms) {
     requiredSpeakerVolume = g_eeGeneral.speakerVolume + VOLUME_LEVEL_DEF;
+  
     requiredBacklightBright = g_eeGeneral.getBrightness();
 
     if (radioGFEnabled()) {

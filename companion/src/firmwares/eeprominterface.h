@@ -118,7 +118,6 @@ enum Capability {
   HasModuleR9MFlex,
   HasModuleR9MMini,
   PPMCenter,
-  PPMUnitMicroseconds,
   SYMLimits,
   HastxCurrentCalibration,
   HasVolume,
@@ -173,6 +172,7 @@ enum Capability {
   HasIntModuleCRSF,
   HasIntModuleELRS,
   HasIntModuleFlySky,
+  BacklightLevelMin,
 };
 
 class EEPROMInterface
@@ -413,6 +413,15 @@ class Firmware
     static void setCurrentVariant(Firmware * value)
     {
       currentVariant = value;
+    }
+
+    static void sortRegisteredFirmwares()
+    {
+      std::sort(registeredFirmwares.begin(), registeredFirmwares.end(),
+                [](const Firmware *a, const Firmware *b) {
+                  return QString::compare(a->getName(), b->getName(),
+                                          Qt::CaseInsensitive) < 0;
+                });
     }
 
     QString getFlavour();

@@ -24,7 +24,7 @@
 
 #include "opentx.h"
 #include "timers_driver.h"
-#include "watchdog_driver.h"
+#include "hal/watchdog_driver.h"
 
 #if defined(BLUETOOTH)
 #include "bluetooth_driver.h"
@@ -863,7 +863,7 @@ int cliStackInfo(const char ** argv)
   return 0;
 }
 
-extern int _end;
+extern int _heap_start;
 extern int _heap_end;
 extern unsigned char *heap;
 
@@ -890,10 +890,10 @@ int cliMemoryInfo(const char ** argv)
   cliSerialPrint("\tkeepcost %d bytes", info.keepcost);
 
   cliSerialPrint("\nHeap:");
-  cliSerialPrint("\tstart %p", (unsigned char *)&_end);
+  cliSerialPrint("\tstart %p", (unsigned char *)&_heap_start);
   cliSerialPrint("\tend   %p", (unsigned char *)&_heap_end);
   cliSerialPrint("\tcurr  %p", heap);
-  cliSerialPrint("\tused  %d bytes", (int)(heap - (unsigned char *)&_end));
+  cliSerialPrint("\tused  %d bytes", (int)(heap - (unsigned char *)&_heap_start));
   cliSerialPrint("\tfree  %d bytes", (int)((unsigned char *)&_heap_end - heap));
 
 #if defined(LUA)
@@ -1041,6 +1041,7 @@ int cliSet(const char **argv)
 }
 
 #if defined(ENABLE_SERIAL_PASSTHROUGH)
+#if defined(HARDWARE_INTERNAL_MODULE)
 static etx_module_state_t *spInternalModuleState = nullptr;
 
 static void spInternalModuleTx(uint8_t* buf, uint32_t len)
@@ -1061,6 +1062,7 @@ static const etx_serial_init spIntmoduleSerialInitParams = {
   .polarity = ETX_Pol_Normal,
 };
 
+#endif // HARDWARE_INTERNAL_MODULE
 // TODO: use proper method instead
 extern bool cdcConnected;
 extern uint32_t usbSerialBaudRate(void*);
@@ -1124,7 +1126,7 @@ int cliSerialPassthrough(const char **argv)
       params.baudrate = baudrate;
 
       spInternalModuleState = modulePortInitSerial(port_n, ETX_MOD_PORT_UART,
-                                                    &params);
+                                                   &params, false);
 
       auto drv = modulePortGetSerialDrv(spInternalModuleState->rx);
       auto ctx = modulePortGetCtx(spInternalModuleState->rx);
@@ -1543,16 +1545,9 @@ int cliDisplay(const char ** argv)
 
 int cliDebugVars(const char ** argv)
 {
-#if defined(PCBHORUS)
-  extern uint32_t ioMutexReq, ioMutexRel;
-  extern uint32_t sdReadRetries;
-  cliSerialPrint("ioMutexReq=%d", ioMutexReq);
-  cliSerialPrint("ioMutexRel=%d", ioMutexRel);
-  cliSerialPrint("sdReadRetries=%d", sdReadRetries);
 #if defined(INTERNAL_MODULE_PXX2) && defined(ACCESS_DENIED) && !defined(SIMU)
   extern volatile int32_t authenticateFrames;
   cliSerialPrint("authenticateFrames=%d", authenticateFrames);
-#endif
 #elif defined(PCBTARANIS)
   //cliSerialPrint("telemetryErrors=%d", telemetryErrors);
 #endif
@@ -1726,7 +1721,7 @@ int cliCrypt(const char ** argv)
 }
 #endif
 
-#if defined(HARDWARE_TOUCH) && !defined(PCBNV14)
+#if defined(HARDWARE_TOUCH) && !defined(PCBNV14) && !defined(PCBPL18)
 
 // from tp_gt911.cpp
 extern uint8_t tp_gt911_cfgVer;
@@ -1798,7 +1793,7 @@ const CliCommand cliCommands[] = {
 #if defined(ACCESS_DENIED) && defined(DEBUG_CRYPT)
   { "crypt", cliCrypt, "<string to be encrypted>" },
 #endif
-#if defined(HARDWARE_TOUCH) && !defined(PCBNV14)
+#if defined(HARDWARE_TOUCH) && !defined(PCBNV14) && !defined(PCBPL18)
   { "reset_gt911", cliResetGT911, ""},
 #endif
   { nullptr, nullptr, nullptr }  /* sentinel */

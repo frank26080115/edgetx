@@ -117,7 +117,7 @@ class FlashDialog: public FullScreenDialog
     explicit FlashDialog(const T & device):
       FullScreenDialog(WARNING_TYPE_INFO, STR_FLASH_DEVICE),
       device(device),
-      progress(this, {LCD_W / 2 - 50, LCD_H / 2, 100, 32})
+      progress(this, {LCD_W / 2 - 100, LCD_H / 2 + 27, 200, 32})
     {
     }
 
@@ -199,7 +199,7 @@ class FrskyOtaFlashDialog : public Dialog
 
     if (reusableBuffer.sdManager.otaUpdateInformation.step == BIND_INFO_REQUEST) {
       uint8_t modelId = reusableBuffer.sdManager.otaUpdateInformation.receiverInformation.modelID;
-      if (isPXX2ReceiverOptionAvailable(modelId, RECEIVER_OPTION_OTA)) {
+      if (isPXX2ReceiverOptionAvailable(modelId, RECEIVER_OPTION_OTA_TO_UPDATE_SELF)) {
         char *tmp = strAppend(reusableBuffer.sdManager.otaReceiverVersion, TR_CURRENT_VERSION);
         tmp = strAppendUnsigned(tmp, 1 + reusableBuffer.sdManager.otaUpdateInformation.receiverInformation.swVersion.major);
         *tmp++ = '.';
@@ -363,12 +363,14 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
         MultiFirmwareUpdate(fullpath, EXTERNAL_MODULE, MULTI_TYPE_ELRS);
       });
     } else if (!strcasecmp(BITMAPS_PATH, path) &&
-               isExtensionMatching(ext, BITMAPS_EXT)) {
+               isExtensionMatching(ext, BITMAPS_EXT) &&
+               strlen(name) <= LEN_BITMAP_NAME) {
       menu->addLine(STR_ASSIGN_BITMAP, [=]() {
-        memcpy(g_model.header.bitmap, name, sizeof(g_model.header.bitmap));
+        memcpy(g_model.header.bitmap, name, LEN_BITMAP_NAME);
         storageDirty(EE_MODEL);
       });
-    } else if (!strcasecmp(ext, TEXT_EXT) || !strcasecmp(ext, LOGS_EXT)) {
+    } else if (!strcasecmp(ext, TEXT_EXT) || !strcasecmp(ext, LOGS_EXT) ||
+               !strcasecmp(ext, SCRIPT_EXT)) {
       menu->addLine(STR_VIEW_TEXT, [=]() {
         FIL file;
         if (FR_OK == f_open(&file, fullpath, FA_OPEN_EXISTING | FA_READ)) {

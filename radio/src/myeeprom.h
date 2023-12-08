@@ -60,7 +60,6 @@
   #define IS_HAPTIC_FUNC(func)         (0)
 #endif
 
-#define HAS_ENABLE_PARAM(func)         ((func) < FUNC_FIRST_WITHOUT_ENABLE || (func == FUNC_BACKLIGHT))
 #if defined(COLORLCD)
 #define HAS_REPEAT_PARAM(func)         (IS_PLAY_FUNC(func) || IS_HAPTIC_FUNC(func) || func == FUNC_PLAY_SCRIPT || func == FUNC_SET_SCREEN)
 #else
@@ -74,9 +73,9 @@
 #define CFN_CH_INDEX(p)                ((p)->all.param)
 #define CFN_GVAR_INDEX(p)              ((p)->all.param)
 #define CFN_TIMER_INDEX(p)             ((p)->all.param)
-#define CFN_PLAY_REPEAT(p)             ((p)->active)
+#define CFN_PLAY_REPEAT(p)             ((p)->repeat)
 #define CFN_PLAY_REPEAT_MUL            1
-#define CFN_PLAY_REPEAT_NOSTART        0xFF
+#define CFN_PLAY_REPEAT_NOSTART        -1
 #define CFN_GVAR_MODE(p)               ((p)->all.mode)
 #define CFN_PARAM(p)                   ((p)->all.val)
 #define CFN_RESET(p)                   ((p)->active=0, (p)->clear.val1=0, (p)->clear.val2=0)
@@ -86,7 +85,9 @@
 #define MODEL_GVAR_MAX(idx)            (CFN_GVAR_CST_MAX - g_model.gvars[idx].max)
 
 // pots config
-#define POT_CFG_BITS                   4 // 4 bits per pot
+#define POT_CFG_TYPE_BITS              3
+#define POT_CFG_INV_BITS               1
+#define POT_CFG_BITS                   (POT_CFG_TYPE_BITS + POT_CFG_INV_BITS)
 #define POT_CFG_MASK                   ((1 << POT_CFG_BITS) - 1)
 #define POT_CONFIG_POS(x)              (POT_CFG_BITS * (x))
 #define POT_CONFIG_MASK(x)             (POT_CFG_MASK << POT_CONFIG_POS(x))
@@ -168,7 +169,13 @@ enum CurveRefType {
 #define TRIM_ELE    (-2)
 #define TRIM_THR    (-3)
 #define TRIM_AIL    (-4)
-#if defined(PCBHORUS)
+#if defined(PCBPL18)
+  #define TRIM_T5   (-5)
+  #define TRIM_T6   (-6)
+  #define TRIM_T7   (-7)
+  #define TRIM_T8   (-8)
+  #define TRIM_LAST TRIM_T8
+#elif defined(PCBHORUS)
   #define TRIM_T5   (-5)
   #define TRIM_T6   (-6)
   #define TRIM_LAST TRIM_T6
@@ -208,7 +215,6 @@ enum LogicalSwitchesFunctions {
   LS_FUNC_VALMOSTEQUAL, // v~=offset
   LS_FUNC_VPOS,   // v>offset
   LS_FUNC_VNEG,   // v<offset
-  LS_FUNC_RANGE,
   LS_FUNC_APOS,   // |v|>offset
   LS_FUNC_ANEG,   // |v|<offset
   LS_FUNC_AND,

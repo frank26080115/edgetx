@@ -30,6 +30,7 @@ extern "C" {
 #define USE_FULL_LL_DRIVER
 #if defined(STM32F4)
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_bus.h"
+  #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_dma2d.h"
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_gpio.h"
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_tim.h"
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_dma.h"
@@ -39,6 +40,7 @@ extern "C" {
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_rcc.h"
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_adc.h"
   #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_spi.h"
+  #include "STM32F4xx_HAL_Driver/Inc/stm32f4xx_ll_iwdg.h"
 #elif defined(STM32F2)
   #include "STM32F2xx_HAL_Driver/Inc/stm32f2xx_ll_bus.h"
   #include "STM32F2xx_HAL_Driver/Inc/stm32f2xx_ll_gpio.h"
@@ -50,6 +52,7 @@ extern "C" {
   #include "STM32F2xx_HAL_Driver/Inc/stm32f2xx_ll_rcc.h"
   #include "STM32F2xx_HAL_Driver/Inc/stm32f2xx_ll_adc.h"
   #include "STM32F2xx_HAL_Driver/Inc/stm32f2xx_ll_spi.h"
+  #include "STM32F2xx_HAL_Driver/Inc/stm32f2xx_ll_iwdg.h"
 #endif
 
 #if defined(__cplusplus)

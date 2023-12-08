@@ -51,7 +51,7 @@
 
 #define TR_AUX_SERIAL_MODES             "禁用","回傳鏡像","回傳輸入","SBUS教練","LUA腳本","CLI","GPS","調試","SpaceMouse","外置發射"
 #define TR_SWTYPES                      "無","回彈","2段","3段"
-#define TR_POTTYPES                     "無","有中點旋鈕","多段旋鈕","無中點旋鈕","側滑塊"
+#define TR_POTTYPES                     "無","無中點旋鈕","有中點旋鈕","側滑塊","多段旋鈕"
 #define TR_VPERSISTENT                  "禁用","隨飛行記錄重啟","隨手動重啟"
 #define TR_COUNTRY_CODES                "美國","日本","歐洲"
 #define TR_USBMODES                     "詢問","遊戲柄","U盤","串行"
@@ -76,17 +76,15 @@
 #if LCD_W >= 212
   #define TR_CSWTIMER                  "定時"
   #define TR_CSWSTICKY                 "粘滯"
-  #define TR_CSWRANGE                  "範圍"
   #define TR_CSWSTAY                   "邊沿"
 #else
   #define TR_CSWTIMER                  "定時"
   #define TR_CSWSTICKY                 "粘滯"
-  #define TR_CSWRANGE                  "範圍"
   #define TR_CSWSTAY                   "邊沿"
 #endif
 
 #define TR_CSWEQUAL                    "a=x"
-#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x",TR_CSWRANGE,"|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
+#define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
 #define TR_SF_TRAINER                  "教練"
 #define TR_SF_INST_TRIM                "搖桿值存儲到微調"
@@ -96,12 +94,13 @@
 #define TR_SF_FAILSAFE                 "設置失控保護"
 #define TR_SF_RANGE_CHECK              "測距模式"
 #define TR_SF_MOD_BIND                 "模塊對頻"
+#define TR_SF_RGBLEDS                  "RGB leds"
  
 #define TR_SOUND                       "播放聲音"
-#define TR_PLAY_TRACK                  "播放音頻文件"
+#define TR_PLAY_TRACK                  TR("Ply Trk", "播放音頻文件")
 #define TR_PLAY_VALUE                  "播放數值"
 #define TR_SF_HAPTIC                   "振動"
-#define TR_SF_PLAY_SCRIPT              "Lua腳本"
+#define TR_SF_PLAY_SCRIPT              TR("Lua", "Lua腳本")
 #define TR_SF_BG_MUSIC                 "播放背景音樂"
 #define TR_SF_BG_MUSIC_PAUSE           "暫停背景音樂"
 #define TR_SF_LOGS                     "記錄日誌到SD卡"
@@ -210,6 +209,7 @@
 #define TR_TEXT_SIZE                   "標準","小","較小","中等","雙倍"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA "(中点)","=(整體)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
+#define TR_PPMUNIT                     "0.--","0.0","us"
 
 #if defined(COLORLCD)
 #if defined(BOLD)
@@ -351,6 +351,7 @@
 #define TR_ALARMWARNING                "靜音"
 #define TR_RSSI_SHUTDOWN_ALARM         TR("關機檢查RSSI", "關機時檢查RSSI")
 #define TR_MODEL_STILL_POWERED         "模型未斷電"
+#define TR_TRAINER_STILL_CONNECTED     "教練信號未斷開"
 #define TR_USB_STILL_CONNECTED         "USB未斷開"
 #define TR_MODEL_SHUTDOWN              "關機 ?"
 #define TR_PRESS_ENTER_TO_CONFIRM      "按ENTER鍵確認"
@@ -650,11 +651,8 @@
 #define TR_LCD                         "LCD"
 #define TR_BRIGHTNESS                  "亮度"
 #define TR_CPU_TEMP                    "CPU 溫度"
-#define TR_CPU_CURRENT                 "電流"
-#define TR_CPU_MAH                     "消耗量"
 #define TR_COPROC                      "CoProc."
 #define TR_COPROC_TEMP                 "主板溫度"
-#define TR_CAPAWARNING                 INDENT "電流過低"
 #define TR_TEMPWARNING                 INDENT "過熱"
 #define TR_TTL_WARNING                 "注意串口使用逻辑电平3.3V"
 #define TR_FUNC                        "功能"
@@ -802,6 +800,7 @@
 #define TR_JACK_MODE                   "教練插口模式"
 #define TR_VOICE_LANGUAGE              "播報語言"
 #define TR_UNITS_SYSTEM                "單位"
+#define TR_UNITS_PPM                   "PPM Units"
 #define TR_EDIT                        "編輯"
 #define TR_INSERT_BEFORE               "在本條前插入"
 #define TR_INSERT_AFTER                "在本條後插入"
@@ -873,6 +872,7 @@
 #define TR_INTERVAL                    "間隔"
 #define TR_REPEAT                      "循環"
 #define TR_ENABLE                      "啟用"
+#define TR_DISABLE                     "Disable"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "單位"
 #define TR_TELEMETRY_NEWSENSOR         INDENT "添加新傳感器..."
@@ -892,8 +892,6 @@
 #define TR_MODULE_PROTOCOL_WARN_LINE2        "經認證的韌體"
 #define TR_LOWALARM                    INDENT "信號弱警告"
 #define TR_CRITICALALARM               INDENT "信號極弱警告"
-#define TR_RSSIALARM_WARN              "RSSI"
-#define TR_NO_RSSIALARM                TR(INDENT "回傳警告已禁止", "回傳警告已禁止")
 #define TR_DISABLE_ALARM               TR(INDENT "禁止回傳警告", INDENT "禁止回傳警告")
 #define TR_POPUP                       "彈窗提示"
 #define TR_MIN                         "最小"
@@ -1039,8 +1037,16 @@
   #define TR_BL_SELECT_KEY            "[R TRIM] to select file"
   #define TR_BL_FLASH_KEY             "Hold [R TRIM] long to flash"
   #define TR_BL_EXIT_KEY              " [L TRIM] to exit"
-  #define TR_BL_ENABLE                "Enable"
-  #define TR_BL_DISABLE               "Disable"
+#elif defined(PCBPL18)
+   // Bootloader PL18 specific - Ascii only
+  #define TR_BL_RF_USB_ACCESS         "RF USB access"
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
+  #define TR_BL_SELECT_KEY            " [TR4 Dn] to select file"
+  #define TR_BL_FLASH_KEY             " Hold [TR4 Dn] long to flash"
+  #define TR_BL_ERASE_KEY             " Hold [TR4 Dn] long to erase"
+  #define TR_BL_EXIT_KEY              " [TR4 Up] to exit"
 #endif
 
 // About screen
@@ -1245,3 +1251,11 @@
 #define TR_ENABLED_FEATURES       "啟用的功能"
 #define TR_RADIO_MENU_TABS        "系統功能選項卡"
 #define TR_MODEL_MENU_TABS        "模型功能選項卡"
+
+#define TR_SELECT_MENU_ALL        "All"
+#define TR_SELECT_MENU_CLR        "Clear"
+#define TR_SELECT_MENU_INV        "Invert"
+
+#define TR_SORT_ORDERS            "名稱 A-Z","名稱 Z-A","不常用","常用"
+#define TR_SORT_MODELS_BY         "排序"
+#define TR_CREATE_NEW             "新建"

@@ -1,9 +1,6 @@
 ---
 name: Build and deploy nightly release
 on:
-  push:
-    branches:
-    - 'nightly_filenames'
   schedule:
     - cron: '0 2 * * *' # run at 2 AM UTC
 
@@ -19,10 +16,11 @@ jobs:
       matrix:
         target:
           - nv14;el18
+          - pl18;pl18ev
           - t12
           - t16
           - t18
-          - t8;zorro;pocket;commando8
+          - t8;zorro;pocket;mt12;commando8
           - tlite;tpro;tprov2;lr3pro
           - t20
           - tx12;tx12mk2;boxer
