@@ -600,7 +600,7 @@ void drawTelemetryTopBar()
 #if defined(RTCLOCK)
 void drawRtcTime(coord_t x, coord_t y, LcdFlags att)
 {
-  drawTimer(x, y, getValue(MIXSRC_TX_TIME), att, att);
+  //drawTimer(x, y, getValue(MIXSRC_TX_TIME), att, att);
 }
 #endif
 

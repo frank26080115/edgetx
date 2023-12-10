@@ -404,13 +404,13 @@
   #define TRIMS_GPIO_REG_T3L            GPIOE
   #define TRIMS_GPIO_PIN_T3L            LL_GPIO_PIN_6 // PE.06
   #define TRIMS_GPIO_REG_T4R            GPIOE
-  #define TRIMS_GPIO_PIN_T4R            LL_GPIO_PIN_7 // PE.07
+  #define TRIMS_GPIO_PIN_T4R            LL_GPIO_PIN_15
   #define TRIMS_GPIO_REG_T4L            GPIOE
-  #define TRIMS_GPIO_PIN_T4L            LL_GPIO_PIN_8 // PE.08
-  #define TRIMS_GPIO_REG_T5R            GPIOE
-  #define TRIMS_GPIO_PIN_T5R            LL_GPIO_PIN_14 // PE.14
-  #define TRIMS_GPIO_REG_T5L            GPIOE
-  #define TRIMS_GPIO_PIN_T5L            LL_GPIO_PIN_15 // PE.15
+  #define TRIMS_GPIO_PIN_T4L            LL_GPIO_PIN_14
+  //#define TRIMS_GPIO_REG_T5R            GPIOE
+  //#define TRIMS_GPIO_PIN_T5R            LL_GPIO_PIN_14 // PE.14
+  //#define TRIMS_GPIO_REG_T5L            GPIOE
+  //#define TRIMS_GPIO_PIN_T5L            LL_GPIO_PIN_15 // PE.15
 #elif defined(PCBX7) && !defined(RADIO_COMMANDO8)
   #define TRIMS_GPIO_REG_LHL            GPIOD
   #define TRIMS_GPIO_PIN_LHL            LL_GPIO_PIN_15 // PD.15
@@ -781,6 +781,12 @@
   #define HARDWARE_SWITCH_D
   #define SWITCHES_GPIO_REG_D           GPIOC
   #define SWITCHES_GPIO_PIN_D           LL_GPIO_PIN_3  // PC.03
+  #define STORAGE_SWITCH_E
+  #define HARDWARE_SWITCH_E
+  #define SWITCHES_GPIO_REG_E_H         GPIOE
+  #define SWITCHES_GPIO_PIN_E_H         LL_GPIO_PIN_8
+  #define SWITCHES_GPIO_REG_E_L         GPIOE
+  #define SWITCHES_GPIO_PIN_E_L         LL_GPIO_PIN_7
 #elif defined(PCBX7) && !defined(RADIO_COMMANDO8)
   #define STORAGE_SWITCH_D
   #define HARDWARE_SWITCH_D

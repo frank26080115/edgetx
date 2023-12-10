@@ -73,9 +73,10 @@ SWITCH_CONFIG = {
         # left side
         "SA": { "default": "3POS",    "display": [ 0, 0 ] },
         "SB": { "default": "TOGGLE",  "display": [ 0, 1 ] },
+        "SC": { "default": "TOGGLE",  "display": [ 0, 2 ] },
         # right side
-        "SC": { "default": "TOGGLE",  "display": [ 1, 0 ] },
-        "SD": { "default": "TOGGLE",  "display": [ 1, 1 ] },
+        "SD": { "default": "TOGGLE",  "display": [ 1, 0 ] },
+        "SE": { "default": "3POS",    "display": [ 1, 1 ] },
     },
     "t8": {
         # left side

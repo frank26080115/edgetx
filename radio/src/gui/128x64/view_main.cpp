@@ -217,6 +217,15 @@ void displayTrims(uint8_t phase)
           lcdDrawSolidVerticalLine(xm + 2, ym - 1, 3);
           lcdDrawSolidVerticalLine(xm + 3, ym - 2, 5);
         }
+        if (i < 4) {
+          if (g_model.displayTrims != DISPLAY_TRIMS_NEVER && dir != 0) {
+            if (g_model.displayTrims == DISPLAY_TRIMS_ALWAYS ||
+                (trimsDisplayTimer > 0 && (trimsDisplayMask & (1 << i)))) {
+              lcdDrawNumber(dir > 0 ? 12 : 40, xm - 2, -abs(dir),
+                            TINSIZE | VERTICAL);
+            }
+          }
+        }
       }
     }
     else {
@@ -241,7 +250,13 @@ void displayTrims(uint8_t phase)
           if (g_model.displayTrims == DISPLAY_TRIMS_ALWAYS ||
               (trimsDisplayTimer > 0 && (trimsDisplayMask & (1 << i)))) {
             lcdDrawNumber(
-                (stickIndex == 0 ? (dir > 0 ? TRIM_LH_POS : TRIM_LH_NEG)
+                (stickIndex
+                #if defined(SURFACE_RADIO)
+                !=
+                #else
+                ==
+                #endif
+                0 ? (dir > 0 ? TRIM_LH_POS : TRIM_LH_NEG)
                                  : (dir > 0 ? TRIM_RH_POS : TRIM_RH_NEG)),
                 ym - 2, -abs(dir), TINSIZE);
           }
@@ -259,6 +274,23 @@ void displayTrims(uint8_t phase)
           lcdDrawSolidHorizontalLine(xm, ym - 1, 1);
           lcdDrawSolidHorizontalLine(xm - 1, ym - 2, 3);
           lcdDrawSolidHorizontalLine(xm - 2, ym - 3, 5);
+        }
+        if (i < 4) {
+          if (g_model.displayTrims != DISPLAY_TRIMS_NEVER && dir != 0) {
+            if (g_model.displayTrims == DISPLAY_TRIMS_ALWAYS ||
+                (trimsDisplayTimer > 0 && (trimsDisplayMask & (1 << i)))) {
+              lcdDrawNumber(
+                  (stickIndex
+                  #if defined(SURFACE_RADIO)
+                  !=
+                  #else
+                  ==
+                  #endif
+                  0 ? (dir > 0 ? TRIM_LH_POS : TRIM_LH_NEG)
+                                  : (dir > 0 ? TRIM_RH_POS : TRIM_RH_NEG)),
+                  ym - 2, -abs(dir), TINSIZE);
+            }
+          }
         }
       }
     }
