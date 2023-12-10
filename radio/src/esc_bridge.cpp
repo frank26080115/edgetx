@@ -308,7 +308,7 @@ int8_t escBridgeExtModInit(const etx_serial_init* params)
 {
   #if defined(EXTMODULE_USART)
   // this initialization borrows from the existing passthrough code, it is assumed that both TX and RX works
-  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_UART, params);
+  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_UART, params, false);
   if (!escBridgeModState) {
     return ESCBRIDGE_INIT_ERR_NO_MOD;
   }
@@ -332,7 +332,7 @@ int8_t escBridgeExtModInit(const etx_serial_init* params)
 int8_t escBridgeSportInit(etx_serial_init* params)
 {
   #if defined(TELEMETRY_USART)
-  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SPORT, params);
+  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SPORT, params, false);
   // note: the S.PORT connector on the bottom of the X7 is not a SPORT_MODULE, it is a part of EXTERNAL_MODULE
   // TODO: make sure this works for all radios, as some has an inversion selection
 
@@ -378,7 +378,7 @@ int8_t escBridgeJrBayInit(etx_serial_init* params)
   etx_serial_init temp_params;
   memcpy(&temp_params, params, sizeof(etx_serial_init));
   temp_params.direction = ETX_MOD_DIR_TX; // search for the TX port
-  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SOFT_INV, (const etx_serial_init*)&temp_params);
+  escBridgeModState = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SOFT_INV, (const etx_serial_init*)&temp_params, false);
   if (!escBridgeModState) {
     return ESCBRIDGE_INIT_ERR_NO_MOD;
   }
@@ -426,7 +426,7 @@ int8_t escBridgeJrBayInit(etx_serial_init* params)
   // TODO: this section of code uses the SPORT pin in a bit-bang mode
   temp_params.polarity  = ETX_Pol_Normal; // setPolarity is missing, NORMAL makes the pin uninverted
   temp_params.direction = ETX_MOD_DIR_RX; // search for the RX port
-  escBridgeModStateRx = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SPORT_INV, (const etx_serial_init*)&temp_params);
+  escBridgeModStateRx = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_SPORT_INV, (const etx_serial_init*)&temp_params, false);
   if (!escBridgeModStateRx) {
     return ESCBRIDGE_INIT_ERR_NO_MOD + ESCBRIDGE_INIT_ERR_SECOND;
   }
