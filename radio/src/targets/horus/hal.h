@@ -414,10 +414,12 @@
 
 // PCBREV
 #if defined(PCBX10)
-  #define PCBREV_RCC_AHB1Periph         RCC_AHB1Periph_GPIOH
-  #define PCBREV_GPIO_PIN               (GPIO_Pin_7 | GPIO_Pin_8)
+  #define PCBREV_RCC_AHB1Periph         RCC_AHB1Periph_GPIOH | RCC_AHB1Periph_GPIOA
   #define PCBREV_GPIO                   GPIOH
-  #define PCBREV_VALUE()                (GPIO_ReadInputDataBit(PCBREV_GPIO, GPIO_Pin_7) + (GPIO_ReadInputDataBit(PCBREV_GPIO, GPIO_Pin_8) << 1))
+  #define PCBREV_GPIO_PIN               (GPIO_Pin_7 | GPIO_Pin_8)  // PH.07 | PH.08
+  #define PCBREV_TOUCH_GPIO             GPIOA
+  #define PCBREV_TOUCH_GPIO_PIN         GPIO_Pin_6  // PA.06
+  #define PCBREV_VALUE()                ((GPIO_ReadInputDataBit(PCBREV_GPIO, GPIO_Pin_7) + (GPIO_ReadInputDataBit(PCBREV_GPIO, GPIO_Pin_8) << 1)) * GPIO_ReadInputDataBit(PCBREV_TOUCH_GPIO, GPIO_Pin_6))
 #else
   #define PCBREV_RCC_AHB1Periph         RCC_AHB1Periph_GPIOI
   #define PCBREV_GPIO                   GPIOI
@@ -558,11 +560,9 @@
 // USB
 #define USB_RCC_AHB1Periph_GPIO         RCC_AHB1Periph_GPIOA
 #define USB_GPIO                        GPIOA
-#define USB_GPIO_PIN_VBUS               GPIO_Pin_9  // PA.09
-#define USB_GPIO_PIN_DM                 GPIO_Pin_11 // PA.11
-#define USB_GPIO_PIN_DP                 GPIO_Pin_12 // PA.12
-#define USB_GPIO_PinSource_DM           GPIO_PinSource11
-#define USB_GPIO_PinSource_DP           GPIO_PinSource12
+#define USB_GPIO_PIN_VBUS               LL_GPIO_PIN_9  // PA.09
+#define USB_GPIO_PIN_DM                 LL_GPIO_PIN_11 // PA.11
+#define USB_GPIO_PIN_DP                 LL_GPIO_PIN_12 // PA.12
 #define USB_GPIO_AF                     GPIO_AF_OTG1_FS
 
 // LCD
@@ -766,18 +766,18 @@
 #endif // HARDWARE_TOUCH
 
 // First I2C Bus
-#if defined(RADIO_T18) || defined(RADIO_T16)
-  #define I2C_B1                          I2C3
-  #define I2C_B1_GPIO                     GPIOH
-  #define I2C_B1_SCL_GPIO_PIN             LL_GPIO_PIN_7  // PH.07
-  #define I2C_B1_SDA_GPIO_PIN             LL_GPIO_PIN_8  // PH.08
-  #define I2C_B1_GPIO_AF                  LL_GPIO_AF_4   // I2C3
-#else
+#if defined(RADIO_TX16S) || defined(PCBX12S)
   #define I2C_B1                          I2C1
   #define I2C_B1_GPIO                     GPIOB
   #define I2C_B1_SCL_GPIO_PIN             LL_GPIO_PIN_8  // PB.08
   #define I2C_B1_SDA_GPIO_PIN             LL_GPIO_PIN_9  // PB.09
   #define I2C_B1_GPIO_AF                  LL_GPIO_AF_4   // I2C1
+#else
+  #define I2C_B1                          I2C3
+  #define I2C_B1_GPIO                     GPIOH
+  #define I2C_B1_SCL_GPIO_PIN             LL_GPIO_PIN_7  // PH.07
+  #define I2C_B1_SDA_GPIO_PIN             LL_GPIO_PIN_8  // PH.08
+  #define I2C_B1_GPIO_AF                  LL_GPIO_AF_4   // I2C3
 #endif
 
 // Second I2C Bus
@@ -975,7 +975,6 @@
 #endif
 
 // Trainer Port
-#define TRAINER_RCC_AHB1Periph          (RCC_AHB1Periph_GPIOB | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_DMA1)
 #define TRAINER_GPIO                    GPIOC
 
 #define TRAINER_IN_GPIO_PIN             LL_GPIO_PIN_6  // PC.06
@@ -997,7 +996,6 @@
 #define TRAINER_TIMER_FREQ              (PERI1_FREQUENCY * TIMER_MULT_APB1)
 
 // Trainer CPPM input on heartbeat pin
-#define TRAINER_MODULE_CPPM
 #define TRAINER_MODULE_CPPM_TIMER            TIM4
 #define TRAINER_MODULE_CPPM_FREQ             (PERI1_FREQUENCY * TIMER_MULT_APB1)
 #define TRAINER_MODULE_CPPM_GPIO             INTMODULE_HEARTBEAT_GPIO

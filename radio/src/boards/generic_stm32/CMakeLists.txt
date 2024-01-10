@@ -22,11 +22,13 @@ set(BOARD_LIB_SRC
   ${CMAKE_CURRENT_BINARY_DIR}/hal_adc_inputs.inc
 
   boards/generic_stm32/module_ports.cpp
+  boards/generic_stm32/trainer_ports.cpp
   boards/generic_stm32/aux_ports.cpp
   boards/generic_stm32/sport_update.cpp
   boards/generic_stm32/intmodule_heartbeat.cpp
   boards/generic_stm32/analog_inputs.cpp
   boards/generic_stm32/switches.cpp
+  boards/generic_stm32/bor_level.cpp
 )
 
 add_library(minimal_board_lib OBJECT EXCLUDE_FROM_ALL ${MINIMAL_BOARD_LIB_SRC})

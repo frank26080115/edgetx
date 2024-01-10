@@ -16,7 +16,6 @@ set(HAPTIC YES)
 set(GUI_DIR colorlcd)
 set(BITMAPS_DIR 480x272)
 set(TARGET_DIR pl18)
-set(LINKER_SCRIPT targets/pl18/stm32f4_flash.ld)
 set(RTC_BACKUP_RAM YES)
 set(PPM_LIMITS_SYMETRICAL YES)
 set(USB_SERIAL ON CACHE BOOL "Enable USB serial (CDC)")
@@ -29,7 +28,8 @@ set(WIRELESS_CHARGER YES)
 # for size report script
 set(CPU_TYPE_FULL STM32F429xI)
 set(TARGET_LINKER_DIR stm32f429_sdram)
-set(TARGET_LINKER_PARAMS "-Wl,--defsym=__SDRAM_START__=0xC0000000")
+set(TARGET_SDRAM_START 0xC0000000)
+
 set(SIZE_TARGET_MEM_DEFINE "MEM_SIZE_SDRAM1=8192")
 
 #set(RF_BAUD_RATE 921600 230400 115200 57600 38400 19200 9600 4800 2400 1200)
@@ -104,32 +104,7 @@ file(GLOB THEMES_SRC RELATIVE ${RADIO_SRC_DIR}/gui/colorlcd ${RADIO_SRC_DIR}/gui
 file(GLOB LAYOUTS_SRC RELATIVE ${RADIO_SRC_DIR}/gui/colorlcd ${RADIO_SRC_DIR}/gui/colorlcd/layouts/*.cpp)
 file(GLOB WIDGETS_SRC RELATIVE ${RADIO_SRC_DIR}/gui/colorlcd ${RADIO_SRC_DIR}/gui/colorlcd/widgets/*.cpp)
 
-set(SRC
-  ${SRC}
-  io/frsky_firmware_update.cpp
-  )
-
 set(GVAR_SCREEN model_gvars.cpp)
-
-if(BOOTLOADER)
-  set(FIRMWARE_TARGET_SRC
-    ${FIRMWARE_TARGET_SRC}
-    ../common/arm/loadboot.cpp
-    )
-endif()
-
-set(SRC
-  ${SRC}
-  io/frsky_firmware_update.cpp
-  io/multi_firmware_update.cpp
-  )
-
-if (MULTIMODULE)
-  add_definitions(-DMULTI_PROTOLIST)
-  set(SRC ${SRC}
-    io/multi_protolist.cpp
-    )
-endif()
 
 set(FIRMWARE_TARGET_SRC
   ${FIRMWARE_TARGET_SRC}
@@ -154,6 +129,25 @@ set(FIRMWARE_SRC
   drivers/frftl.cpp
   )
 
+if(BOOTLOADER)
+  set(FIRMWARE_SRC
+    ${FIRMWARE_SRC}
+    targets/common/arm/loadboot.cpp
+  )
+endif()
+
+set(SRC ${SRC}
+  io/frsky_firmware_update.cpp
+  io/multi_firmware_update.cpp
+  )
+
+if (MULTIMODULE)
+  add_definitions(-DMULTI_PROTOLIST)
+  set(SRC ${SRC}
+    io/multi_protolist.cpp
+  )
+endif()
+
 # Make malloc() thread-safe
 add_definitions(-DTHREADSAFE_MALLOC)
 
@@ -162,6 +156,5 @@ set(STM32LIB_SRC
   STM32F4xx_StdPeriph_Driver/src/stm32f4xx_fmc.c
   STM32F4xx_StdPeriph_Driver/src/stm32f4xx_ltdc.c
   STM32F4xx_StdPeriph_Driver/src/stm32f4xx_tim.c
-  STM32F4xx_StdPeriph_Driver/src/stm32f4xx_dma2d.c
   )
 

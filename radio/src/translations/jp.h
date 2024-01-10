@@ -165,12 +165,22 @@
 #define TR_HATSOPT                     "トリムのみ","キーのみ","スイッチ","すべて"
 #define TR_HATSMODE_TRIMS              "アナログスティック: トリム"
 #define TR_HATSMODE_KEYS               "アナログスティック: キー"
+#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
+                                       "   Right = MDL\n"\
+                                       "   Up = SYS\n"\
+                                       "   Down = TELE\n"\
+                                       "\n"\
+                                       "Right side:\n"\
+                                       "   Left = PAGE<\n"\
+                                       "   Right = PAGE>\n"\
+                                       "   Up = PREV/INC\n"\
+                                       "   Down = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "標準","リバース"
 #else
-  #define TR_ROTARY_ENC_OPT         "標準","リバース","V-I H-N","V-I H-A"
+  #define TR_ROTARY_ENC_OPT         "標準","リバース","V-I H-N","V-I H-A","V-N E-I"
 #endif
 
 #if defined(IMU)

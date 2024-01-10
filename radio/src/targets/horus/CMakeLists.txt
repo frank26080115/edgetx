@@ -20,7 +20,6 @@ set(GUI_DIR colorlcd)
 set(BITMAPS_DIR 480x272)
 set(NAVIGATION_TYPE horus)
 set(TARGET_DIR horus)
-set(LINKER_SCRIPT targets/horus/stm32f4_flash.ld)
 set(RTC_BACKUP_RAM YES)
 set(PPM_LIMITS_SYMETRICAL YES)
 set(USB_SERIAL ON CACHE BOOL "Enable USB serial (CDC)")
@@ -45,12 +44,14 @@ set(AUX_SERIAL ON)
 # IMU support
 set(IMU ON)
 
+# Touch Screen support
+set(HARDWARE_TOUCH YES)
+
 if (PCB STREQUAL X10)
   set(PCBREV "STD" CACHE STRING "PCB Revision")
   add_definitions(-DSOFTWARE_VOLUME)
   set(FIRMWARE_SRC
     ${FIRMWARE_SRC}
-    targets/common/arm/stm32/stm32_adc.cpp
     targets/common/arm/stm32/audio_dac_driver.cpp
     )
   if (NOT PCBREV STREQUAL TX16S)
@@ -77,7 +78,6 @@ if (PCB STREQUAL X10)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     option(BLUETOOTH "Support for bluetooth module" OFF)
     option(INTERNAL_GPS "Support for internal NMEA GPS" ON)    
-    set(HARDWARE_TOUCH YES)
     add_definitions(-DMANUFACTURER_JUMPER)
     if (NOT BLUETOOTH)
       set(AUX2_SERIAL ON)
@@ -91,7 +91,6 @@ if (PCB STREQUAL X10)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     option(BLUETOOTH "Support for bluetooth module" OFF)
     option(INTERNAL_GPS "Support for internal NMEA GPS" ON)
-    set(HARDWARE_TOUCH YES)
     set(SWSERIALPOWER YES)
     set(USB_CHARGER YES)
     set(DEFAULT_THEME "DARKBLUE")
@@ -109,7 +108,6 @@ if (PCB STREQUAL X10)
     set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
     option(BLUETOOTH "Support for bluetooth module" OFF)
     option(INTERNAL_GPS "Support for internal NMEA GPS" ON)    
-    set(HARDWARE_TOUCH YES)
     add_definitions(-DMANUFACTURER_JUMPER)
     if (NOT BLUETOOTH)
       set(AUX2_SERIAL ON)
@@ -123,7 +121,6 @@ if (PCB STREQUAL X10)
     add_definitions(-DMANUFACTURER_FRSKY)
   endif()
 elseif (PCB STREQUAL X12S)
-  set(HARDWARE_TOUCH YES)
   set(DEFAULT_INTERNAL_MODULE XJT_PXX1 CACHE STRING "Default internal module")
   set(FLAVOUR x12s)
   set(BLUETOOTH ON)
@@ -255,7 +252,6 @@ set(FIRMWARE_SRC
   targets/common/arm/stm32/rotary_encoder_driver.cpp
   targets/common/arm/stm32/heartbeat_driver.cpp
   targets/common/arm/stm32/ads79xx.cpp
-  targets/common/arm/stm32/diskio_sdio.cpp
   targets/common/arm/stm32/dma2d.cpp
   targets/common/arm/stm32/spi_flash.cpp
   targets/common/arm/stm32/diskio_spi_flash.cpp

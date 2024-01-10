@@ -168,12 +168,22 @@
 #define TR_HATSOPT                     "Kun trim","Kun knap","Trim / Knap", "Global"
 #define TR_HATSMODE_TRIMS              "Joystik: Trim"
 #define TR_HATSMODE_KEYS               "Joystik: Knap"
+#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
+                                       "   Right = MDL\n"\
+                                       "   Up = SYS\n"\
+                                       "   Down = TELE\n"\
+                                       "\n"\
+                                       "Right side:\n"\
+                                       "   Left = PAGE<\n"\
+                                       "   Right = PAGE>\n"\
+                                       "   Up = PREV/INC\n"\
+                                       "   Down = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT            "Normal","Invers"
 #else
-  #define TR_ROTARY_ENC_OPT            "Normal","Invers","V-I H-N","V-I H-A"
+  #define TR_ROTARY_ENC_OPT            "Normal","Invers","V-I H-N","V-I H-A","V-N E-I"
 #endif
 
 #if defined(IMU)

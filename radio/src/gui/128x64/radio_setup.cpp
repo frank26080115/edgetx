@@ -24,6 +24,7 @@
 #include "opentx.h"
 #include "tasks/mixer_task.h"
 #include "hal/adc_driver.h"
+#include "hal/usb_driver.h"
 #include "input_mapping.h"
 
 const unsigned char sticks[]  = {
@@ -44,7 +45,7 @@ const unsigned char sticks[]  = {
   #define CASE_BATTGRAPH(x)
 #endif
 
-#if !defined(SURFACE_RTADIO)
+#if !defined(SURFACE_RADIO)
 #define CASE_TX_MODE(x) x,
 #else
 #define CASE_TX_MODE(x)
@@ -107,10 +108,8 @@ enum {
   CASE_JACK_DETECT(ITEM_RADIO_SETUP_JACK_MODE)
   ITEM_RADIO_SETUP_RX_CHANNEL_ORD,
   CASE_ROTARY_ENCODER(ITEM_RADIO_SETUP_ROTARY_ENC_MODE)
-#if !defined(SURFACE_RADIO)
-  ITEM_RADIO_SETUP_STICK_MODE_LABELS,
-  ITEM_RADIO_SETUP_STICK_MODE,
-#endif
+  CASE_TX_MODE(ITEM_RADIO_SETUP_STICK_MODE_LABELS)
+  CASE_TX_MODE(ITEM_RADIO_SETUP_STICK_MODE)
   ITEM_VIEW_OPTIONS_LABEL,
   ITEM_VIEW_OPTIONS_RADIO_TAB,
   ITEM_VIEW_OPTIONS_GF,
@@ -204,8 +203,8 @@ void menuRadioSetup(event_t event)
     0,
     0, // USB mode
     CASE_JACK_DETECT(0) // Jack mode
+    0, // Channel order
     CASE_ROTARY_ENCODER(0)
-    0,
     CASE_TX_MODE(LABEL(TX_MODE))
     CASE_TX_MODE(0)
     LABEL(ViewOptions),
@@ -757,7 +756,7 @@ void menuRadioSetup(event_t event)
           CHECK_INCDEC_GENVAR(event,
                               reusableBuffer.generalSettings.rotaryEncoderMode,
                               ROTARY_ENCODER_MODE_NORMAL,
-                              ROTARY_ENCODER_MODE_INVERT_VERT_HORZ_ALT);
+                              ROTARY_ENCODER_MODE_LAST);
         } else if (reusableBuffer.generalSettings.rotaryEncoderMode !=
                    g_eeGeneral.rotEncMode) {
           g_eeGeneral.rotEncMode =

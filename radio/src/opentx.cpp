@@ -31,6 +31,7 @@
 #include "hal/storage.h"
 #include "hal/watchdog_driver.h"
 #include "hal/abnormal_reboot.h"
+#include "hal/usb_driver.h"
 
 #include "timers_driver.h"
 
@@ -54,6 +55,10 @@
   #include "switch_warn_dialog.h"
 
   #include "gui/colorlcd/LvglWrapper.h"
+#endif
+
+#if defined(CROSSFIRE)
+#include "telemetry/crossfire.h"
 #endif
 
 #if !defined(SIMU)
@@ -84,7 +89,9 @@ safetych_t safetyCh[MAX_OUTPUT_CHANNELS];
 // __DMA for the MSC_BOT_Data member
 union ReusableBuffer reusableBuffer __DMA;
 
+#if !defined(SIMU)
 uint8_t* MSC_BOT_Data = reusableBuffer.MSC_BOT_Data;
+#endif
 
 #if defined(DEBUG_LATENCY)
 uint8_t latencyToggleSwitch = 0;
@@ -163,7 +170,7 @@ void per10ms()
 #endif
 
   if (trimsCheckTimer) trimsCheckTimer--;
-  if (trainerInputValidityTimer) trainerInputValidityTimer--;
+  trainerDecTimer();
 
   if (trimsDisplayTimer)
     trimsDisplayTimer--;
@@ -285,6 +292,8 @@ void generalDefault()
 
 #if defined(DEFAULT_INTERNAL_MODULE)
     g_eeGeneral.internalModule = DEFAULT_INTERNAL_MODULE;
+    if (g_eeGeneral.internalModule == MODULE_TYPE_CROSSFIRE)
+      g_eeGeneral.internalModuleBaudrate = min(1, (int)CROSSFIRE_MAX_INTERNAL_BAUDRATE);  // 921k if possible
 #endif
 
   adcCalibDefaults();
@@ -306,7 +315,7 @@ void generalDefault()
 
 #if defined(SURFACE_RADIO)
   g_eeGeneral.stickMode = 0;
-  g_eeGeneral.templateSetup = 1;
+  g_eeGeneral.templateSetup = 0;
 #elif defined(DEFAULT_MODE)
   g_eeGeneral.stickMode = DEFAULT_MODE - 1;
   g_eeGeneral.templateSetup = DEFAULT_TEMPLATE_SETUP;
@@ -468,7 +477,7 @@ int getTrimValue(uint8_t phase, uint8_t idx)
   int result = 0;
   for (uint8_t i=0; i<MAX_FLIGHT_MODES; i++) {
     trim_t v = getRawTrimValue(phase, idx);
-    if (v.mode == TRIM_MODE_NONE) {
+    if (v.mode == TRIM_MODE_NONE || v.mode == TRIM_MODE_3POS) {
       return result;
     }
     else {
@@ -491,7 +500,7 @@ bool setTrimValue(uint8_t phase, uint8_t idx, int trim)
 {
   for (uint8_t i=0; i<MAX_FLIGHT_MODES; i++) {
     trim_t & v = flightModeAddress(phase)->trim[idx];
-    if (v.mode == TRIM_MODE_NONE)
+    if (v.mode == TRIM_MODE_NONE || v.mode == TRIM_MODE_3POS)
       return false;
     unsigned int p = v.mode >> 1;
     if (p == phase || phase == 0) {
@@ -892,6 +901,7 @@ void checkTrims()
     uint8_t phase;
     int before;
     bool thro;
+    trim_t tmode = getRawTrimValue(mixerCurrentFlightMode, idx);
 
     trimsDisplayTimer = 200; // 2 seconds
     trimsDisplayMask |= (1<<idx);
@@ -913,17 +923,17 @@ void checkTrims()
     thro = (idx==inputMappingConvertMode(inputMappingGetThrottle()) && g_model.thrTrim);
 #endif
     int8_t trimInc = g_model.trimInc + 1;
-    int8_t v = (trimInc==-1) ? min(32, abs(before)/4+1) : (1 << trimInc); // TODO flash saving if (trimInc < 0)
+    int16_t v = (trimInc==-1) ? min(32, abs(before)/4+1) : (1 << trimInc); // TODO flash saving if (trimInc < 0)
     if (thro) v = 4; // if throttle trim and trim throttle then step=4
 #if defined(GVARS)
-    if (TRIM_REUSED(idx)) v = 1;
+    if (TRIM_REUSED(idx)) v = tmode.mode == TRIM_MODE_3POS ? RESX : 1;
 #endif
     int16_t after = (k&1) ? before + v : before - v;   // positive = k&1
     bool beepTrim = true;
 
-    if (!thro && before!=0 && ((!(after < 0) == (before < 0)) || after==0)) { //forcing a stop at centered trim when changing sides
+    if (!thro && before!=0 && tmode.mode != TRIM_MODE_3POS &&
+        ((!(after < 0) == (before < 0)) || after==0)) { //forcing a stop at centered trim when changing sides
       after = 0;
-      beepTrim = true;
       AUDIO_TRIM_MIDDLE();
       pauseTrimEvents(event);
     }
@@ -1134,8 +1144,9 @@ void instantTrim()
   evalInputs(e_perout_mode_notrainer);
 
   auto controls = adcGetMaxInputs(ADC_INPUT_MAIN);
-  for (uint8_t stick = 0; stick < controls; stick++) {
-    if (stick != inputMappingConvertMode(inputMappingGetThrottle())) { // don't instant trim the throttle stick
+  for (uint8_t st = 0; st < controls; st++) {
+    uint8_t stick = inputMappingConvertMode(st);
+    if (stick != inputMappingGetThrottle()) { // don't instant trim the throttle stick
       bool addTrim = false;
       int16_t delta = 0;
       uint8_t trimFlightMode = getTrimFlightMode(mixerCurrentFlightMode, stick);

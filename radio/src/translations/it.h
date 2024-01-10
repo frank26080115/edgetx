@@ -166,12 +166,22 @@
 #define TR_HATSOPT                      "Solo trims","Solo keys","Commutabile","Globale"
 #define TR_HATSMODE_TRIMS               "Modo joystick: trims"
 #define TR_HATSMODE_KEYS                "Modo joystick: keys"
+#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
+                                       "   Right = MDL\n"\
+                                       "   Up = SYS\n"\
+                                       "   Down = TELE\n"\
+                                       "\n"\
+                                       "Right side:\n"\
+                                       "   Left = PAGE<\n"\
+                                       "   Right = PAGE>\n"\
+                                       "   Up = PREV/INC\n"\
+                                       "   Down = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT            "Normale","Invertito"
 #else
-  #define TR_ROTARY_ENC_OPT            "Normale","Invertito","V-I H-N","V-I H-A"
+  #define TR_ROTARY_ENC_OPT            "Normale","Invertito","V-I H-N","V-I H-A","V-N E-I"
 #endif
 
 #if defined(IMU)

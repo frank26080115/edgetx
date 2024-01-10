@@ -35,6 +35,7 @@
 #include "esc_bridge.h"
 #include "hal/fatfs_diskio.h"
 #include "hal/storage.h"
+#include "hal/usb_driver.h"
 
 #include "tasks.h"
 #include "tasks/mixer_task.h"

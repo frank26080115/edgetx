@@ -32,6 +32,7 @@
 #include "hal/switch_driver.h"
 #include "hal/abnormal_reboot.h"
 #include "hal/watchdog_driver.h"
+#include "hal/usb_driver.h"
 
 #include "globals.h"
 #include "sdcard.h"
@@ -49,17 +50,11 @@
 
 #include <string.h>
 
-#if defined(__cplusplus) && !defined(SIMU)
-extern "C" {
-#endif
-#include "usb_dcd_int.h"
-#include "usb_bsp.h"
-#if defined(__cplusplus) && !defined(SIMU)
-}
-#endif
-
-// common ADC driver
+// Common ADC driver
 extern const etx_hal_adc_driver_t _adc_driver;
+
+// Common LED driver
+extern const stm32_pulse_timer_t _led_timer;
 
 #if defined(SEMIHOSTING)
 extern "C" void initialise_monitor_handles();
@@ -83,8 +78,8 @@ void delay_self(int count)
                               )
 #define RCC_AHB1PeriphOther   (AUDIO_RCC_AHB1Periph |\
                                TELEMETRY_RCC_AHB1Periph |\
-                               TRAINER_RCC_AHB1Periph |\
                                HAPTIC_RCC_AHB1Periph |\
+                               INTMODULE_RCC_AHB1Periph |\
                                EXTMODULE_RCC_AHB1Periph \
                               )
 #define RCC_AHB3PeriphMinimum (SDRAM_RCC_AHB3Periph)
@@ -94,6 +89,14 @@ void delay_self(int count)
                               )
 #define RCC_APB2PeriphMinimum (LCD_RCC_APB2Periph)
 #define RCC_APB2PeriphOther   (HAPTIC_RCC_APB2Periph)
+
+void ledStripOff()
+{
+  for (uint8_t i = 0; i < LED_STRIP_LENGTH; i++) {
+    ws2812_set_color(i, 0, 0, 0);
+  }
+  ws2812_update(&_led_timer);
+}
 
 void boardInit()
 {
@@ -123,20 +126,15 @@ void boardInit()
   pwrInit();
   boardInitModulePorts();
 
-  init_trainer();
+  board_trainer_init();
   battery_charge_init();
   flysky_gimbal_init();
   timersInit();
   touchPanelInit();
   usbInit();
 
-  extern const stm32_pulse_timer_t _led_timer;
-
   ws2812_init(&_led_timer, LED_STRIP_LENGTH);
-  for (uint8_t i = 0; i < LED_STRIP_LENGTH; i++) {
-    ws2812_set_color(i, 0, 0, 0);
-  }
-  ws2812_update(&_led_timer);
+  ledStripOff();
 
   uint32_t press_start = 0;
   uint32_t press_end = 0;
@@ -211,6 +209,7 @@ void boardOff()
   rtcDisableBackupReg();
 
 #if !defined(BOOT)
+  ledStripOff();
   if (isChargerActive())
   {
     delay_ms(100);  // Add a delay to wait for lcdOff

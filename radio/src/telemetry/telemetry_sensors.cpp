@@ -161,12 +161,12 @@ void TelemetryItem::setValue(const TelemetrySensor &sensor, int32_t val,
 #if defined(INTERNAL_GPS)
     if (gpsData.fix  && gpsData.hdop < PILOTPOS_MIN_HDOP) {
       pilotLatitude = gpsData.latitude;
-      distFromEarthAxis = getDistFromEarthAxis(pilotLatitude);
+      gps.pilotDistFromEarthAxis = getDistFromEarthAxis(pilotLatitude);
     }
 #endif
     if (!pilotLatitude) {
       pilotLatitude = newVal;
-      distFromEarthAxis = getDistFromEarthAxis(newVal);
+      gps.pilotDistFromEarthAxis = getDistFromEarthAxis(newVal);
     }
     gps.latitude = newVal;
     setFresh();
@@ -380,7 +380,7 @@ void TelemetryItem::eval(const TelemetrySensor & sensor)
         uint32_t result = dist * dist;
 
         angle = abs(gpsItem.gps.longitude - gpsItem.pilotLongitude);
-        dist = uint64_t(gpsItem.distFromEarthAxis) * angle / 1000000;
+        dist = uint64_t(gpsItem.gps.pilotDistFromEarthAxis) * angle / 1000000;
         result += dist * dist;
 
         // Length on ground (ignoring curvature of the earth)
@@ -707,6 +707,7 @@ int32_t convertTelemetryValue(int32_t value, uint8_t unit, uint8_t prec, uint8_t
 int32_t TelemetrySensor::getValue(int32_t value, uint8_t unit, uint8_t prec) const
 {
   if (type == TELEM_TYPE_CUSTOM && custom.ratio) {
+    /*  farzu:  Not needed, scaling work properly for the 3 types of prec without it  
     if (this->prec == 2) {
       value *= 10;
       prec = 2;
@@ -714,7 +715,9 @@ int32_t TelemetrySensor::getValue(int32_t value, uint8_t unit, uint8_t prec) con
     else {
       prec = 1;
     }
-    value = (custom.ratio * value + 122) / 255;
+    */
+    
+    value = (custom.ratio * value + 122) / 255;  //  122/255 (0.48) is to aproximate up (ceiling) 
   }
 
   value = convertTelemetryValue(value, unit, prec, this->unit, this->prec);

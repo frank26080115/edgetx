@@ -33,7 +33,9 @@
 
 #include "board.h"
 
-#include "usbd_conf.h"
+#if !defined(SIMU)
+#include "usbd_msc_conf.h"
+#endif
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
@@ -76,7 +78,9 @@ enum RotaryEncoderMode {
   ROTARY_ENCODER_MODE_NORMAL,
   ROTARY_ENCODER_MODE_INVERT_BOTH,
   ROTARY_ENCODER_MODE_INVERT_VERT_HORZ_NORM,
-  ROTARY_ENCODER_MODE_INVERT_VERT_HORZ_ALT
+  ROTARY_ENCODER_MODE_INVERT_VERT_HORZ_ALT,
+  ROTARY_ENCODER_MODE_VERT_NORM_HORZ_INVERT,
+  ROTARY_ENCODER_MODE_LAST = ROTARY_ENCODER_MODE_VERT_NORM_HORZ_INVERT
 };
 #endif
 
@@ -459,12 +463,12 @@ void moveTrimsToOffsets();
 
 inline bool isExpoActive(uint8_t expo)
 {
-  return swOn[expo].activeExpo;
+  return mixState[expo].activeExpo;
 }
 
 inline bool isMixActive(uint8_t mix)
 {
-  return swOn[mix].activeMix;
+  return mixState[mix].activeMix;
 }
 
 enum FunctionsActive {
@@ -802,12 +806,6 @@ union ReusableBuffer
 #endif
 
   struct {
-    bool longNames;
-    bool secondPage;
-    bool mixersView;
-  } viewChannels;
-
-  struct {
     uint8_t maxNameLen;
   } modelFailsafe;
 
@@ -817,8 +815,11 @@ union ReusableBuffer
 #endif
   } viewMain;
 
-  // Data for the USB mass storage driver. If USB mass storage runs no menu is not allowed to be displayed
-  uint8_t MSC_BOT_Data[MSC_MEDIA_PACKET];
+#if !defined(SIMU)
+  // Data for the USB mass storage driver. If USB mass storage
+  // runs no menu is not allowed to be displayed
+  uint8_t MSC_BOT_Data[MASS_STORAGE_BUFFER_SIZE];
+#endif
 };
 
 extern ReusableBuffer reusableBuffer;

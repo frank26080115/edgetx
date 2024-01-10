@@ -420,12 +420,10 @@
 // USB
 #define USB_RCC_AHB1Periph_GPIO         RCC_AHB1Periph_GPIOA
 #define USB_GPIO                        GPIOA
-// #define USB_GPIO_PIN_VBUS               GPIO_Pin_9  // PA.09
-#define USB_GPIO_PIN_ID                 GPIO_Pin_10 // PA.10
-#define USB_GPIO_PIN_DM                 GPIO_Pin_11 // PA.11
-#define USB_GPIO_PIN_DP                 GPIO_Pin_12 // PA.12
-#define USB_GPIO_PinSource_DM           GPIO_PinSource11
-#define USB_GPIO_PinSource_DP           GPIO_PinSource12
+// #define USB_GPIO_PIN_VBUS               LL_GPIO_PIN_9  // PA.09
+#define USB_GPIO_PIN_ID                 LL_GPIO_PIN_10 // PA.10
+#define USB_GPIO_PIN_DM                 LL_GPIO_PIN_11 // PA.11
+#define USB_GPIO_PIN_DP                 LL_GPIO_PIN_12 // PA.12
 #define USB_GPIO_AF                     GPIO_AF_OTG1_FS
 
 // LCD
@@ -594,6 +592,8 @@
 #define INTMODULE_TIMER_IRQn            TIM3_IRQn
 #define INTMODULE_TIMER_IRQHandler      TIM3_IRQHandler
 #define INTMODULE_TIMER_FREQ            (PERI1_FREQUENCY * TIMER_MULT_APB1)
+#else
+#define INTMODULE_RCC_AHB1Periph        0
 #endif
 
 // External Module
@@ -653,7 +653,6 @@
 #define EXTMODULE_RX_INVERTED()            EXTMODULE_RX_INVERT_GPIO->BSRRL = EXTMODULE_RX_INVERT_GPIO_PIN
 
 // Trainer Port
-#define TRAINER_RCC_AHB1Periph          (RCC_AHB1Periph_GPIOD)
 #define TRAINER_GPIO                    GPIOD
 
 #define TRAINER_IN_GPIO_PIN             LL_GPIO_PIN_12 // PD.12

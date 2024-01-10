@@ -24,15 +24,14 @@
 #include <stdint.h>
 #include "serial_driver.h"
 #include "timer_driver.h"
-#include "definitions.h"
 
 //
 // Module ports
 //
 
 // flags
-#define ETX_MOD_DIR_TX      (1 << 0)
-#define ETX_MOD_DIR_RX      (1 << 1)
+#define ETX_MOD_DIR_RX      (1 << 0)
+#define ETX_MOD_DIR_TX      (1 << 1)
 #define ETX_MOD_DIR_TX_RX   (ETX_MOD_DIR_TX | ETX_MOD_DIR_RX)
 #define ETX_MOD_FULL_DUPLEX (1 << 2)
 
@@ -118,7 +117,8 @@ void modulePortConfigExtra(const etx_module_port_t* port);
 const etx_module_t* modulePortGetModuleDescription(uint8_t module);
 
 const etx_module_port_t* modulePortFind(uint8_t module, uint8_t type,
-                                        uint8_t port, uint8_t polarity);
+                                        uint8_t port, uint8_t polarity,
+                                        uint8_t direction);
 
 void modulePortSetPower(uint8_t module, uint8_t enabled);
 

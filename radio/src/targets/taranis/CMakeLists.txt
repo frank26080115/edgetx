@@ -148,7 +148,7 @@ elseif(PCB STREQUAL X7)
     add_definitions(-DMANUFACTURER_JUMPER)
     set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
   elseif(PCBREV STREQUAL T20)
-    set(DEFAULT_INTERNAL_MODULE MULTIMODULE CACHE STRING "Default internal module")
+    set(DEFAULT_INTERNAL_MODULE CROSSFIRE CACHE STRING "Default internal module")
     set(INTERNAL_MODULE_SERIAL YES)
     set(MODULE_SIZE_SML YES)
     set(FLAVOUR t20)
@@ -235,7 +235,6 @@ elseif(PCB STREQUAL X7)
     set(ROTARY_ENCODER YES)
     set(BLUETOOTH NO)
     set(USB_CHARGER YES)
-    set(AUX_SERIAL NO)
     set(HELI NO)
     add_definitions(-DRADIO_MT12)
     add_definitions(-DMANUFACTURER_RADIOMASTER)
@@ -243,6 +242,9 @@ elseif(PCB STREQUAL X7)
     set(ENABLE_SERIAL_PASSTHROUGH ON CACHE BOOL "Enable serial passthrough")
     set(LUA_MIXER YES)
     set(FLEXSW "2" CACHE STRING "Max flex inputs usable as switches")
+    if (NOT BLUETOOTH)
+      set(AUX_SERIAL ON)
+    endif()
   elseif(PCBREV STREQUAL BOXER)
     set(DEFAULT_INTERNAL_MODULE CROSSFIRE CACHE STRING "Default internal module")
     set(INTERNAL_MODULE_SERIAL YES)
@@ -490,7 +492,7 @@ if(INTERNAL_MODULE_SERIAL)
     set(INTERNAL_MODULES PXX2 CACHE STRING "Internal modules")
   else()
     # defines existing internal modules
-    set(INTERNAL_MODULES PXX1;PXX2;MULTI;CRSF CACHE STRING "Internal modules")
+    set(INTERNAL_MODULES MULTI;CRSF CACHE STRING "Internal modules")
   endif()
 
   add_definitions(-DINTERNAL_MODULE_SERIAL)
@@ -609,8 +611,6 @@ set(FIRMWARE_SRC
   targets/common/arm/loadboot.cpp
   targets/common/arm/stm32/heartbeat_driver.cpp
   targets/common/arm/stm32/audio_dac_driver.cpp
-  targets/common/arm/stm32/sdcard_spi.cpp
-  targets/common/arm/stm32/diskio_spi.cpp
   )
 
 set(RADIO_DEPENDENCIES ${RADIO_DEPENDENCIES} ${BITMAPS_TARGET})

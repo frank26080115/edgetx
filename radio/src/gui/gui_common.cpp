@@ -19,11 +19,12 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
-
 #include "hal/module_port.h"
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
+#include "hal/trainer_driver.h"
+
+#include "opentx.h"
 #include "switches.h"
 #include "mixes.h"
 
@@ -202,7 +203,7 @@ bool isSourceAvailable(int source)
   if (source >= MIXSRC_FIRST_SPACEMOUSE && source <= MIXSRC_LAST_SPACEMOUSE)
     return false;
 #elif defined(PCBHORUS) && defined(SPACEMOUSE)
-  if ((hasSerialMode(UART_MODE_SPACEMOUSE) == -1) &&
+  if ((serialGetModePort(UART_MODE_SPACEMOUSE) < 0) &&
       (source >= MIXSRC_FIRST_SPACEMOUSE && source <= MIXSRC_LAST_SPACEMOUSE))
     return false;
 #endif
@@ -424,14 +425,6 @@ bool isSwitchAvailable(int swtch, SwitchContext context)
   return true;
 }
 
-int hasSerialMode(int mode)
-{
-  for (int p = 0; p < MAX_SERIAL_PORTS; p++) {
-    if (serialGetMode(p) == mode) return p;
-  }
-  return -1;
-}
-
 bool isSerialModeAvailable(uint8_t port_nr, int mode)
 {
 #if defined(USB_SERIAL)
@@ -492,7 +485,7 @@ bool isSerialModeAvailable(uint8_t port_nr, int mode)
     return false;
 #endif
 
-  auto p = hasSerialMode(mode);
+  auto p = serialGetModePort(mode);
   if (p >= 0 && p != port_nr) return false;
   return true;
 }
@@ -733,10 +726,11 @@ bool isPxx2IsrmChannelsCountAllowed(int channels)
 
 bool isTrainerUsingModuleBay()
 {
-#if defined(PCBTARANIS)
-  if (TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE <= g_model.trainerData.mode && g_model.trainerData.mode <= TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE)
+  if (g_model.trainerData.mode == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE ||
+      g_model.trainerData.mode == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE) {
     return true;
-#endif
+  }
+
   return false;
 }
 
@@ -900,7 +894,8 @@ bool isExternalModuleAvailable(int moduleType)
 
 #if defined(PXX2)
     return modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_SERIAL,
-                          ETX_MOD_PORT_UART, ETX_Pol_Normal);
+                          ETX_MOD_PORT_UART, ETX_Pol_Normal,
+                          ETX_MOD_DIR_TX_RX | ETX_MOD_FULL_DUPLEX);
 #else
     return false;
 #endif
@@ -1014,7 +1009,7 @@ bool isTrainerModeAvailable(int mode)
 
   if (mode == TRAINER_MODE_MASTER_SERIAL) {
 #if defined(SBUS_TRAINER)
-    return hasSerialMode(UART_MODE_SBUS_TRAINER) >= 0;
+    return serialGetModePort(UART_MODE_SBUS_TRAINER) >= 0;
 #else
     return false;
 #endif
@@ -1028,38 +1023,46 @@ bool isTrainerModeAvailable(int mode)
   )
     return false;
 
-#if (defined(PCBXLITE) && !defined(PCBXLITES)) || defined(RADIO_COMMANDO8)
-  if (mode == TRAINER_MODE_MASTER_TRAINER_JACK || mode == TRAINER_MODE_SLAVE)
+  if ((mode == TRAINER_MODE_MASTER_TRAINER_JACK ||
+       mode == TRAINER_MODE_SLAVE) &&
+      !trainer_dsc_available())
     return false;
-#endif
 
-#if !defined(TRAINER_MODULE_CPPM)
-  if (mode == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE)
-    return false;
-#endif
+  if (mode == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE ||
+      mode == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE) {
 
-#if !defined(TRAINER_MODULE_SBUS)
-  if (mode == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE)
-    return false;
-#endif
+    // no external module or is enabled
+    if (!modulePortGetModuleDescription(EXTERNAL_MODULE) ||
+        IS_EXTERNAL_MODULE_ENABLED()) {
+      return false;
+    }
 
-#if defined(TRAINER_MODULE_CPPM) || defined(TRAINER_MODULE_SBUS)
-  if (IS_EXTERNAL_MODULE_ENABLED() &&
-      (mode == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE ||
-       mode == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE))
-    return false;
-#endif
+    if (mode == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE) {
+      auto port =  modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_TIMER,
+                                  ETX_MOD_PORT_TIMER, ETX_Pol_Normal,
+                                  ETX_MOD_DIR_RX);
+      return port != nullptr;      
+    }
+    
+    if (mode == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE) {
+      auto port =  modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_SERIAL,
+                                  ETX_MOD_PORT_UART, ETX_Pol_Normal,
+                                  ETX_MOD_DIR_RX);
+      return port != nullptr;
+    }
+  }
 
-#if !defined(MULTIMODULE) || !defined(HARDWARE_INTERNAL_MODULE) || !defined(HARDWARE_EXTERNAL_MODULE)
-  if (mode == TRAINER_MODE_MULTI)
+  if (mode == TRAINER_MODE_MULTI) {
+
+#if !defined(MULTIMODULE)
     return false;
 #else
-  if (mode == TRAINER_MODE_MULTI &&
-      ((!IS_INTERNAL_MODULE_ENABLED() && !IS_EXTERNAL_MODULE_ENABLED()) ||
+  if ((!IS_INTERNAL_MODULE_ENABLED() && !IS_EXTERNAL_MODULE_ENABLED()) ||
        (!isModuleMultimodule(INTERNAL_MODULE) &&
-        !isModuleMultimodule(EXTERNAL_MODULE))))
+        !isModuleMultimodule(EXTERNAL_MODULE)))
     return false;
 #endif
+  }
 
   return true;
 }

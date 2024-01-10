@@ -23,6 +23,7 @@
 #include "hal/trainer_driver.h"
 #include "hal/switch_driver.h"
 #include "hal/rotary_encoder.h"
+#include "hal/usb_driver.h"
 
 #include "board.h"
 #include "boards/generic_stm32/module_ports.h"
@@ -59,7 +60,6 @@ void boardInit()
                          SD_RCC_AHB1Periph |
                          AUDIO_RCC_AHB1Periph |
                          TELEMETRY_RCC_AHB1Periph |
-                         TRAINER_RCC_AHB1Periph |
                          BT_RCC_AHB1Periph |
                          AUDIO_RCC_AHB1Periph |
                          HAPTIC_RCC_AHB1Periph |
@@ -84,13 +84,8 @@ void boardInit()
                          ENABLE);
 
 #if defined(RADIO_FAMILY_T16)
-  if (FLASH_OB_GetBOR() != OB_BOR_LEVEL3)
-  {
-    FLASH_OB_Unlock();
-    FLASH_OB_BORConfig(OB_BOR_LEVEL3);
-    FLASH_OB_Launch();
-    FLASH_OB_Lock();
-  }
+  void board_set_bor_level();
+  board_set_bor_level();
 #endif
 
   pwrInit();
@@ -100,9 +95,10 @@ void boardInit()
   (defined(INTERNAL_MODULE_PXX1) || defined(INTERNAL_MODULE_PXX2))
   pulsesSetModuleInitCb(_intmodule_heartbeat_init);
   pulsesSetModuleDeInitCb(_intmodule_heartbeat_deinit);
+  trainerSetChangeCb(_intmodule_heartbeat_trainer_hook);
 #endif
 
-  init_trainer();
+  board_trainer_init();
   pwrOn();
   delaysInit();
 

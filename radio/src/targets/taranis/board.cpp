@@ -26,6 +26,7 @@
 #include "hal/switch_driver.h"
 #include "hal/module_port.h"
 #include "hal/abnormal_reboot.h"
+#include "hal/usb_driver.h"
 
 #include "board.h"
 #include "boards/generic_stm32/module_ports.h"
@@ -38,6 +39,7 @@
 
 #include "timers_driver.h"
 #include "dataconstants.h"
+#include "trainer.h"
 
 #if defined(FLYSKY_GIMBAL)
   #include "flysky_gimbal_driver.h"
@@ -52,15 +54,6 @@
 
 #if defined(BLUETOOTH)
   #include "bluetooth_driver.h"
-#endif
-
-#if defined(__cplusplus)
-extern "C" {
-#endif
-#include "usb_dcd_int.h"
-#include "usb_bsp.h"
-#if defined(__cplusplus)
-}
 #endif
 
 HardwareOptions hardwareOptions;
@@ -83,7 +76,6 @@ void boardInit()
                          EXTMODULE_RCC_AHB1Periph |
                          TELEMETRY_RCC_AHB1Periph |
                          SPORT_UPDATE_RCC_AHB1Periph |
-                         TRAINER_RCC_AHB1Periph |
                          BT_RCC_AHB1Periph |
                          USB_CHARGER_RCC_AHB1Periph,
                          ENABLE);
@@ -109,17 +101,12 @@ void boardInit()
 #endif
 
 #if defined(MANUFACTURER_RADIOMASTER) && defined(STM32F407xx)
-    
-  if (FLASH_OB_GetBOR() != OB_BOR_LEVEL3)
-  {
-    FLASH_OB_Unlock();
-    FLASH_OB_BORConfig(OB_BOR_LEVEL3);
-    FLASH_OB_Launch();
-    FLASH_OB_Lock();
-  }
+  void board_set_bor_level();
+  board_set_bor_level();
 #endif
 
-  init_trainer();
+  board_trainer_init();
+
   // Sets 'hardwareOption.pcbrev' as well
   pwrInit();
   boardInitModulePorts();
@@ -132,6 +119,7 @@ void boardInit()
   (defined(INTERNAL_MODULE_PXX1) || defined(INTERNAL_MODULE_PXX2))
   pulsesSetModuleInitCb(_intmodule_heartbeat_init);
   pulsesSetModuleDeInitCb(_intmodule_heartbeat_deinit);
+  trainerSetChangeCb(_intmodule_heartbeat_trainer_hook);
 #endif
   
 // #if defined(AUTOUPDATE)

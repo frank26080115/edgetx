@@ -173,12 +173,22 @@
 #define TR_HATSOPT                     "Pouze trimy","Pouze tlačítka","Přepinatelné","Globální"
 #define TR_HATSMODE_TRIMS              "Režim kloboučků: Trimy"
 #define TR_HATSMODE_KEYS                "Režim kloboučků: Tlačítka"
+#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
+                                       "   Right = MDL\n"\
+                                       "   Up = SYS\n"\
+                                       "   Down = TELE\n"\
+                                       "\n"\
+                                       "Right side:\n"\
+                                       "   Left = PAGE<\n"\
+                                       "   Right = PAGE>\n"\
+                                       "   Up = PREV/INC\n"\
+                                       "   Down = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "Normal","Invertován"
 #else
-  #define TR_ROTARY_ENC_OPT         "Normal","Invertován","V-I H-N","V-I H-A"
+  #define TR_ROTARY_ENC_OPT         "Normal","Invertován","V-I H-N","V-I H-A","V-N E-I"
 #endif
 
 #if defined(IMU)
@@ -1200,7 +1210,7 @@
 
 // Main menu
 #define TR_MAIN_MENU_SELECT_MODEL       "Vybrat\nmodel"
-#define TR_MAIN_MENU_MANAGE_MODELS      "Nastavení\nmodelu"
+#define TR_MAIN_MENU_MANAGE_MODELS      "Správa\nmodelů"
 #define TR_MAIN_MENU_MODEL_NOTES        "Poznámky\nmodelu"
 #define TR_MAIN_MENU_CHANNEL_MONITOR    "Monitor\nkanálů"
 #define TR_MAIN_MENU_MODEL_SETTINGS     "Nastavení\nmodelu"

@@ -166,12 +166,22 @@
 #define TR_HATSOPT                     "微調","導航鍵","可切換","全局"
 #define TR_HATSMODE_TRIMS              "按鍵帽: 微調"
 #define TR_HATSMODE_KEYS               "按鍵帽: 導航鍵"
+#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
+                                       "   Right = MDL\n"\
+                                       "   Up = SYS\n"\
+                                       "   Down = TELE\n"\
+                                       "\n"\
+                                       "Right side:\n"\
+                                       "   Left = PAGE<\n"\
+                                       "   Right = PAGE>\n"\
+                                       "   Up = PREV/INC\n"\
+                                       "   Down = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT          "正常","反向"
 #else
-  #define TR_ROTARY_ENC_OPT          "正常","反向","V-I H-N","V-I H-A"
+  #define TR_ROTARY_ENC_OPT          "正常","反向","V-I H-N","V-I H-A","V-N E-I"
 #endif
 
 #if defined(IMU)
@@ -1118,8 +1128,8 @@
 #define TR_MENU_LUA                     STR_CHAR_LUA "LUA腳本"
 #define TR_MENU_STICKS                  STR_CHAR_STICK "搖桿"
 #define TR_MENU_POTS                    STR_CHAR_POT "旋鈕"
-#define TR_MENU_MIN                     STR_CHAR_FUNCTION "固定值MIN"
-#define TR_MENU_MAX                     STR_CHAR_FUNCTION "固定值MAX"
+#define TR_MENU_MIN                     STR_CHAR_FUNCTION "最小"
+#define TR_MENU_MAX                     STR_CHAR_FUNCTION "最大"
 #define TR_MENU_HELI                    STR_CHAR_CYC "斜盤混控CYC"
 #define TR_MENU_TRIMS                   STR_CHAR_TRIM "微調"
 #define TR_MENU_SWITCHES                STR_CHAR_SWITCH "開關"

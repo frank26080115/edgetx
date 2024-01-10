@@ -46,12 +46,14 @@
   #define UNUSED(x)           ((void)(x)) /* to avoid warnings */
 #endif
 
+#if !defined(__ALIGNED)
 #if defined(SIMU)
   #define __ALIGNED(x)
   #define __SECTION_USED(s)
 #else
   #define __ALIGNED(x)        __attribute__((aligned(x)))
   #define __SECTION_USED(s)   __attribute__((section(s), used))
+#endif
 #endif
 
 #if defined(SIMU)
@@ -68,8 +70,14 @@
 
 #if defined(SDRAM) && !defined(SIMU)
   #define __SDRAM   __attribute__((section(".sdram"), aligned(4)))
+#if defined(COLORLCD)
+  #define __SDRAMFONTS __attribute__((section(".sdram_fonts"), aligned(4)))
+#endif
 #else
   #define __SDRAM   __DMA
+#if defined(COLORLCD)
+  #define __SDRAMFONTS __DMA
+#endif
 #endif
 
 #if __GNUC__

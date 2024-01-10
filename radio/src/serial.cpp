@@ -28,6 +28,7 @@
 #include <string.h>
 
 #include "hal/serial_port.h"
+#include "hal/usb_driver.h"
 
 #if defined(CONFIGURABLE_MODULE_PORT) and !defined(BOOT)
   #include "hal/module_port.h"
@@ -216,12 +217,10 @@ static void serialSetCallBacks(int mode, void* ctx, const etx_serial_port_t* por
     break;
 #endif
 
-#if defined(SBUS_TRAINER)
   case UART_MODE_SBUS_TRAINER:
     sbusSetAuxGetByte(ctx, getByte);
     // TODO: setRxCb (see MODE_LUA)
     break;
-#endif
 
   case UART_MODE_TELEMETRY:
     // telemetrySetGetByte(ctx, getByte);
@@ -377,6 +376,38 @@ void serialSetPower(uint8_t port_nr, bool enabled)
   serialSetPowerState(port_nr);
 }
 #endif
+
+uint32_t serialGetBaudrate(uint8_t port_nr)
+{
+  auto state = getSerialPortState(port_nr);
+  if (!state || !state->port || !state->usart_ctx)
+    return 0;
+
+  auto port = state->port;
+  if (!port->uart || !port->uart->getBaudrate) return 0;
+
+  return port->uart->getBaudrate(state->usart_ctx);
+}
+
+void serialSetBaudrate(uint8_t port_nr, uint32_t baudrate)
+{
+  auto state = getSerialPortState(port_nr);
+  if (!state || !state->port || !state->usart_ctx)
+    return;
+
+  auto port = state->port;
+  if (!port->uart || !port->uart->setBaudrate) return;
+
+  port->uart->setBaudrate(state->usart_ctx, baudrate);
+}
+
+int serialGetModePort(int mode)
+{
+  for (int p = 0; p < MAX_SERIAL_PORTS; p++) {
+    if (serialGetMode(p) == mode) return p;
+  }
+  return -1;  
+}
 
 void serialInit(uint8_t port_nr, int mode)
 {

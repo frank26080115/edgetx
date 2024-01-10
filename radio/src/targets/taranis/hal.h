@@ -2125,10 +2125,8 @@
 #endif
 
 // Trainer Port
-#define HARDWARE_TRAINER_EXTERNAL_MODULE
 #if defined(PCBXLITES) || defined(PCBX9LITE)
   // on these 2 radios the trainer port already uses DMA1_Stream6, we won't use the DMA
-  #define TRAINER_RCC_AHB1Periph        RCC_AHB1Periph_GPIOD
   #define TRAINER_GPIO                  GPIOD
   #define TRAINER_IN_GPIO_PIN           LL_GPIO_PIN_13 // PD.13
   #define TRAINER_IN_TIMER_Channel      LL_TIM_CHANNEL_CH2
@@ -2145,11 +2143,9 @@
   #define TRAINER_TIMER_FREQ            (PERI1_FREQUENCY * TIMER_MULT_APB1)
 #elif defined(PCBXLITE)
   #define TRAINER_TIMER                 TIM4
-  #define TRAINER_RCC_AHB1Periph        0
   #define TRAINER_TIMER_IRQn            TIM4_IRQn
   #define TRAINER_TIMER_IRQHandler      TIM4_IRQHandler
 #else
-  #define TRAINER_RCC_AHB1Periph        (RCC_AHB1Periph_GPIOA | RCC_AHB1Periph_GPIOC | RCC_AHB1Periph_GPIOD | RCC_AHB1Periph_DMA1)
   #define TRAINER_GPIO                  GPIOC
   #define TRAINER_IN_GPIO_PIN           LL_GPIO_PIN_8  // PC.08
   #define TRAINER_IN_TIMER_Channel      LL_TIM_CHANNEL_CH3
@@ -2177,7 +2173,7 @@
 #endif
 
 // Serial Port
-#if (defined(PCBX7) && !defined(RADIO_ZORRO) && !defined(RADIO_TX12MK2)) && !defined(RADIO_BOXER) && !defined(RADIO_POCKET) || defined(PCBXLITE) || defined(PCBX9LITE) || defined(RADIO_X9DP2019)
+#if (defined(PCBX7) && !defined(AUX_SERIAL)) || defined(PCBXLITE) || defined(PCBX9LITE) || defined(RADIO_X9DP2019)
 #else
   #define HARDWARE_TRAINER_AUX_SERIAL
   #define AUX_SERIAL_GPIO                   GPIOB
@@ -2379,8 +2375,8 @@
 
 // Trainer / Trainee from the module bay
 #if defined(PCBX9LITE) || defined(PCBXLITE) || defined(RADIO_X9DP2019) || \
-    defined(PCBX7ACCESS) || defined(RADIO_ZORRO) || defined(RADIO_POCKET) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_MT12)
-  #define TRAINER_MODULE_CPPM
+  defined(PCBX7ACCESS) || defined(RADIO_ZORRO) || defined(RADIO_POCKET) || \
+  defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_MT12)
   #define TRAINER_MODULE_CPPM_TIMER            TIM3
   #define TRAINER_MODULE_CPPM_FREQ             (PERI1_FREQUENCY * TIMER_MULT_APB1)
   #define TRAINER_MODULE_CPPM_GPIO             EXTMODULE_USART_GPIO
@@ -2391,10 +2387,8 @@
 #if defined(PCBX9LITE) ||  defined(PCBXLITE)
   #define TRAINER_MODULE_CPPM_TIMER_IRQHandler TIM3_IRQHandler
 #endif
-  #define TRAINER_MODULE_SBUS
 #elif defined(INTMODULE_HEARTBEAT_GPIO) && defined(HARDWARE_EXTERNAL_MODULE)
   // Trainer CPPM input on heartbeat pin
-  #define TRAINER_MODULE_CPPM
   #define TRAINER_MODULE_CPPM_TIMER               TRAINER_TIMER
   #define TRAINER_MODULE_CPPM_FREQ                (PERI1_FREQUENCY * TIMER_MULT_APB1)
   #define TRAINER_MODULE_CPPM_GPIO                INTMODULE_HEARTBEAT_GPIO
@@ -2403,7 +2397,6 @@
   #define TRAINER_MODULE_CPPM_TIMER_IRQn          TRAINER_TIMER_IRQn
   #define TRAINER_MODULE_CPPM_GPIO_AF             GPIO_AF_TIM3
   // Trainer SBUS input on heartbeat pin
-  #define TRAINER_MODULE_SBUS
   #define TRAINER_MODULE_SBUS_USART               USART6
   #define TRAINER_MODULE_SBUS_GPIO_AF             GPIO_AF_USART6
   #define TRAINER_MODULE_SBUS_GPIO                INTMODULE_HEARTBEAT_GPIO
@@ -2419,12 +2412,9 @@
 // USB
 #define USB_RCC_AHB1Periph_GPIO         RCC_AHB1Periph_GPIOA
 #define USB_GPIO                        GPIOA
-#define USB_GPIO_PIN_VBUS               GPIO_Pin_9  // PA.09
-#define USB_GPIO_PIN_DM                 GPIO_Pin_11 // PA.11
-#define USB_GPIO_PIN_DP                 GPIO_Pin_12 // PA.12
-#define USB_GPIO_PinSource_DM           GPIO_PinSource11
-#define USB_GPIO_PinSource_DP           GPIO_PinSource12
-#define USB_GPIO_AF                     GPIO_AF_OTG1_FS
+#define USB_GPIO_PIN_VBUS               LL_GPIO_PIN_9  // PA.09
+#define USB_GPIO_PIN_DM                 LL_GPIO_PIN_11 // PA.11
+#define USB_GPIO_PIN_DP                 LL_GPIO_PIN_12 // PA.12
 
 // BackLight
 #if defined(PCBX9E)

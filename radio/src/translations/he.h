@@ -169,12 +169,22 @@
 #define TR_HATSOPT                    "קיזוזים בלבד","ניווט בלבד","משולב","גלובאלי"
 #define TR_HATSMODE_TRIMS             "מצב כובעונים: קיזוזים"
 #define TR_HATSMODE_KEYS              "מצב כובעונים: ניווט"
+#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
+                                       "   Right = MDL\n"\
+                                       "   Up = SYS\n"\
+                                       "   Down = TELE\n"\
+                                       "\n"\
+                                       "Right side:\n"\
+                                       "   Left = PAGE<\n"\
+                                       "   Right = PAGE>\n"\
+                                       "   Up = PREV/INC\n"\
+                                       "   Down = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
   #define TR_ROTARY_ENC_OPT         "רגיל","הפוך"
 #else
-  #define TR_ROTARY_ENC_OPT         "רגיל","הפוך","V-I H-N","V-I H-A"
+  #define TR_ROTARY_ENC_OPT         "רגיל","הפוך","V-I H-N","V-I H-A","V-N E-I"
 #endif
 
 #if defined(IMU)

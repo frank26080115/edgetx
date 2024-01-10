@@ -883,7 +883,7 @@ PACK(struct RadioData {
   NOBACKUP(int8_t beepLength:3 CUST(r_5pos,w_5pos));
   NOBACKUP(int8_t hapticStrength:3 CUST(r_5pos,w_5pos));
   NOBACKUP(uint8_t gpsFormat:1);
-  NOBACKUP(uint8_t __spare2:1 SKIP);
+  NOBACKUP(uint8_t  audioMuteEnable:1);
   NOBACKUP(uint8_t speakerPitch CUST(r_spPitch,w_spPitch));
   NOBACKUP(int8_t speakerVolume CUST(r_vol,w_vol));
   NOBACKUP(int8_t vBatMin CUST(r_vbat_min,w_vbat_min));
@@ -930,8 +930,12 @@ PACK(struct RadioData {
 
   char ownerRegistrationID[PXX2_LEN_REGISTRATION_ID];
 
+#if defined(ROTARY_ENCODER_NAVIGATION) && !defined(USE_HATS_AS_KEYS)
   CUST_ATTR(rotEncDirection, r_rotEncDirection, nullptr);
-  NOBACKUP(uint8_t  rotEncMode:2);
+  NOBACKUP(uint8_t  rotEncMode:3);
+#else
+  NOBACKUP(uint8_t  rotEncModeSpare:3 SKIP);
+#endif
 
   NOBACKUP(int8_t   uartSampleMode:2); // See UartSampleModes
 
@@ -940,8 +944,6 @@ PACK(struct RadioData {
 #else
   NOBACKUP(uint8_t  stickDeadZoneSpare:3 SKIP);
 #endif
-
-  NOBACKUP(uint8_t  audioMuteEnable:1);
 
 #if defined(IMU)
   NOBACKUP(int8_t imuMax);

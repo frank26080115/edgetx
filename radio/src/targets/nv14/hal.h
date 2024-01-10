@@ -256,11 +256,9 @@
 // USB
 #define USB_RCC_AHB1Periph_GPIO         RCC_AHB1Periph_GPIOA
 #define USB_GPIO                        GPIOA
-#define USB_GPIO_PIN_VBUS               GPIO_Pin_9  // PA.09
-#define USB_GPIO_PIN_DM                 GPIO_Pin_11 // PA.11
-#define USB_GPIO_PIN_DP                 GPIO_Pin_12 // PA.12
-#define USB_GPIO_PinSource_DM           GPIO_PinSource11
-#define USB_GPIO_PinSource_DP           GPIO_PinSource12
+#define USB_GPIO_PIN_VBUS               LL_GPIO_PIN_9  // PA.09
+#define USB_GPIO_PIN_DM                 LL_GPIO_PIN_11 // PA.11
+#define USB_GPIO_PIN_DP                 LL_GPIO_PIN_12 // PA.12
 #define USB_GPIO_AF                     GPIO_AF_OTG1_FS
 
 #define USB_SW_AHB1Periph_GPIO          RCC_AHB1Periph_GPIOI
@@ -517,7 +515,6 @@
 #define HEARTBEAT_GPIO_PIN              GPIO_Pin_12 // PD.12
 
 // Trainer Port
-#define TRAINER_RCC_AHB1Periph          (RCC_AHB1Periph_GPIOD)
 #define TRAINER_GPIO                    GPIOD
 
 #define TRAINER_IN_GPIO_PIN             LL_GPIO_PIN_12 // PD.12
@@ -531,7 +528,6 @@
 #define TRAINER_TIMER_IRQHandler        TIM4_IRQHandler
 #define TRAINER_GPIO_AF                 LL_GPIO_AF_2
 #define TRAINER_TIMER_FREQ              (PERI1_FREQUENCY * TIMER_MULT_APB1)
-
 
 //BLUETOOTH
 #define BLUETOOTH_ON_RCC_AHB1Periph     RCC_AHB1Periph_GPIOI

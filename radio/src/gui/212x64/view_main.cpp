@@ -23,6 +23,7 @@
 #include "hal/trainer_driver.h"
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
+#include "hal/usb_driver.h"
 
 #include "switches.h"
 #include "input_mapping.h"
@@ -76,7 +77,7 @@ const unsigned char icons[]  = {
 #define ICON_REBOOT   91, 11
 #define ICON_ALTITUDE 102, 9
 
-#if defined(ASTERISK) || !defined(USE_WATCHDOG) || defined(LOG_TELEMETRY) || \
+#if defined(ASTERISK) || (!defined(USE_WATCHDOG) && !defined(SIMU)) || defined(LOG_TELEMETRY) || \
     defined(LOG_BLUETOOTH) || defined(DEBUG_LATENCY)
 
 static bool isAsteriskDisplayed() {
@@ -308,7 +309,7 @@ void displayTopBar()
       x -= 12;
     }
   }
-  else if (is_trainer_connected()) {
+  else if (isTrainerConnected()) {
     LCD_NOTIF_ICON(x, ICON_TRAINER);
     x -= 12;
   }
