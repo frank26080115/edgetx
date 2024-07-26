@@ -95,8 +95,13 @@
 #if defined(FUNCTION_SWITCHES)
   #define FSW_CFG_BITS                2
   #define FSWITCH_CONFIG(x)           (bfGet<swconfig_t>(g_model.functionSwitchConfig, FSW_CFG_BITS * (x), FSW_CFG_BITS))
-  #define FSWITCH_GROUP(x)            (bfGet<swconfig_t>(g_model.functionSwitchGroup,  FSW_CFG_BITS * (x), FSW_CFG_BITS))
-  #define IS_FSWITCH_GROUP_ON(x)      (bfGet<swconfig_t>(g_model.functionSwitchGroup,  FSW_CFG_BITS * NUM_FUNCTIONS_SWITCHES + x, 1))
+  #define FSWITCH_SET_CONFIG(x,v)     g_model.functionSwitchConfig = bfSet<swconfig_t>(g_model.functionSwitchConfig, v, FSW_CFG_BITS * (x), FSW_CFG_BITS)
+  #define FSWITCH_GROUP(x)            (bfGet<swconfig_t>(g_model.functionSwitchGroup, FSW_CFG_BITS * (x), FSW_CFG_BITS))
+  #define FSWITCH_SET_GROUP(x,v)      g_model.functionSwitchGroup = bfSet<swconfig_t>(g_model.functionSwitchGroup, v, FSW_CFG_BITS * (x), FSW_CFG_BITS)
+  #define FSWITCH_STARTUP(x)          (bfGet<swconfig_t>(g_model.functionSwitchStartConfig, FSW_CFG_BITS * (x), FSW_CFG_BITS))
+  #define FSWITCH_SET_STARTUP(x,v)    g_model.functionSwitchStartConfig = bfSet<swconfig_t>(g_model.functionSwitchStartConfig, v, FSW_CFG_BITS * (x), FSW_CFG_BITS)
+  #define IS_FSWITCH_GROUP_ON(x)      (bfGet<swconfig_t>(g_model.functionSwitchGroup, FSW_CFG_BITS * NUM_FUNCTIONS_SWITCHES + x, 1))
+  #define SET_FSWITCH_GROUP_ON(x,v)   g_model.functionSwitchGroup = bfSet<swconfig_t>(g_model.functionSwitchGroup, v, FSW_CFG_BITS * NUM_FUNCTIONS_SWITCHES + x, 1)
   #define IS_SWITCH_FS(x)             (x >= switchGetMaxSwitches() && x < (switchGetMaxSwitches() + switchGetMaxFctSwitches()))
   #define SWITCH_EXISTS(x)            (IS_SWITCH_FS(x)  ? true : (SWITCH_CONFIG(x) != SWITCH_NONE))
   #define IS_CONFIG_3POS(x)           (IS_SWITCH_FS(x)  ? (FSWITCH_CONFIG(x - switchGetMaxSwitches()) == SWITCH_3POS) : (SWITCH_CONFIG(x) == SWITCH_3POS))
@@ -159,23 +164,6 @@ enum CurveRefType {
 
 #define TRIM_OFF    (1)
 #define TRIM_ON     (0)
-#define TRIM_RUD    (-1)
-#define TRIM_ELE    (-2)
-#define TRIM_THR    (-3)
-#define TRIM_AIL    (-4)
-#if defined(PCBPL18)
-  #define TRIM_T5   (-5)
-  #define TRIM_T6   (-6)
-  #define TRIM_T7   (-7)
-  #define TRIM_T8   (-8)
-  #define TRIM_LAST TRIM_T8
-#elif defined(PCBHORUS)
-  #define TRIM_T5   (-5)
-  #define TRIM_T6   (-6)
-  #define TRIM_LAST TRIM_T6
-#else
-  #define TRIM_LAST TRIM_AIL
-#endif
 
 enum MixerMultiplex {
   MLTPX_ADD  = 0,

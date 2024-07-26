@@ -35,6 +35,7 @@ enum MixFields {
   MIX_FIELD_MLTPX,
   MIX_FIELD_DELAY_UP,
   MIX_FIELD_DELAY_DOWN,
+  MIX_FIELD_SLOW_PREC,
   MIX_FIELD_SLOW_UP,
   MIX_FIELD_SLOW_DOWN,
   MIX_FIELD_COUNT
@@ -89,20 +90,14 @@ void drawOffsetBar(uint8_t x, uint8_t y, MixData * md)
 
 void menuModelMixOne(event_t event)
 {
-#if defined(KEYS_GPIO_REG_MDL)
-  if (event == EVT_KEY_FIRST(KEY_MODEL)) {
-    pushMenu(menuChannelsView);
-    killEvents(event);
-  }
-#elif defined(NAVIGATION_X7)
-  if (event == EVT_KEY_FIRST(KEY_MENU)) {
-    pushMenu(menuChannelsView);
-    killEvents(event);
-  }
-#elif defined(NAVIGATION_XLITE)
+#if defined(NAVIGATION_XLITE)
   if (event == EVT_KEY_FIRST(KEY_ENTER) && keysGetState(KEY_SHIFT)) {
     pushMenu(menuChannelsView);
     killEvents(event);
+  }
+#else
+  if (event == EVT_KEY_BREAK(KEY_MODEL) || event == EVT_KEY_BREAK(KEY_MENU)) {
+    pushMenu(menuChannelsView);
   }
 #endif
   MixData * md2 = mixAddress(s_currIdx) ;
@@ -137,7 +132,8 @@ void menuModelMixOne(event_t event)
       case MIX_FIELD_SOURCE:
         lcdDrawTextAlignedLeft(y, STR_SOURCE);
         drawSource(MIXES_2ND_COLUMN, y, md2->srcRaw, STREXPANDED|attr);
-        if (attr) CHECK_INCDEC_MODELSOURCE(event, md2->srcRaw, 1, MIXSRC_LAST);
+        if (attr)
+          md2->srcRaw = checkIncDec(event, md2->srcRaw, 1, MIXSRC_LAST, EE_MODEL|INCDEC_SOURCE|INCDEC_SOURCE_INVERT|NO_INCDEC_MARKS, isSourceAvailable);
         break;
 
       case MIX_FIELD_WEIGHT:
@@ -166,7 +162,7 @@ void menuModelMixOne(event_t event)
         lcdDrawTextAlignedLeft(y, STR_CURVE);
         s_currSrcRaw = md2->srcRaw;
         s_currScale = 0;
-        editCurveRef(MIXES_2ND_COLUMN, y, md2->curve, s_editMode > 0 ? event : 0, attr);
+        editCurveRef(MIXES_2ND_COLUMN, y, md2->curve, event, attr);
         break;
 
 #if defined(FLIGHT_MODES)
@@ -181,7 +177,7 @@ void menuModelMixOne(event_t event)
         break;
 
       case MIX_FIELD_WARNING:
-        drawFieldLabel(MIXES_2ND_COLUMN, y, STR_MIXWARNING);
+        lcdDrawTextAlignedLeft(y, STR_MIXWARNING);
         if (md2->mixWarn)
           lcdDrawNumber(MIXES_2ND_COLUMN, y, md2->mixWarn, attr|LEFT);
         else
@@ -194,19 +190,23 @@ void menuModelMixOne(event_t event)
         break;
 
       case MIX_FIELD_DELAY_UP:
-        md2->delayUp = EDIT_DELAY(0, y, event, attr, STR_DELAYUP, md2->delayUp);
+        md2->delayUp = EDIT_DELAY(0, y, event, attr, STR_DELAYUP, md2->delayUp, PREC1);
         break;
 
       case MIX_FIELD_DELAY_DOWN:
-        md2->delayDown = EDIT_DELAY(0, y, event, attr, STR_DELAYDOWN, md2->delayDown);
+        md2->delayDown = EDIT_DELAY(0, y, event, attr, STR_DELAYDOWN, md2->delayDown, PREC1);
+        break;
+
+      case MIX_FIELD_SLOW_PREC:
+        md2->speedPrec = editChoice(MIXES_2ND_COLUMN, y, STR_MIX_SLOW_PREC, &STR_VPREC[1], md2->speedPrec, 0, 1, attr, event);
         break;
 
       case MIX_FIELD_SLOW_UP:
-        md2->speedUp = EDIT_DELAY(0, y, event, attr, STR_SLOWUP, md2->speedUp);
+        md2->speedUp = EDIT_DELAY(0, y, event, attr, STR_SLOWUP, md2->speedUp, (md2->speedPrec ? PREC2 : PREC1));
         break;
 
       case MIX_FIELD_SLOW_DOWN:
-        md2->speedDown = EDIT_DELAY(0, y, event, attr, STR_SLOWDOWN, md2->speedDown);
+        md2->speedDown = EDIT_DELAY(0, y, event, attr, STR_SLOWDOWN, md2->speedDown, (md2->speedPrec ? PREC2 : PREC1));
         break;
     }
     y += FH;

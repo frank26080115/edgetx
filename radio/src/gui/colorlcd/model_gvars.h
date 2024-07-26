@@ -21,16 +21,21 @@
 
 #pragma once
 
-#include "page.h"
 #include "tabsgroup.h"
-#include "window.h"
+#include "opentx.h"
 
 class ModelGVarsPage : public PageTab
 {
  public:
   ModelGVarsPage();
 
+  bool isVisible() const override { return modelGVEnabled(); }
+
+  void cleanup() override;
+
  protected:
-  void build(FormWindow* window) override;
-  void rebuild(FormWindow* window);
+  Window* hdr = nullptr;
+
+  void build(Window* window) override;
+  void rebuild(Window* window);
 };

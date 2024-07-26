@@ -18,53 +18,56 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
+
 #pragma once
 
-#include <algorithm>
-#include <vector>
-#include <iostream>
-#include <string>
 #include <set>
+#include <vector>
 
-#include "bitmapbuffer.h"
-#include "libopenui.h"
-#include "touch.h"
+#include "table.h"
 
-// base class for lists of elements with names
-class ListBase : public TableField
+// Class for lists of elements with names
+class ListBox : public TableField
 {
   std::function<void()> longPressHandler = nullptr;
   std::function<void()> pressHandler = nullptr;
-  std::function<void(std::set<uint32_t>, std::set<uint32_t>)> _multiSelectHandler = nullptr;
+  std::function<void(std::set<uint32_t>, std::set<uint32_t>)>
+      _multiSelectHandler = nullptr;
+  std::function<const char*(uint16_t row)> getSelectedSymbol = nullptr;
   bool autoEdit = false;
 
  public:
-  ListBase(Window* parent, const rect_t& rect, const std::vector<std::string>& names,
-           uint8_t lineHeight = MENUS_LINE_HEIGHT, WindowFlags windowFlags = 0);
+  ListBox(Window* parent, const rect_t& rect,
+          const std::vector<std::string>& names,
+          uint8_t lineHeight = MENUS_LINE_HEIGHT);
 
-  bool getAutoEdit() const { return autoEdit; }
   void setAutoEdit(bool enable);
 
   void setName(uint16_t idx, const std::string& name);
   void setNames(const std::vector<std::string>& names);
   void setLineHeight(uint8_t height);
 
-  virtual void setSelected(int selected);
+  virtual void setSelected(int selected, bool force = false);
   virtual void setSelected(std::set<uint32_t> selected);
 
   int getSelected() const;
+  bool isRowSelected(uint16_t row);
   std::set<uint32_t> getSelection();
 
-  void setMultiSelect(bool mode) {
-    multiSelect = mode;
-  }
+  void setMultiSelect(bool mode) { multiSelect = mode; }
 
   virtual void setActiveItem(int item);
   int getActiveItem() const;
 
-  void setMultiSelectHandler(std::function<void(std::set<uint32_t>, std::set<uint32_t>)> handler)
+  void setMultiSelectHandler(
+      std::function<void(std::set<uint32_t>, std::set<uint32_t>)> handler)
   {
     _multiSelectHandler = std::move(handler);
+  }
+
+  void setGetSelectedSymbol(std::function<const char*(uint16_t)> handler)
+  {
+    getSelectedSymbol = std::move(handler);
   }
 
   void setLongPressHandler(std::function<void()> handler)
@@ -77,26 +80,26 @@ class ListBase : public TableField
     pressHandler = std::move(handler);
   }
 
+  void setSmallSelectMarker() { smallSelectMarker = true; }
+
 #if defined(DEBUG_WINDOWS)
   std::string getName() const override { return "ListBox"; }
 #endif
+
+  static LAYOUT_VAL(MENUS_LINE_HEIGHT, 35, 35)
 
  protected:
   static void event_cb(lv_event_t* e);
   int activeItem = -1;
   bool multiSelect = false;
+  bool smallSelectMarker = false;
 
   void onPress(uint16_t row, uint16_t col) override;
-  void onLongPressed();
+  bool onLongPress() override;
 
   void onClicked() override;
   void onCancel() override;
 
-  void onDrawEnd(uint16_t row, uint16_t col, lv_obj_draw_part_dsc_t* dsc) override;
-};
-
-class ListBox : public ListBase
-{
- public:
-  using ListBase::ListBase;
+  void onDrawEnd(uint16_t row, uint16_t col,
+                 lv_obj_draw_part_dsc_t* dsc) override;
 };

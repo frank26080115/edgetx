@@ -45,7 +45,7 @@ enum SensorFields {
 #define SENSOR_3RD_COLUMN      (18*FW)
 
 #define SENSOR_UNIT_ROWS       ((sensor->type == TELEM_TYPE_CALCULATED && (sensor->formula == TELEM_FORMULA_DIST)) || sensor->isConfigurable() ? (uint8_t)0 : HIDDEN_ROW)
-#define SENSOR_PREC_ROWS       (sensor->isPrecConfigurable() && sensor->unit != UNIT_FAHRENHEIT  ? (uint8_t)0 : HIDDEN_ROW)
+#define SENSOR_PREC_ROWS       (sensor->isPrecConfigurable() ? (uint8_t)0 : HIDDEN_ROW)
 #define SENSOR_PARAM1_ROWS     (sensor->unit >= UNIT_FIRST_VIRTUAL ? HIDDEN_ROW : (uint8_t)0)
 #define SENSOR_PARAM2_ROWS     (sensor->unit == UNIT_GPS || sensor->unit == UNIT_DATETIME || sensor->unit == UNIT_CELLS || (sensor->type==TELEM_TYPE_CALCULATED && (sensor->formula==TELEM_FORMULA_CONSUMPTION || sensor->formula==TELEM_FORMULA_TOTALIZE)) ? HIDDEN_ROW : (uint8_t)0)
 #define SENSOR_PARAM3_ROWS     (sensor->type == TELEM_TYPE_CALCULATED && sensor->formula < TELEM_FORMULA_MULTIPLY) ? (uint8_t)0 : HIDDEN_ROW
@@ -103,7 +103,7 @@ void menuModelSensor(event_t event)
                        TELEM_LABEL_LEN, event, attr, old_editMode);
         break;
       case SENSOR_FIELD_TYPE:
-        sensor->type = editChoice(SENSOR_2ND_COLUMN, y, NO_INDENT(STR_TYPE), STR_VSENSORTYPES, sensor->type, 0, 1, attr, event);
+        sensor->type = editChoice(SENSOR_2ND_COLUMN, y, STR_TYPE, STR_VSENSORTYPES, sensor->type, 0, 1, attr, event);
         if (attr && checkIncDec_Ret) {
           sensor->instance = 0;
           if (sensor->type == TELEM_TYPE_CALCULATED) {
@@ -234,10 +234,15 @@ void menuModelSensor(event_t event)
           else {
             lcdDrawTextAlignedLeft(y, STR_RATIO);
             if (attr) sensor->custom.ratio = checkIncDec(event, sensor->custom.ratio, 0, 30000, EE_MODEL|NO_INCDEC_MARKS|INCDEC_REP10);
-            if (sensor->custom.ratio == 0)
+            if (sensor->custom.ratio == 0) {
               lcdDrawChar(SENSOR_2ND_COLUMN, y, '-', attr);
-            else
+            } else {  // Ratio + Ratio Percent
               lcdDrawNumber(SENSOR_2ND_COLUMN, y, sensor->custom.ratio, LEFT|attr|PREC1);
+              uint32_t ratio = (sensor->custom.ratio * 1000) / 255;
+              int ratio_len = countDigits(ratio);
+              lcdDrawNumber(SENSOR_3RD_COLUMN, y, ratio, LEFT|PREC1);
+              lcdDrawChar(SENSOR_3RD_COLUMN+(FWNUM*ratio_len)+3, y, '%', 0);
+            }
             break;
           }
         }
@@ -306,7 +311,7 @@ void menuModelSensor(event_t event)
         break;
 
       case SENSOR_FIELD_PERSISTENT:
-        sensor->persistent = editCheckBox(sensor->persistent, SENSOR_2ND_COLUMN, y, NO_INDENT(STR_PERSISTENT), attr, event);
+        sensor->persistent = editCheckBox(sensor->persistent, SENSOR_2ND_COLUMN, y, STR_PERSISTENT, attr, event, INDENT_WIDTH);
         if (checkIncDec_Ret && !sensor->persistent) {
           sensor->persistentValue = 0;
         }

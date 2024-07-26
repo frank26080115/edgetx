@@ -19,6 +19,8 @@
  * GNU General Public License for more details.
  */
 
+#include "stm32_hal_ll.h"
+#include "stm32_gpio.h"
 #include "stm32_ws2812.h"
 
 #include "hal/adc_driver.h"
@@ -27,6 +29,7 @@
 #include "hal/module_port.h"
 #include "hal/abnormal_reboot.h"
 #include "hal/usb_driver.h"
+#include "hal/gpio.h"
 
 #include "board.h"
 #include "boards/generic_stm32/module_ports.h"
@@ -66,35 +69,8 @@ HardwareOptions hardwareOptions;
 
 void boardInit()
 {
-  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph |
-                         PCBREV_RCC_AHB1Periph |
-                         LCD_RCC_AHB1Periph |
-                         AUDIO_RCC_AHB1Periph |
-                         BACKLIGHT_RCC_AHB1Periph |
-                         HAPTIC_RCC_AHB1Periph |
-                         INTMODULE_RCC_AHB1Periph |
-                         EXTMODULE_RCC_AHB1Periph |
-                         TELEMETRY_RCC_AHB1Periph |
-                         SPORT_UPDATE_RCC_AHB1Periph |
-                         BT_RCC_AHB1Periph |
-                         USB_CHARGER_RCC_AHB1Periph,
-                         ENABLE);
-
-  RCC_APB1PeriphClockCmd(ROTARY_ENCODER_RCC_APB1Periph |
-                         LCD_RCC_APB1Periph |
-                         AUDIO_RCC_APB1Periph |
-                         BACKLIGHT_RCC_APB1Periph |
-                         HAPTIC_RCC_APB1Periph |
-                         TELEMETRY_RCC_APB1Periph |
-                         BT_RCC_APB1Periph,
-                         ENABLE);
-
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG |
-                         BACKLIGHT_RCC_APB2Periph |
-                         HAPTIC_RCC_APB2Periph |
-                         BT_RCC_APB2Periph |
-                         TELEMETRY_RCC_APB2Periph,
-                         ENABLE);
+  LL_APB1_GRP1_EnableClock(AUDIO_RCC_APB1Periph);
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
 
 #if defined(BLUETOOTH) && !defined(PCBX9E)
   bluetoothInit(BLUETOOTH_DEFAULT_BAUDRATE, true);
@@ -136,40 +112,47 @@ void boardInit()
 #endif
 #endif
 
-// Support for FS Led to indicate battery charge level
-#if defined(FUNCTION_SWITCHES)
+// If the radio was powered on by dual use USB, halt the boot process, let battery charge
+// TODO: needs refactoring if any other manufacturer implements either of the following:
+// - function switches and the radio supports charging
+// - single USB for data + charge which powers on radio
+#if defined(MANUFACTURER_JUMPER)
   // This is needed to prevent radio from starting when usb is plugged to charge
   usbInit();
   // prime debounce state...
-   usbPlugged();
+  usbPlugged();
 
-   if (usbPlugged()) {
-     delaysInit();
-     adcInit(&_adc_driver);
-     getADC();
-     pwrOn(); // required to get bat adc reads
-     INTERNAL_MODULE_OFF();
-     EXTERNAL_MODULE_OFF();
+  if (usbPlugged()) {
+    delaysInit();
+    adcInit(&_adc_driver);
+    getADC();
+    pwrOn();  // required to get bat adc reads
+    INTERNAL_MODULE_OFF();
+    EXTERNAL_MODULE_OFF();
+    delay_ms(2000); // let this stabilize
 
-     while (usbPlugged()) {
-       // Let it charge ...
-       getADC(); // Warning: the value read does not include VBAT calibration
-       delay_ms(20);
-       if (getBatteryVoltage() >= 660)
-         fsLedOn(0);
-       if (getBatteryVoltage() >= 700)
-         fsLedOn(1);
-       if (getBatteryVoltage() >= 740)
-         fsLedOn(2);
-       if (getBatteryVoltage() >= 780)
-         fsLedOn(3);
-       if (getBatteryVoltage() >= 820)
-         fsLedOn(4);
-       if (getBatteryVoltage() >= 842)
-         fsLedOn(5);
-     }
-     pwrOff();
-   }
+    while (usbPlugged()) {
+      //    // Let it charge ...
+      getADC();  // Warning: the value read does not include VBAT calibration
+      delay_ms(20);
+#if defined(FUNCTION_SWITCHES)
+      // Support for FS Led to indicate battery charge level
+      if (getBatteryVoltage() >= 660) fsLedOn(0);
+      if (getBatteryVoltage() >= 700) fsLedOn(1);
+      if (getBatteryVoltage() >= 740) fsLedOn(2);
+      if (getBatteryVoltage() >= 780) fsLedOn(3);
+      if (getBatteryVoltage() >= 820) fsLedOn(4);
+      if (getBatteryVoltage() >= 842) fsLedOn(5);
+#elif defined(STATUS_LEDS)
+      // Use Status LED to indicate battery charge level instead
+      if (getBatteryVoltage() <= 660) ledRed();         // low discharge
+      else if (getBatteryVoltage() <= 842) ledBlue();   // charging
+      else ledGreen();                                  // charging done
+      delay_ms(1000);
+#endif
+    }
+    pwrOff();
+  }
 #endif
 
   keysInit();
@@ -208,7 +191,7 @@ void boardInit()
   ws2812_update(&_led_timer);
 #endif
 
-#if defined(DEBUG)
+#if defined(DEBUG) && defined(AUX_SERIAL)
   serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
   serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
 #endif
@@ -222,7 +205,9 @@ void boardInit()
 #endif
 
 #if defined(DEBUG)
-  DBGMCU_APB1PeriphConfig(DBGMCU_IWDG_STOP|DBGMCU_TIM1_STOP|DBGMCU_TIM2_STOP|DBGMCU_TIM3_STOP|DBGMCU_TIM6_STOP|DBGMCU_TIM8_STOP|DBGMCU_TIM10_STOP|DBGMCU_TIM13_STOP|DBGMCU_TIM14_STOP, ENABLE);
+  // Freeze timers & watchdog when core is halted
+  DBGMCU->APB1FZ = 0x00E009FF;
+  DBGMCU->APB2FZ = 0x00070003;
 #endif
 
 #if defined(PWR_BUTTON_PRESS)
@@ -315,61 +300,61 @@ void boardOff()
 #if defined(AUDIO_SPEAKER_ENABLE_GPIO)
 void initSpeakerEnable()
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
-
-  GPIO_InitStructure.GPIO_Pin = AUDIO_SPEAKER_ENABLE_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(AUDIO_SPEAKER_ENABLE_GPIO, &GPIO_InitStructure);
+  gpio_init(AUDIO_SPEAKER_ENABLE_GPIO, GPIO_OUT, GPIO_PIN_SPEED_LOW);
 }
 
 void enableSpeaker()
 {
-  GPIO_SetBits(AUDIO_SPEAKER_ENABLE_GPIO, AUDIO_SPEAKER_ENABLE_GPIO_PIN);
+  gpio_set(AUDIO_SPEAKER_ENABLE_GPIO);
 }
 
 void disableSpeaker()
 {
-  GPIO_ResetBits(AUDIO_SPEAKER_ENABLE_GPIO, AUDIO_SPEAKER_ENABLE_GPIO_PIN);
+  gpio_clear(AUDIO_SPEAKER_ENABLE_GPIO);
 }
 #endif
 
 #if defined(HEADPHONE_TRAINER_SWITCH_GPIO)
 void initHeadphoneTrainerSwitch()
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
-
-  GPIO_InitStructure.GPIO_Pin = HEADPHONE_TRAINER_SWITCH_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(HEADPHONE_TRAINER_SWITCH_GPIO, &GPIO_InitStructure);
+  gpio_init(HEADPHONE_TRAINER_SWITCH_GPIO, GPIO_OUT, GPIO_PIN_SPEED_LOW);
 }
 
 void enableHeadphone()
 {
-  GPIO_ResetBits(HEADPHONE_TRAINER_SWITCH_GPIO, HEADPHONE_TRAINER_SWITCH_GPIO_PIN);
+  gpio_clear(HEADPHONE_TRAINER_SWITCH_GPIO);
 }
 
 void enableTrainer()
 {
-  GPIO_SetBits(HEADPHONE_TRAINER_SWITCH_GPIO, HEADPHONE_TRAINER_SWITCH_GPIO_PIN);
+  gpio_set(HEADPHONE_TRAINER_SWITCH_GPIO);
 }
 #endif
 
 #if defined(JACK_DETECT_GPIO)
 void initJackDetect(void)
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
+  gpio_init(JACK_DETECT_GPIO, GPIO_IN_PU, GPIO_PIN_SPEED_LOW);
+}
 
-  GPIO_InitStructure.GPIO_Pin = JACK_DETECT_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(JACK_DETECT_GPIO, &GPIO_InitStructure);
+bool isJackPlugged()
+{
+  // debounce
+  static bool debounced_state = 0;
+  static bool last_state = 0;
+
+  if (gpio_read(JACK_DETECT_GPIO)) {
+    if (!last_state) {
+      debounced_state = false;
+    }
+    last_state = false;
+  }
+  else {
+    if (last_state) {
+      debounced_state = true;
+    }
+    last_state = true;
+  }
+  return debounced_state;
 }
 #endif

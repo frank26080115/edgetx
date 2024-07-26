@@ -102,7 +102,7 @@
 #define TR_FLYSKY_PULSE_PROTO          "PWM","PPM"
 #define TR_FLYSKY_SERIAL_PROTO         "iBUS","SBUS"
 #define TR_PPM_POL                     "-","+"
-#define TR_PWR_OFF_DELAYS              "0s","1s","2s","4s"
+#define TR_PWR_OFF_DELAYS              "0s","0.5s","1s","2s","3s"
 #if defined(COLORLCD)
 #define TR_SPLASHSCREEN_DELAYS         "1s","2s","3s","4s","6s","8s","10s","15s"
 #endif
@@ -314,6 +314,11 @@
 #define STR_CHAR_BW_DEGREE       '@'
 
 #define TR_FSGROUPS                     "-","1","2","3"
+#if defined(COLORLCD)
+#define TR_FSSWITCHES                   TR_LAST, "SW1", "SW2", "SW3", "SW4", "SW5", "SW6", TR_OFF
+#else
+#define TR_FSSWITCHES                   "=", "SW1", "SW2", "SW3", "SW4", "SW5", "SW6", TR_OFF
+#endif
 
 //
 // HoTT Telemetry sensor names by Hott device

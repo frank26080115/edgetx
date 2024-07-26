@@ -243,7 +243,7 @@ void LogsDialog::selectionChanged()
     if (item == NULL) item = rightLegend->itemWithPlottable(graph);
     if (item->selected() || graph->selected()) {
       item->setSelected(true);
-      graph->setSelection(QCPDataSelection(QCPDataRange()));
+      graph->setSelection(QCPDataSelection(graph->data()->dataRange()));
     }
   }
 }
@@ -848,7 +848,7 @@ void LogsDialog::plotLogs()
     rowCount = ui->logTable->rowCount();
   }
 
-  plots.min_x = QDateTime::currentDateTime().toTime_t();
+  plots.min_x = INVALID_MIN;
   plots.max_x = 0;
 
   foreach (QTableWidgetItem *plot, ui->FieldsTW->selectedItems()) {
@@ -892,7 +892,11 @@ void LogsDialog::plotLogs()
       }
       plotCoords.x.push_back(time);
 
-      if (plots.min_x > time) plots.min_x = time;
+      if(plots.min_x == INVALID_MIN)
+        plots.min_x = time;
+      else
+        if (plots.min_x > time) plots.min_x = time;
+
       if (plots.max_x < time) plots.max_x = time;
     }
 

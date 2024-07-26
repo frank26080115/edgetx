@@ -167,6 +167,9 @@ void lcdPutPattern(coord_t x, coord_t y, const uint8_t * pattern, uint8_t width,
 LcdFlags getCharPattern(PatternData * pattern, unsigned char c, LcdFlags flags)
 {
 #if !defined(BOOT)
+  static const uint8_t fontWidth[] = { 5, 3, 5, 8, 10, 22, 5 };
+  static const uint8_t fontHeight[] = { 7, 5, 6, 12, 16, 38, 7 };
+
   uint32_t fontsize = FONTSIZE(flags);
   unsigned char c_remapped = 0;
 
@@ -175,62 +178,61 @@ LcdFlags getCharPattern(PatternData * pattern, unsigned char c, LcdFlags flags)
     // c has to be remapped. All non existing chars mapped to 0 (space)
     if (c >= ',' && c <= ':')
       c_remapped = c - ',' + 1;
-    else if (c>='A' && c<='Z')
+    else if (c >= 'A' && c <= 'Z')
       c_remapped = c - 'A' + 16;
-    else if (c>='a' && c<='z')
+    else if (c >= 'a' && c <= 'z')
       c_remapped = c - 'a' + 42;
-    else if (c=='_')
+    else if (c == '_')
       c_remapped = 4;
-    else if (c!=' ')
-      flags &= ~BOLD;
+    else if (c != ' ')
+      flags &= ~BOLD; // For BOLD use Standard font if character is not in BOLD
   }
 
-  if (fontsize == DBLSIZE) {
-    pattern->width = 10;
-    pattern->height = 16;
-    if (c >= 0x80) {
-      pattern->data = &font_10x14_extra[((uint16_t) (c - 0x80)) * 20];
-    }
-    else {
-      if (c >= 0x80)
-        c_remapped = c - 81;
-      pattern->data = &font_10x14[((uint16_t) c_remapped) * 20];
-    }
-  }
-  else if (fontsize == XXLSIZE) {
-    pattern->width = 22;
-    pattern->height = 38;
-    pattern->data = &font_22x38_num[((uint16_t) c - '0' + 5) * 110];
-  }
-  else if (fontsize == MIDSIZE) {
-    pattern->width = 8;
-    pattern->height = 12;
-    pattern->data = &font_8x10[((uint16_t) c - 0x20) * 16];
-  }
-  else if (fontsize == SMLSIZE) {
-    pattern->width = 5;
-    pattern->height = 6;
-    pattern->data = (c < 0x80 ? &font_4x6[(c - 0x20) * 5] : &font_4x6_extra[(c - 0x80) * 5]);
-  }
-  else if (fontsize == TINSIZE) {
-    pattern->width = 3;
-    pattern->height = 5;
-    pattern->data = &font_3x5[((uint16_t) c - 0x20) * 3];
-  }
-  else if (flags & BOLD) {
-    pattern->width = 5;
-    pattern->height = 7;
-    pattern->data = &font_5x7_B[c_remapped*5];
-  }
-  else {
-    pattern->width = 5;
-    pattern->height = 7;
-    pattern->data = &font_5x7[(c - 0x20) * 5];
-  }
+  uint8_t fontIdx = fontsize >> 8;
+  if (fontIdx == 0 && flags & BOLD) fontIdx = 6;
+
+  pattern->width = fontWidth[fontIdx];
+  pattern->height = fontHeight[fontIdx];
+  int charSize = (pattern->height + 7) / 8 * pattern->width;
+
+  switch (fontIdx) {
+    case 0: // Standard
+      pattern->data = &font_5x7[(c - FONT_BASE_START) * charSize];
+      break;
+    case 1: // TINSIZE
+      pattern->data = &font_3x5[(c - FONT_BASE_START) * charSize];
+      break;
+    case 2: // SMLSIZE
+      // Adjust language special characters offset
+      if (c >= FONT_LANG_START)
+        c = c - (FONT_SYMS_CNT - FONT_SYMS_CNT_4x6);
+      pattern->data = &font_4x6[(c - FONT_BASE_START) * charSize];
+      break;
+    case 3: // MDLSIZE
+      // Adjust language special characters offset
+      if (c >= FONT_LANG_START)
+        c = c - FONT_SYMS_CNT;
+      pattern->data = &font_8x10[(c - FONT_BASE_START) * charSize];
+      break;
+    case 4: // DBLSIZE
+      // Adjust language special characters offset and symbols offset
+      if (c >= FONT_LANG_START)
+        c_remapped = c - (FONT_BASE_CNT - FONT_BASE_CNT_10x14) - (FONT_SYMS_CNT - FONT_SYMS_CNT_10x14) - FONT_BASE_START;
+      else if (c >= FONT_SYMS_START)
+        c_remapped = c - (FONT_BASE_CNT - FONT_BASE_CNT_10x14) - FONT_BASE_START;
+      pattern->data = &font_10x14[(c_remapped) * charSize];
+      break;
+    case 5: // XXLSIZE
+      pattern->data = &font_22x38_num[(c - '0' + 5) * charSize];
+      break;
+    case 6: // BOLD
+      pattern->data = &font_5x7_B[c_remapped * charSize];
+      break;
+  };
 #else
   pattern->width = 5;
   pattern->height = 7;
-  pattern->data = &font_5x7[(c - 0x20) * 5];
+  pattern->data = &font_5x7[(c - FONT_BASE_START) * 5];
 #endif
   return flags;
 }
@@ -245,14 +247,9 @@ uint8_t getCharWidth(char c, LcdFlags flags)
 void lcdDrawChar(coord_t x, coord_t y, uint8_t c, LcdFlags flags)
 {
   lcdNextPos = x - 1;
-#if defined(BOOT)
-  const uint8_t * data = &font_5x7[(c-0x20)*5];
-  lcdPutPattern(x, y, data, 5, 7, flags);
-#else
   PatternData pattern;
   flags = getCharPattern(&pattern, c, flags);
   lcdPutPattern(x, y, pattern.data, pattern.width, pattern.height, flags);
-#endif
 }
 
 void lcdDrawChar(coord_t x, coord_t y, uint8_t c)
@@ -264,11 +261,7 @@ uint8_t getTextWidth(const char * s, uint8_t len, LcdFlags flags)
 {
   uint8_t width = 0;
   for (int i = 0; len == 0 || i < len; ++i) {
-#if !defined(BOOT)
-    unsigned char c = *s;
-#else
-    unsigned char c = *s;
-#endif
+    unsigned char c = map_utf8_char(s, len);
     if (!c) {
       break;
     }
@@ -395,6 +388,11 @@ void lcdDrawText(coord_t x, coord_t y, const char * s)
 void lcdDrawTextAlignedLeft(coord_t y, const char * s)
 {
   lcdDrawText(0, y, s);
+}
+
+void lcdDrawTextIndented(coord_t y, const char * s)
+{
+  lcdDrawText(INDENT_WIDTH, y, s);
 }
 
 #if !defined(BOOT)
@@ -634,23 +632,34 @@ void drawMainControlLabel(coord_t x, coord_t y, uint8_t idx, LcdFlags att)
   lcdDrawSizedText(x, y, getMainControlLabel(idx), UINT8_MAX, att);
 }
 
-void drawSource(coord_t x, coord_t y, uint32_t idx, LcdFlags att)
+void drawSource(coord_t x, coord_t y, mixsrc_t idx, LcdFlags att)
 {
-  if (idx == MIXSRC_NONE) {
+  uint16_t aidx = abs(idx);
+  bool inverted = idx < 0;
+
+  if (aidx == MIXSRC_NONE) {
     lcdDrawText(x, y, STR_EMPTY, att);
   }
-  else if (idx <= MIXSRC_LAST_INPUT) {
+  else if (aidx <= MIXSRC_LAST_INPUT) {
+    if (inverted) {
+      lcdDrawChar(x, y, '!');
+      x += 2;
+    }
     lcdDrawChar(x+2, y+1, CHR_INPUT, TINSIZE);
     lcdDrawFilledRect(x, y, 7, 7);
-    if (ZEXIST(g_model.inputNames[idx-MIXSRC_FIRST_INPUT]))
-      lcdDrawSizedText(x+8, y, g_model.inputNames[idx-MIXSRC_FIRST_INPUT], LEN_INPUT_NAME, att);
+    if (ZEXIST(g_model.inputNames[aidx-MIXSRC_FIRST_INPUT]))
+      lcdDrawSizedText(x+8, y, g_model.inputNames[aidx-MIXSRC_FIRST_INPUT], LEN_INPUT_NAME, att);
     else
-      lcdDrawNumber(x+8, y, idx, att|LEADING0|LEFT, 2);
+      lcdDrawNumber(x+8, y, aidx, att|LEADING0|LEFT, 2);
   }
 
-  else if (idx <= MIXSRC_LAST_LUA) {
-    div_t qr = div(idx-MIXSRC_FIRST_LUA, MAX_SCRIPT_OUTPUTS);
+  else if (aidx <= MIXSRC_LAST_LUA) {
+    div_t qr = div((uint16_t)(aidx-MIXSRC_FIRST_LUA), MAX_SCRIPT_OUTPUTS);
 #if defined(LUA_MODEL_SCRIPTS)
+    if (inverted) {
+      lcdDrawChar(x, y, '!');
+      x += 2;
+    }
     if (qr.quot < MAX_SCRIPTS && qr.rem < scriptInputsOutputs[qr.quot].outputsCount) {
       lcdDrawChar(x+2, y+1, '1'+qr.quot, TINSIZE);
       lcdDrawFilledRect(x, y, 7, 7);
@@ -663,64 +672,8 @@ void drawSource(coord_t x, coord_t y, uint32_t idx, LcdFlags att)
       lcdDrawChar(lcdLastRightPos, y, 'a'+qr.rem, att);
     }
   }
-
-  else if (idx <= MIXSRC_LAST_POT) {
-    lcdDrawText(x, y, getSourceString(idx), att);
-  }
-  else if (idx >= MIXSRC_FIRST_SWITCH && idx <= MIXSRC_LAST_SWITCH) {
-    lcdDrawText(x, y, getSourceString(idx), att);
-  }
-  else if (idx <= MIXSRC_LAST_LOGICAL_SWITCH) {
-    idx -= MIXSRC_FIRST_LOGICAL_SWITCH;
-    drawSwitch(x, y, idx + SWSRC_FIRST_LOGICAL_SWITCH, att);
-  } else if (idx <= MIXSRC_LAST_TRAINER) {
-    idx -= MIXSRC_FIRST_TRAINER;
-    drawStringWithIndex(x, y, STR_PPM_TRAINER, idx + 1, att);
-  } else if (idx <= MIXSRC_LAST_CH) {
-    idx -= MIXSRC_FIRST_CH;
-    drawStringWithIndex(x, y, STR_CH, idx + 1, att);
-    if (ZEXIST(g_model.limitData[idx].name) && (att & STREXPANDED)) {
-      lcdDrawChar(lcdLastRightPos, y, ' ', att|SMLSIZE);
-      lcdDrawSizedText(lcdLastRightPos+3, y, g_model.limitData[idx].name, LEN_CHANNEL_NAME, att|SMLSIZE);
-    }
-  }
-  else if (idx <= MIXSRC_LAST_GVAR) {
-    idx -= MIXSRC_FIRST_GVAR - 1;
-    drawStringWithIndex(x, y, STR_GV, idx, att);
-  }
-  else if (idx < MIXSRC_FIRST_TIMER) {
-    // Built-in sources: TX Voltage, Time, GPS (+ reserved)
-    const char* src_str;
-    switch(idx) {
-    case MIXSRC_TX_VOLTAGE:
-      src_str = STR_SRC_BATT;
-      break;
-    case MIXSRC_TX_TIME:
-      src_str = STR_SRC_TIME;
-      break;
-    case MIXSRC_TX_GPS:
-      src_str = STR_SRC_BATT;
-      break;
-    default:
-      src_str = "";
-      break;
-    }
-    lcdDrawText(x, y, src_str, att);
-  }
-  else if (idx <= MIXSRC_LAST_TIMER) {
-    idx -= MIXSRC_FIRST_TIMER;
-    if(g_model.timers[idx].name[0]) {
-      lcdDrawSizedText(x, y, g_model.timers[idx].name, LEN_TIMER_NAME, att);
-    }
-    else {
-      drawStringWithIndex(x, y, STR_SRC_TIMER, idx + 1, att);
-    }
-  }
   else {
-    idx -= MIXSRC_FIRST_TELEM;
-    div_t qr = div(idx, 3);
-    lcdDrawSizedText(x, y, g_model.telemetrySensors[qr.quot].label, TELEM_LABEL_LEN, att);
-    if (qr.rem) lcdDrawChar(lcdLastRightPos, y, qr.rem==2 ? '+' : '-', att);
+    lcdDrawText(x, y, getSourceString(idx), att);
   }
 }
 

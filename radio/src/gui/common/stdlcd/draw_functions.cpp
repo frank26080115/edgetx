@@ -241,7 +241,6 @@ void editName(coord_t x, coord_t y, char* name, uint8_t size, event_t event,
 #if !defined(NAVIGATION_XLITE)
           if (v == ' ') {
             s_editMode = 0;
-            killEvents(event);
             break;
           }
           else
@@ -255,7 +254,6 @@ void editName(coord_t x, coord_t y, char* name, uint8_t size, event_t event,
 
 #if defined(NAVIGATION_9X)
           if (event==EVT_KEY_LONG(KEY_LEFT))
-            killEvents(KEY_LEFT);
 #endif
           break;
       }
@@ -312,7 +310,7 @@ void drawGVarName(coord_t x, coord_t y, int8_t idx, LcdFlags flags)
 void editStickHardwareSettings(coord_t x, coord_t y, int idx, event_t event,
                                LcdFlags flags, uint8_t old_editMode)
 {
-  lcdDrawText(INDENT_WIDTH, y, STR_CHAR_STICK, 0);
+  lcdDrawTextIndented(y, STR_CHAR_STICK);
   lcdDrawText(lcdNextPos, y, analogGetCanonicalName(ADC_INPUT_MAIN, idx), 0);
 
   if (analogHasCustomLabel(ADC_INPUT_MAIN, idx) || (flags && s_editMode > 0))
@@ -460,8 +458,10 @@ void drawSensorCustomValue(coord_t x, coord_t y, uint8_t sensor, int32_t value, 
   }
 }
 
-void drawSourceCustomValue(coord_t x, coord_t y, source_t source, int32_t value, LcdFlags flags)
+void drawSourceCustomValue(coord_t x, coord_t y, mixsrc_t source, int32_t value, LcdFlags flags)
 {
+  source = abs(source);
+
   if (source >= MIXSRC_FIRST_TELEM) {
     source = (source-MIXSRC_FIRST_TELEM) / 3;
     drawSensorCustomValue(x, y, source, value, flags);

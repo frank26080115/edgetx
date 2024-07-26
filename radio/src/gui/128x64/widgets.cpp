@@ -63,17 +63,12 @@ void drawStick(coord_t centrex, int16_t xval, int16_t yval)
 
 void drawCheckBox(coord_t x, coord_t y, uint8_t value, LcdFlags attr)
 {
-#if defined(GRAPHICS)
   if (value)
     lcdDrawChar(x+1, y, '#');
   if (attr)
     lcdDrawSolidFilledRect(x, y, 7, 7);
   else
     lcdDrawSquare(x, y, 7);
-#else
-  /* ON / OFF version */
-  lcdDrawTextAtIndex(x, y, STR_OFFON, value, attr ? INVERS:0) ;
-#endif
 }
 
 void drawScreenIndex(uint8_t index, uint8_t count, uint8_t attr)
@@ -114,29 +109,40 @@ void title(const char * s)
   lcdDrawText(0, 0, s, INVERS);
 }
 
-choice_t editChoice(coord_t x, coord_t y, const char * label, const char *const *values, choice_t value, choice_t min, choice_t max, LcdFlags attr, event_t event, IsValueAvailable isValueAvailable)
+choice_t editChoice(coord_t x, coord_t y, const char * label, const char *const *values, choice_t value, choice_t min, choice_t max, LcdFlags attr, event_t event, coord_t lblX, IsValueAvailable isValueAvailable)
 {
   if (label) {
-    drawFieldLabel(x, y, label);
+    lcdDrawText(lblX, y, label);
   }
   if (values) lcdDrawTextAtIndex(x, y, values, value-min, attr);
   if (attr & (~RIGHT)) value = checkIncDec(event, value, min, max, (isModelMenuDisplayed()) ? EE_MODEL : EE_GENERAL, isValueAvailable);
   return value;
 }
 
-uint8_t editCheckBox(uint8_t value, coord_t x, coord_t y, const char *label, LcdFlags attr, event_t event )
+choice_t editChoice(coord_t x, coord_t y, const char * label, const char *const *values, choice_t value, choice_t min, choice_t max, LcdFlags attr, event_t event, coord_t lblX)
 {
-#if defined(GRAPHICS)
+  return editChoice(x, y, label, values, value, min, max, attr, event, lblX, nullptr);
+}
+
+choice_t editChoice(coord_t x, coord_t y, const char * label, const char *const *values, choice_t value, choice_t min, choice_t max, LcdFlags attr, event_t event)
+{
+  return editChoice(x, y, label, values, value, min, max, attr, event, 0, nullptr);
+}
+
+uint8_t editCheckBox(uint8_t value, coord_t x, coord_t y, const char *label, LcdFlags attr, event_t event, coord_t lblX)
+{
   drawCheckBox(x, y, value, attr);
-  return editChoice(x, y, label, nullptr, value, 0, 1, attr, event);
-#else
-  return editChoice(x, y, label, STR_OFFON, value, 0, 1, attr, event);
-#endif
+  return editChoice(x, y, label, nullptr, value, 0, 1, attr, event, lblX);
+}
+
+uint8_t editCheckBox(uint8_t value, coord_t x, coord_t y, const char *label, LcdFlags attr, event_t event)
+{
+  return editCheckBox(value, x, y, label, attr, event, 0);
 }
 
 swsrc_t editSwitch(coord_t x, coord_t y, swsrc_t value, LcdFlags attr, event_t event)
 {
-  drawFieldLabel(x, y, STR_SWITCH);
+  lcdDrawTextAlignedLeft(y, STR_SWITCH);
   drawSwitch(x,  y, value, attr);
   if (attr & (~RIGHT)) CHECK_INCDEC_MODELSWITCH(event, value, SWSRC_FIRST_IN_MIXES, SWSRC_LAST_IN_MIXES, isSwitchAvailableInMixes);
   return value;
@@ -199,46 +205,6 @@ int16_t editGVarFieldValue(coord_t x, coord_t y, int16_t value, int16_t min, int
   else {
     lcdDrawNumber(x, y, value, attr);
     if (invers) value = checkIncDec(event, value, min, max, EE_MODEL | editflags);
-  }
-  return value;
-}
-#elif defined(GVARS)
-int16_t editGVarFieldValue(coord_t x, coord_t y, int16_t value, int16_t min, int16_t max, LcdFlags attr, event_t event)
-{
-  uint16_t delta = GV_GET_GV1_VALUE(max);
-  bool invers = (attr & INVERS);
-
-  // TRACE("editGVarFieldValue(val=%d min=%d max=%d)", value, min, max);
-
-  if (invers && event == EVT_KEY_LONG(KEY_ENTER)) {
-    s_editMode = !s_editMode;
-    value = (GV_IS_GV_VALUE(value, min, max) ? GET_GVAR(value, min, max, mixerCurrentFlightMode) : delta);
-    storageDirty(EE_MODEL);
-  }
-  if (GV_IS_GV_VALUE(value, min, max)) {
-    if (attr & LEFT)
-      attr -= LEFT; /* because of ZCHAR */
-    else
-      x -= 2*FW+FWNUM;
-
-    int8_t idx = (int16_t) GV_INDEX_CALC_DELTA(value, delta);
-    if (invers) {
-      idx = checkIncDec(event, idx, -MAX_GVARS, MAX_GVARS-1, EE_MODEL|NO_DBLKEYS);   // disable double keys
-    }
-    if (idx < 0) {
-      value = (int16_t) GV_CALC_VALUE_IDX_NEG(idx, delta);
-      idx = -idx;
-      lcdDrawChar(x-6, y, '-', attr);
-    }
-    else {
-      value = (int16_t) GV_CALC_VALUE_IDX_POS(idx, delta);
-      idx++;
-    }
-    drawStringWithIndex(x, y, STR_GV, idx, attr);
-  }
-  else {
-    lcdDrawNumber(x, y, value, attr);
-    if (invers) value = checkIncDec(event, value, min, max, EE_MODEL);
   }
   return value;
 }

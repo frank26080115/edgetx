@@ -22,7 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "font.h"
+#include "fonts.h"
 #include "libopenui/thirdparty/lz4/lz4.h"
 #include "libopenui_defines.h"
 #include "lz4_fonts.h"
@@ -65,6 +65,8 @@ FONT_TABLE(noto_jp);
 FONT_TABLE(arimo_he);
 #elif defined(TRANSLATIONS_RU)
 FONT_TABLE(arimo_ru);
+#elif defined(TRANSLATIONS_UA)
+FONT_TABLE(arimo_ua);
 #else
 FONT_TABLE(roboto);
 #endif

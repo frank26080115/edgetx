@@ -21,6 +21,8 @@
 
 #if defined(USBJ_EX)
 #include "usb_joystick.h"
+#else
+#include "opentx_helpers.h"
 #endif
 
 extern "C" {
@@ -35,6 +37,9 @@ extern "C" {
 #include "stm32_hal_ll.h"
 #include "stm32_hal.h"
 
+#include "stm32_gpio.h"
+
+#include "hal/gpio.h"
 #include "hal/usb_driver.h"
 
 #include "hal.h"
@@ -59,19 +64,23 @@ void setSelectedUsbMode(int mode)
   selectedUsbMode = usbMode(mode);
 }
 
-#if defined(USB_GPIO_PIN_VBUS)
+#if defined(USB_GPIO_VBUS)
 int usbPlugged()
 {
+#if defined(DEBUG_DISABLE_USB)
+  return(false);
+#endif
+
   static uint8_t debouncedState = 0;
   static uint8_t lastState = 0;
 
-  uint8_t state = LL_GPIO_IsInputPinSet(USB_GPIO, USB_GPIO_PIN_VBUS);
-
+  // uint8_t state = GPIO_ReadInputDataBit(USB_GPIO, USB_GPIO_PIN_VBUS);
+  uint8_t state = gpio_read(USB_GPIO_VBUS) ? 1 : 0;
   if (state == lastState)
     debouncedState = state;
   else
     lastState = state;
-  
+
   return debouncedState;
 }
 #endif
@@ -86,27 +95,28 @@ extern "C" void OTG_FS_IRQHandler()
 
 void usbInit()
 {
-  // Initialize hardware
-  __HAL_RCC_GPIOA_CLK_ENABLE();
-
-  LL_GPIO_InitTypeDef GPIO_InitStruct;
-  LL_GPIO_StructInit(&GPIO_InitStruct);
-
-#if defined(USB_GPIO_PIN_VBUS)
-  GPIO_InitStruct.Pin = USB_GPIO_PIN_VBUS;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_LOW;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  LL_GPIO_Init(USB_GPIO, &GPIO_InitStruct);
+  gpio_init_af(USB_GPIO_DM, USB_GPIO_AF, GPIO_PIN_SPEED_VERY_HIGH);
+  gpio_init_af(USB_GPIO_DP, USB_GPIO_AF, GPIO_PIN_SPEED_VERY_HIGH);
+  
+#if defined(USB_GPIO_VBUS)
+  gpio_init(USB_GPIO_VBUS, GPIO_IN, GPIO_PIN_SPEED_LOW);
 #endif
 
-  GPIO_InitStruct.Pin = USB_GPIO_PIN_DM | USB_GPIO_PIN_DP;
-  GPIO_InitStruct.Mode = LL_GPIO_MODE_ALTERNATE;
-  GPIO_InitStruct.OutputType = LL_GPIO_OUTPUT_PUSHPULL;
-  GPIO_InitStruct.Pull = LL_GPIO_PULL_NO;
-  GPIO_InitStruct.Speed = LL_GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = LL_GPIO_AF_10; // USB
-  LL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+#if defined(LL_APB2_GRP1_PERIPH_SYSCFG)
+  LL_APB2_GRP1_EnableClock(LL_APB2_GRP1_PERIPH_SYSCFG);
+#elif defined(LL_APB4_GRP1_PERIPH_SYSCFG)
+  LL_APB4_GRP1_EnableClock(LL_APB4_GRP1_PERIPH_SYSCFG);
+#else
+  #error "Unable to enable SYSCFG peripheral clock"
+#endif
+
+#if defined(LL_AHB2_GRP1_PERIPH_OTGFS)
+  LL_AHB2_GRP1_EnableClock(LL_AHB2_GRP1_PERIPH_OTGFS);
+#elif defined(LL_AHB1_GRP1_PERIPH_USB2OTGHS)
+  LL_AHB1_GRP1_EnableClock(LL_AHB1_GRP1_PERIPH_USB2OTGHS);
+#else
+  #error "Unable to enable USB peripheral clock"
+#endif
 
   usbDriverStarted = false;
 }
@@ -200,7 +210,7 @@ extern int16_t channelOutputs[MAX_OUTPUT_CHANNELS];
 void usbJoystickUpdate()
 {
 #if !defined(USBJ_EX)
-   static uint8_t HID_Buffer[0/*HID_IN_PACKET*/];
+   static uint8_t HID_Buffer[HID_IN_PACKET];
 
    //buttons
    HID_Buffer[0] = 0;
@@ -222,11 +232,10 @@ void usbJoystickUpdate()
    //uint8_t * p = HID_Buffer + 1;
    for (int i = 0; i < 8; ++i) {
 
-     int16_t value = channelOutputs[i] + 1024;
-     if ( value > 2047 ) value = 2047;
-     else if ( value < 0 ) value = 0;
+     int16_t value = limit<int16_t>(0, channelOutputs[i] + 1024, 2048);;
+
      HID_Buffer[i*2 +3] = static_cast<uint8_t>(value & 0xFF);
-     HID_Buffer[i*2 +4] = static_cast<uint8_t>((value >> 8) & 0x07);
+     HID_Buffer[i*2 +4] = static_cast<uint8_t>(value >> 8);
 
    }
    USBD_HID_SendReport(&hUsbDeviceFS, HID_Buffer, HID_IN_PACKET);

@@ -19,21 +19,24 @@
  * GNU General Public License for more details.
  */
 
+#include "hal/gpio.h"
+#include "stm32_gpio.h"
+
 #include "board.h"
 #include "fw_version.h"
 #include "lcd.h"
 
 #include "translations.h"
 
-#include "../../common/arm/stm32/bootloader/boot.h"
-#include "../../common/arm/stm32/bootloader/bin_files.h"
+#include "targets/common/arm/stm32/bootloader/boot.h"
+#include "targets/common/arm/stm32/bootloader/bin_files.h"
 
 #include <lvgl/lvgl.h>
 
 #define RADIO_MENU_LEN 2
 
-#define USB_SW_TO_INTERNAL_MODULE() GPIO_SetBits(USB_SW_GPOIO, USB_SW_PIN);
-#define USB_SW_TO_MCU() GPIO_ResetBits(USB_SW_GPOIO, USB_SW_PIN);
+#define USB_SW_TO_INTERNAL_MODULE() gpio_set(USB_SW_GPIO);
+#define USB_SW_TO_MCU()             gpio_clear(USB_SW_GPIO);
 
 #define DEFAULT_PADDING 28
 #define DOUBLE_PADDING  56
@@ -42,17 +45,17 @@
 const uint8_t __bmp_plug_usb[] {
 #include "bmp_plug_usb.lbm"
 };
-LZ4Bitmap BMP_PLUG_USB(BMP_ARGB4444, __bmp_plug_usb);
+LZ4BitmapBuffer BMP_PLUG_USB(BMP_ARGB4444, (LZ4Bitmap*)__bmp_plug_usb);
 
 const uint8_t __bmp_usb_plugged[] {
 #include "bmp_usb_plugged.lbm"
 };
-LZ4Bitmap BMP_USB_PLUGGED(BMP_ARGB4444, __bmp_usb_plugged);
+LZ4BitmapBuffer BMP_USB_PLUGGED(BMP_ARGB4444, (LZ4Bitmap*)__bmp_usb_plugged);
 
 #define BL_GREEN      COLOR2FLAGS(RGB(73, 219, 62))
 #define BL_RED        COLOR2FLAGS(RGB(229, 32, 30))
-#define BL_BACKGROUND COLOR2FLAGS(BLACK)
-#define BL_FOREGROUND COLOR2FLAGS(WHITE)
+#define BL_BACKGROUND COLOR_BLACK
+#define BL_FOREGROUND COLOR_WHITE
 #define BL_SELECTED   COLOR2FLAGS(RGB(11, 65, 244)) // deep blue
 
 extern BitmapBuffer * lcd;
@@ -167,27 +170,32 @@ void bootloaderDrawScreen(BootloaderState st, int opt, const char* str)
           memset(&tag, 0, sizeof(tag));
           extractFirmwareVersion(&tag);
 
-          lcd->drawText(LCD_W / 4 + DEFAULT_PADDING,
-                        MESSAGE_TOP - DEFAULT_PADDING,
-                        TR_BL_FORK, RIGHT | BL_FOREGROUND);
-          lcd->drawSizedText(LCD_W / 4 + 6 + DEFAULT_PADDING,
-                             MESSAGE_TOP - DEFAULT_PADDING, tag.fork, 6,
-                             BL_FOREGROUND);
+          if (strcmp(tag.flavour, FLAVOUR)) {
+            lcd->drawText(20, MESSAGE_TOP, LV_SYMBOL_CLOSE " " TR_BL_INVALID_FIRMWARE,
+                    BL_FOREGROUND);
+          } else {
+            lcd->drawText(LCD_W / 4 + DEFAULT_PADDING,
+                          MESSAGE_TOP - DEFAULT_PADDING,
+                          TR_BL_FORK, RIGHT | BL_FOREGROUND);
+            lcd->drawSizedText(LCD_W / 4 + 6 + DEFAULT_PADDING,
+                               MESSAGE_TOP - DEFAULT_PADDING, tag.fork, 6,
+                               BL_FOREGROUND);
 
-          lcd->drawText(LCD_W / 4 + DEFAULT_PADDING, MESSAGE_TOP,
-                        TR_BL_VERSION, RIGHT | BL_FOREGROUND);
-          lcd->drawText(LCD_W / 4 + 6 + DEFAULT_PADDING, MESSAGE_TOP,
-                        tag.version, BL_FOREGROUND);
+            lcd->drawText(LCD_W / 4 + DEFAULT_PADDING, MESSAGE_TOP,
+                          TR_BL_VERSION, RIGHT | BL_FOREGROUND);
+            lcd->drawText(LCD_W / 4 + 6 + DEFAULT_PADDING, MESSAGE_TOP,
+                          tag.version, BL_FOREGROUND);
 
-          lcd->drawText(LCD_W / 4 + DEFAULT_PADDING,
-                        MESSAGE_TOP + DEFAULT_PADDING,
-                        TR_BL_RADIO, RIGHT | BL_FOREGROUND);
-          lcd->drawText(LCD_W / 4 + 6 + DEFAULT_PADDING,
-                        MESSAGE_TOP + DEFAULT_PADDING, tag.flavour,
-                        BL_FOREGROUND);
+            lcd->drawText(LCD_W / 4 + DEFAULT_PADDING,
+                          MESSAGE_TOP + DEFAULT_PADDING,
+                          TR_BL_RADIO, RIGHT | BL_FOREGROUND);
+            lcd->drawText(LCD_W / 4 + 6 + DEFAULT_PADDING,
+                          MESSAGE_TOP + DEFAULT_PADDING, tag.flavour,
+                          BL_FOREGROUND);
 
-          lcd->drawText(LCD_W / 4 + DEFAULT_PADDING - 90, MESSAGE_TOP,
-                        LV_SYMBOL_OK, BL_GREEN);
+            lcd->drawText(LCD_W / 4 + DEFAULT_PADDING - 90, MESSAGE_TOP,
+                          LV_SYMBOL_OK, BL_GREEN);
+          }
         }
       }
 
@@ -221,7 +229,7 @@ void bootloaderDrawScreen(BootloaderState st, int opt, const char* str)
       bootloaderDrawTitle(TR_BL_RF_USB_ACCESS);
 
       lcd->drawText(62, 75, LV_SYMBOL_USB, BL_FOREGROUND);
-      coord_t pos = lcd->drawText(84, 75, rfUsbAccess ? TR_DISABLE : TR_ENABLE, BL_FOREGROUND);
+      coord_t pos = lcd->drawText(84, 75, rfUsbAccess ? TR_BL_DISABLE : TR_BL_ENABLE, BL_FOREGROUND);
       pos += 8;
 
       lcd->drawText(60, 110, LV_SYMBOL_NEW_LINE, BL_FOREGROUND);

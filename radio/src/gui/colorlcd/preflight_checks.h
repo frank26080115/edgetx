@@ -23,6 +23,17 @@
 
 #include "page.h"
 
-struct PreflightChecks : public Page {
+class ToggleSwitch;
+class NumberEdit;
+
+class PreflightChecks : public SubPage
+{
+ public:
   PreflightChecks();
+
+ protected:
+  ToggleSwitch* interactive = nullptr;
+  Window* customThrottle = nullptr;
+  NumberEdit* customThrottleValue = nullptr;
+  Window* potsWarnMatrix = nullptr;
 };

@@ -155,29 +155,31 @@ int expo(int x, int k)
   return neg ? -y : y;
 }
 
-void applyExpos(int16_t * anas, uint8_t mode, uint8_t ovwrIdx, int16_t ovwrValue)
+void applyExpos(int16_t * anas, uint8_t mode, int16_t ovwrIdx, int16_t ovwrValue)
 {
   int8_t cur_chn = -1;
 
   for (uint8_t i=0; i<MAX_EXPOS; i++) {
     if (mode == e_perout_mode_normal) mixState[i].activeExpo = false;
     ExpoData * ed = expoAddress(i);
+    mixsrc_t srcRaw = ed->srcRaw;
+    mixsrc_t src = abs(srcRaw);
     if (!EXPO_VALID(ed)) break; // end of list
     if (ed->chn == cur_chn)
       continue;
     if (ed->flightModes & (1<<mixerCurrentFlightMode))
       continue;
-    if (ed->srcRaw >= MIXSRC_FIRST_TRAINER && ed->srcRaw <= MIXSRC_LAST_TRAINER && !isTrainerValid())
+    if (src >= MIXSRC_FIRST_TRAINER && src <= MIXSRC_LAST_TRAINER && !isTrainerValid())
       continue;
     if (getSwitch(ed->swtch)) {
       int32_t v;
-      if (ed->srcRaw == ovwrIdx) {
+      if (srcRaw == ovwrIdx) {
         v = ovwrValue;
       }
       else {
-        v = getValue(ed->srcRaw);
-        if (ed->srcRaw >= MIXSRC_FIRST_TELEM && ed->scale > 0) {
-          v = (v * 1024) / convertTelemValue(ed->srcRaw-MIXSRC_FIRST_TELEM+1, ed->scale);
+        v = getValue(srcRaw);
+        if (src >= MIXSRC_FIRST_TELEM && ed->scale > 0) {
+          v = (v * 1024) / convertTelemValue(src-MIXSRC_FIRST_TELEM+1, ed->scale);
         }
         v = limit<int32_t>(-1024, v, 1024);
       }
@@ -201,11 +203,12 @@ void applyExpos(int16_t * anas, uint8_t mode, uint8_t ovwrIdx, int16_t ovwrValue
         //========== TRIMS ================
         if (ed->trimSource < TRIM_ON)
           virtualInputsTrims[cur_chn] = -ed->trimSource - 1;
-        else if (ed->trimSource == TRIM_ON && ed->srcRaw >= MIXSRC_FIRST_STICK &&
-                 ed->srcRaw <= MIXSRC_LAST_STICK)
-          virtualInputsTrims[cur_chn] = ed->srcRaw - MIXSRC_FIRST_STICK;
+        else if (ed->trimSource == TRIM_ON && src >= MIXSRC_FIRST_STICK &&
+                 src <= MIXSRC_LAST_STICK)
+          virtualInputsTrims[cur_chn] = src - MIXSRC_FIRST_STICK;
         else
           virtualInputsTrims[cur_chn] = -1;
+        // if (srcRaw < 0) v = -v;
         anas[cur_chn] = v;
       }
     }
@@ -313,7 +316,7 @@ static const getvalue_t _switch_3pos_lookup[] = {
 
 // TODO same naming convention than the drawSource
 // *valid added to return status to Lua for invalid sources
-getvalue_t getValue(mixsrc_t i, bool* valid)
+getvalue_t _getValue(mixsrc_t i, bool* valid)
 {
   if (i == MIXSRC_NONE) {
     if (valid != nullptr) *valid = false;
@@ -325,7 +328,7 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
 #if defined(LUA_INPUTS)
   else if (i <= MIXSRC_LAST_LUA) {
 #if defined(LUA_MODEL_SCRIPTS)
-    div_t qr = div(i-MIXSRC_FIRST_LUA, MAX_SCRIPT_OUTPUTS);
+    div_t qr = div((uint16_t)(i-MIXSRC_FIRST_LUA), MAX_SCRIPT_OUTPUTS);
     return scriptInputsOutputs[qr.quot].outputs[qr.rem].value;
 #else
     if (valid != nullptr) *valid = false;
@@ -360,9 +363,13 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
   }
 #endif
 
-#if defined(SPACEMOUSE)
+#if defined(PCBHORUS)
   else if (i >= MIXSRC_FIRST_SPACEMOUSE && i <= MIXSRC_LAST_SPACEMOUSE) {
+#if defined(SPACEMOUSE)
     return get_spacemouse_value(i - MIXSRC_FIRST_SPACEMOUSE);
+#else
+    return 0;
+#endif
   }
 #endif
 
@@ -418,6 +425,30 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
       return _switch_3pos_lookup[switchGetPosition(sw_idx)];
     }
   }
+#if defined(FUNCTION_SWITCHES)
+    else if (i <= MIXSRC_LAST_CUSTOMSWITCH_GROUP) {
+      uint8_t group_idx = (uint8_t)(i - MIXSRC_FIRST_CUSTOMSWITCH_GROUP + 1);
+      uint8_t stepcount = getSwitchCountInFSGroup(group_idx);
+      if (stepcount == 0)
+        return 0;
+
+      if (IS_FSWITCH_GROUP_ON(group_idx))
+        stepcount--;
+
+      int stepsize = (2 * RESX) / stepcount;
+      int value = -RESX;
+
+      for (uint8_t i =  0; i < switchGetMaxFctSwitches(); i++) {
+        if(FSWITCH_GROUP(i) == group_idx) {
+          if (getFSLogicalState(i) == 1)
+            return value + (IS_FSWITCH_GROUP_ON(group_idx) ? 0 : stepsize);
+          else
+            value += stepsize;
+        }
+      }
+      return -RESX;
+  }
+#endif
 
   else if (i <= MIXSRC_LAST_LOGICAL_SWITCH) {
     return getSwitch(SWSRC_FIRST_LOGICAL_SWITCH + i - MIXSRC_FIRST_LOGICAL_SWITCH) ? 1024 : -1024;
@@ -460,7 +491,7 @@ getvalue_t getValue(mixsrc_t i, bool* valid)
       return 0;
     }
     i -= MIXSRC_FIRST_TELEM;
-    div_t qr = div(i, 3);
+    div_t qr = div((uint16_t)i, 3);
     TelemetryItem & telemetryItem = telemetryItems[qr.quot];
     switch (qr.rem) {
       case 1:
@@ -591,6 +622,24 @@ void evalInputs(uint8_t mode)
   }
 }
 
+getvalue_t getValue(mixsrc_t i, bool* valid)
+{
+  bool invert = false;
+  if (i < 0) {
+    invert = true;
+    i = -i;
+  }
+  getvalue_t v = _getValue(i, valid);
+  if (invert) v = -v;
+  return v;
+}  
+
+#if defined(SURFACE_RADIO)
+  constexpr int IDLE_TRIM_SCALE = 1;
+#else
+  constexpr int IDLE_TRIM_SCALE = 2;
+#endif
+
 int getStickTrimValue(int stick, int stickValue)
 {
   if (stick < 0)
@@ -598,13 +647,26 @@ int getStickTrimValue(int stick, int stickValue)
 
   int trim = trims[stick];
   uint8_t thrTrimSw = g_model.getThrottleStickTrimSource() - MIXSRC_FIRST_TRIM;
-  if (stick == thrTrimSw) {
+  if (stick == thrTrimSw) {  // trim for throttle
     if (g_model.throttleReversed) trim = -trim;
-    if (g_model.thrTrim) {
+    if (g_model.thrTrim) {   // throttle idle ON
+      // evalTrims() store 2 * trim value in trims[]
+      // so here, trim values range from -256 to 256
+      // and extended trim values range from -1024 to 1024
       trim = (g_model.extendedTrims) ? 2 * TRIM_EXTENDED_MAX + trim
                                      : 2 * TRIM_MAX + trim;
-      trim = trim * (1024 - stickValue) / (2 * RESX);
+      trim = trim * (1024 - stickValue) / (IDLE_TRIM_SCALE * RESX);
+#if defined(SURFACE_RADIO)
+      // Throttle Idle trim (g_model.thrTrim) should affect only forward stick (0 to 1024)
+      // Return no trim for reverse side when throttle idle trim is enabled
+      if (stickValue < 0) return 0;
+#endif
     }
+#if defined(SURFACE_RADIO)
+    // divide throtle trim by two since since the full extend
+    // of forward/reverse chan is only 1024 instead of 2048
+    trim >>= 1;
+#endif
   }
   return trim;
 }
@@ -911,17 +973,18 @@ void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
             // rate equals a full range for one second; if less time is passed rate is accordingly smaller
             // if one second passed, rate would be 2048 (full motion)*256(recalculated weight)*100(100 ticks needed for one second)
             int32_t currentValue = ((int32_t) v<<DEL_MULT_SHIFT);
+            int32_t precMult = md->speedPrec ? 1 : 10;
             if (diff > 0) {
               if (s_mixer_first_run_done && md->speedUp > 0) {
                 // if a speed upwards is defined recalculate the new value according configured speed; the higher the speed the smaller the add value is
-                int32_t newValue = tact+rate/((int16_t)10*md->speedUp);
+                int32_t newValue = tact+rate/((int16_t)precMult*md->speedUp);
                 if (newValue<currentValue) currentValue = newValue; // Endposition; prevent toggling around the destination
               }
             }
             else {  // if is <0 because ==0 is not possible
               if (s_mixer_first_run_done && md->speedDown > 0) {
                 // see explanation in speedUp
-                int32_t newValue = tact-rate/((int16_t)10*md->speedDown);
+                int32_t newValue = tact-rate/((int16_t)precMult*md->speedDown);
                 if (newValue>currentValue) currentValue = newValue; // Endposition; prevent toggling around the destination
               }
             }
@@ -1102,7 +1165,9 @@ void evalMixes(uint8_t tick10ms)
   // must be done after mixing because some functions use the inputs/channels values
   // must be done before limits because of the applyLimit function: it checks for safety switches which would be not initialized otherwise
   if (tick10ms) {
+#if defined(AUDIO)
     requiredSpeakerVolume = g_eeGeneral.speakerVolume + VOLUME_LEVEL_DEF;
+#endif
   
     requiredBacklightBright = g_eeGeneral.getBrightness();
 
@@ -1116,6 +1181,13 @@ void evalMixes(uint8_t tick10ms)
     } else {
       modelFunctionsContext.reset();
     }
+#if defined(OVERRIDE_CHANNEL_FUNCTION)
+    if (!radioGFEnabled() && !modelSFEnabled()) {
+      for (uint8_t i = 0; i < MAX_OUTPUT_CHANNELS; i++) {
+        safetyCh[i] = OVERRIDE_CHANNEL_UNDEFINED;
+      }
+    }
+#endif
   }
 
   //========== LIMITS ===============

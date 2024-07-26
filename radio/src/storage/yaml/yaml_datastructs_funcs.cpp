@@ -215,7 +215,15 @@ static uint32_t r_mixSrcRaw(const YamlNode* node, const char* val, uint8_t val_l
       val += 3; val_len -= 3;
       // parse int and ignore closing ')'
       return yaml_str2uint(val, val_len) + MIXSRC_FIRST_GVAR;
+#if defined(FUNCTION_SWITCHES)
+    } else if (val_len > 2 &&
+               val[0] == 'G' &&
+               val[1] == 'R' &&
+               val[2] >= '1' &&
+               val[2] <= '3') {
 
+      return MIXSRC_FIRST_CUSTOMSWITCH_GROUP + (val[2] - '1');
+#endif
     } else if (val_len > 5 &&
                val[0] == 't' &&
                val[1] == 'e' &&
@@ -252,7 +260,7 @@ static uint32_t r_mixSrcRaw(const YamlNode* node, const char* val, uint8_t val_l
                val[1] == 'm' &&
                val[2] == 'r' &&
                val[3] >= '1' &&
-               val[3] <= ('1' + MAX_TIMERS)) {
+               val[3] <= ('0' + MAX_TIMERS)) {
 
       return MIXSRC_FIRST_TIMER + (val[3] - '1');
 
@@ -263,15 +271,16 @@ static uint32_t r_mixSrcRaw(const YamlNode* node, const char* val, uint8_t val_l
                val[3] == 'E' &&
                val[4] == 'R' &&
                val[5] >= '1' &&
-               val[5] <= ('1' + MAX_TIMERS)) {
+               val[5] <= ('0' + MAX_TIMERS)) {
 
       return MIXSRC_FIRST_TIMER + (val[5] - '1');
 
     } else if (val_len > 1 &&
                val[0] == 'T' &&
                val[1] >= '1' &&
-               val[1] <= '9') {
-      return yaml_str2uint(val + 1, val_len - 1) + MIXSRC_FIRST_TRIM - 1;
+               val[1] <= ('0' + MAX_TRIMS)) {
+
+      return MIXSRC_FIRST_TRIM + (val[1] - '1');
     }
 
     auto idx = analogLookupCanonicalIdx(ADC_INPUT_MAIN, val, val_len);
@@ -343,10 +352,21 @@ static bool w_mixSrcRaw(const YamlNode* node, uint32_t val, yaml_writer_func wf,
         if (!wf(opaque, "CYC", 3)) return false;
         str = yaml_unsigned2str(val - MIXSRC_FIRST_HELI + 1);
     }
+    else if (val >= MIXSRC_FIRST_TRIM
+             && val <= MIXSRC_LAST_TRIM) {
+        if (!wf(opaque, "T", 1)) return false;
+        str = yaml_unsigned2str(val - MIXSRC_FIRST_TRIM + 1);
+    }
     else if (val >= MIXSRC_FIRST_SWITCH
              && val <= MIXSRC_LAST_SWITCH) {
         str = switchGetCanonicalName(val - MIXSRC_FIRST_SWITCH);
     }
+#if defined(FUNCTION_SWITCHES)
+    else if (val >= MIXSRC_FIRST_CUSTOMSWITCH_GROUP
+             && val <= MIXSRC_LAST_CUSTOMSWITCH_GROUP) {
+        str = fsSwitchGroupGetCanonicalName(val - MIXSRC_FIRST_CUSTOMSWITCH_GROUP);
+    }
+#endif
     else if (val >= MIXSRC_FIRST_LOGICAL_SWITCH
              && val <= MIXSRC_LAST_LOGICAL_SWITCH) {
 
@@ -409,6 +429,38 @@ static bool w_mixSrcRaw(const YamlNode* node, uint32_t val, yaml_writer_func wf,
     }
 
     return true;
+}
+
+static uint32_t r_mixSrcRawEx(const YamlNode* node, const char* val, uint8_t val_len)
+{
+  bool invert = false;
+  if (val[0] == '!') {
+    invert = true;
+    val += 1;
+    val_len -= 1;
+  }
+  int32_t rv = r_mixSrcRaw(node, val, val_len);
+  if (invert)
+    rv = -rv;
+  return (uint32_t)rv;
+}
+
+static bool w_mixSrcRawExNoQuote(const YamlNode* node, uint32_t val, yaml_writer_func wf, void* opaque)
+{
+  // Check for negative 10 bit value. TODO: handle this better!
+  val &= 0x3FF;
+  if (val >= 512) {
+    if (!wf(opaque, "!", 1)) return false;
+    val = 1024 - val;
+  }
+  return w_mixSrcRaw(node, val, wf, opaque);
+}
+
+static bool w_mixSrcRawEx(const YamlNode* node, uint32_t val, yaml_writer_func wf, void* opaque)
+{
+  if (!wf(opaque, "\"", 1)) return false;
+  if (!w_mixSrcRawExNoQuote(node, val, wf, opaque)) return false;
+  return wf(opaque, "\"", 1);
 }
 
 static void r_rssiDisabled(void* user, uint8_t* data, uint32_t bitoffs,
@@ -489,33 +541,49 @@ bool w_zov_source(void* user, uint8_t* data, uint32_t bitoffs,
 void r_zov_color(void* user, uint8_t* data, uint32_t bitoffs,
                  const char* val, uint8_t val_len)
 {
-  if (val_len < sizeof("0xFFFFFF")-1
-      || val[0] != '0'
-      || val[1] != 'x')
-    return;
-
-  val += 2; val_len -= 2;
-
   data += bitoffs >> 3UL;
-  auto p_val = reinterpret_cast<ZoneOptionValue*>(data);
 
-  auto rgb24 = yaml_hex2uint(val, val_len);
-  p_val->unsignedValue =
-      RGB((rgb24 & 0xFF0000) >> 16, (rgb24 & 0xFF00) >> 8, rgb24 & 0xFF);
+  ZoneOptionValue zov;
+  if (strncmp(val, "COLIDX", 6) == 0) {
+    val += 6; val_len -= 6;
+    zov.unsignedValue = COLOR2FLAGS(yaml_str2uint(val, val_len));
+  } else {
+    if (val_len < sizeof("0xFFFFFF")-1
+        || val[0] != '0'
+        || val[1] != 'x')
+      return;
+
+    val += 2; val_len -= 2;
+
+    auto rgb24 = yaml_hex2uint(val, val_len);
+    zov.unsignedValue = RGB2FLAGS((rgb24 & 0xFF0000) >> 16,
+                                  (rgb24 & 0xFF00) >> 8, rgb24 & 0xFF);
+  }
+
+  memcpy(data, &zov, sizeof(ZoneOptionValue));
 }
 
 bool w_zov_color(void* user, uint8_t* data, uint32_t bitoffs,
                  yaml_writer_func wf, void* opaque)
 {
   data += bitoffs >> 3UL;
-  auto p_val = reinterpret_cast<ZoneOptionValue*>(data);
 
-  uint32_t color = (uint32_t)GET_RED(p_val->unsignedValue) << 16 |
-                   (uint32_t)GET_GREEN(p_val->unsignedValue) << 8 |
-                   (uint32_t)GET_BLUE(p_val->unsignedValue);
+  ZoneOptionValue zov;
+  memcpy(&zov, data, sizeof(ZoneOptionValue));
 
-  if (!wf(opaque, "0x", 2)) return false;
-  return wf(opaque, yaml_rgb2hex(color), 3 * 2);
+  uint32_t val = zov.unsignedValue;
+  if (val & RGB_FLAG) {
+    val = COLOR_VAL(val);
+    uint32_t color = (uint32_t)GET_RED(val) << 16 |
+                     (uint32_t)GET_GREEN(val) << 8 | (uint32_t)GET_BLUE(val);
+
+    if (!wf(opaque, "0x", 2)) return false;
+    return wf(opaque, yaml_rgb2hex(color), 3 * 2);
+  } else {
+    if (!wf(opaque, "COLIDX", 6)) return false;
+    const char* str = yaml_unsigned2str(COLOR_VAL(val));
+    return wf(opaque, str, strlen(str));
+  }
 }
 #endif
 
@@ -897,7 +965,9 @@ static const char* trimSwitchNames[] = {
   "TrimThrDown", "TrimThrUp",
   "TrimAilLeft", "TrimAilRight",
   "TrimT5Down", "TrimT5Up",
-  "TrimT6Down", "TrimT6Up"
+  "TrimT6Down", "TrimT6Up",
+  "TrimT7Down", "TrimT7Up",
+  "TrimT8Down", "TrimT8Up",
 };
 
 static uint32_t r_swtchSrc(const YamlNode* node, const char* val, uint8_t val_len)
@@ -1139,56 +1209,19 @@ static void r_swtchWarn(void* user, uint8_t* data, uint32_t bitoffs,
 
 }
 
-static bool w_swtchWarn(void* user, uint8_t* data, uint32_t bitoffs,
-                        yaml_writer_func wf, void* opaque)
-{
-  data += (bitoffs >> 3UL);
+static const struct YamlIdStr enum_SwitchWarnPos[] = {
+  {  0, "none"  },
+  {  1, "up"  },
+  {  2, "mid" },
+  {  3, "down"  },
+  {  0, nullptr },
+};
 
-  swarnstate_t states;
-  memcpy(&states, data, sizeof(states));
-
-  for (uint8_t i = 0; i < switchGetMaxSwitches(); i++) {
-    // TODO: SWITCH_EXISTS() uses the g_eeGeneral stucture, which might not be
-    // avail
-    if (SWITCH_EXISTS(i)) {
-      // decode check state
-      // -> 3 bits per switch
-      auto state = (states >> (3 * i)) & 0x07;
-
-      // state == 0 -> no check
-      // state == 1 -> UP
-      // state == 2 -> MIDDLE
-      // state == 3 -> DOWN
-      char swtchWarn[2] = {switchGetLetter(i), 0};
-
-      switch (state) {
-        case 0:
-          break;
-        case 1:
-          swtchWarn[1] = 'u';
-          break;
-        case 2:
-          swtchWarn[1] = '-';
-          break;
-        case 3:
-          swtchWarn[1] = 'd';
-          break;
-        default:
-          // this should never happen
-          swtchWarn[1] = 'x';
-          break;
-      }
-
-      if (swtchWarn[0] >= 'A' && swtchWarn[1] != 0) {
-        if (!wf(opaque, swtchWarn, 2)) {
-          return false;
-        }
-      }
-    }
-  }
-
-  return true;
-}
+static const struct YamlNode struct_swtchWarn[] {
+  YAML_IDX_CUST( "sw", sw_read, sw_write ),
+  YAML_ENUM( "pos", 2, enum_SwitchWarnPos ),
+  YAML_END,
+};
 
 extern const struct YamlIdStr enum_BeeperMode[];
 
@@ -1452,7 +1485,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
                && val[4] == 's') {
       CFN_CH_INDEX(cfn) = MAX_STICKS + 1;
     } else {
-      auto stick = analogLookupCanonicalIdx(ADC_INPUT_MAIN, val, val_len);
+      auto stick = analogLookupCanonicalIdx(ADC_INPUT_MAIN, val, l_sep);
       if (stick >= 0) {
         CFN_CH_INDEX(cfn) = stick + 1;
       }
@@ -1488,7 +1521,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
   case FUNC_BACKLIGHT:
   case FUNC_PLAY_VALUE:
     // find "," and cut val_len
-    CFN_PARAM(cfn) = r_mixSrcRaw(nullptr, val, l_sep);
+    CFN_PARAM(cfn) = r_mixSrcRawEx(nullptr, val, l_sep);
     break;
 
   case FUNC_PLAY_SOUND:
@@ -1583,10 +1616,10 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
       CFN_PARAM(cfn) = yaml_str2int(val, l_sep);
       break;
     case FUNC_ADJUST_GVAR_SOURCE:
-      CFN_PARAM(cfn) = r_mixSrcRaw(nullptr, val, l_sep);
+      CFN_PARAM(cfn) = r_mixSrcRawEx(nullptr, val, l_sep);
       break;
     case FUNC_ADJUST_GVAR_GVAR: {
-      uint32_t gvar = r_mixSrcRaw(nullptr, val, l_sep);
+      uint32_t gvar = r_mixSrcRawEx(nullptr, val, l_sep);
       if (gvar >= MIXSRC_FIRST_GVAR) {
         CFN_PARAM(cfn) = gvar - MIXSRC_FIRST_GVAR;
       }
@@ -1709,7 +1742,7 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
   case FUNC_VOLUME:
   case FUNC_BACKLIGHT:
   case FUNC_PLAY_VALUE:
-    if (!w_mixSrcRaw(nullptr, CFN_PARAM(cfn), wf, opaque)) return false;
+    if (!w_mixSrcRawExNoQuote(nullptr, CFN_PARAM(cfn), wf, opaque)) return false;
     break;
 
   case FUNC_PLAY_SOUND:
@@ -1768,10 +1801,10 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
       if (!wf(opaque, str, strlen(str))) return false;
       break;
     case FUNC_ADJUST_GVAR_SOURCE:
-      if (!w_mixSrcRaw(nullptr, CFN_PARAM(cfn), wf, opaque)) return false;
+      if (!w_mixSrcRawExNoQuote(nullptr, CFN_PARAM(cfn), wf, opaque)) return false;
       break;
     case FUNC_ADJUST_GVAR_GVAR:
-      if (!w_mixSrcRaw(nullptr, CFN_PARAM(cfn) + MIXSRC_FIRST_GVAR, wf, opaque)) return false;
+      if (!w_mixSrcRawExNoQuote(nullptr, CFN_PARAM(cfn) + MIXSRC_FIRST_GVAR, wf, opaque)) return false;
       break;
     }
     break;
@@ -1866,11 +1899,11 @@ static void r_logicSw(void* user, uint8_t* data, uint32_t bitoffs,
     break;
     
   case LS_FAMILY_COMP:
-    ls->v1 = r_mixSrcRaw(nullptr, val, l_sep);
+    ls->v1 = r_mixSrcRawEx(nullptr, val, l_sep);
     val += l_sep; val_len -= l_sep;
     if (!val_len || val[0] != ',') return;
     val++; val_len--;
-    ls->v2 = r_mixSrcRaw(nullptr, val, val_len);
+    ls->v2 = r_mixSrcRawEx(nullptr, val, val_len);
     break;
     
   case LS_FAMILY_TIMER:
@@ -1882,7 +1915,7 @@ static void r_logicSw(void* user, uint8_t* data, uint32_t bitoffs,
     break;
     
   default:
-    ls->v1 = r_mixSrcRaw(nullptr, val, l_sep);
+    ls->v1 = r_mixSrcRawEx(nullptr, val, l_sep);
     val += l_sep; val_len -= l_sep;
     if (!val_len || val[0] != ',') return;
     val++; val_len--;
@@ -1931,9 +1964,9 @@ static bool w_logicSw(void* user, uint8_t* data, uint32_t bitoffs,
     break;
     
   case LS_FAMILY_COMP:
-    if (!w_mixSrcRaw(nullptr, ls->v1, wf, opaque)) return false;
+    if (!w_mixSrcRawExNoQuote(nullptr, ls->v1, wf, opaque)) return false;
     if (!wf(opaque,",",1)) return false;
-    if (!w_mixSrcRaw(nullptr, ls->v2, wf, opaque)) return false;
+    if (!w_mixSrcRawExNoQuote(nullptr, ls->v2, wf, opaque)) return false;
     break;
     
   case LS_FAMILY_TIMER:
@@ -1945,7 +1978,7 @@ static bool w_logicSw(void* user, uint8_t* data, uint32_t bitoffs,
     break;
     
   default:
-    if (!w_mixSrcRaw(nullptr, ls->v1, wf, opaque)) return false;
+    if (!w_mixSrcRawExNoQuote(nullptr, ls->v1, wf, opaque)) return false;
     if (!wf(opaque,",",1)) return false;
     // TODO?: ls->v1 <= MIXSRC_LAST_CH ? calc100toRESX(ls->v2) : ls->v2
     str = yaml_signed2str(ls->v2);
@@ -2055,11 +2088,13 @@ static void r_modSubtype(void* user, uint8_t* data, uint32_t bitoffs,
     md->subType = yaml_parse_enum(enum_ISRM_Subtypes, val, val_len);
   } else if (isModuleTypeR9MNonAccess(md->type)) {
     md->subType = yaml_parse_enum(enum_R9M_Subtypes, val, val_len);
+#if defined(AFHDS3)
   } else if (md->type == MODULE_TYPE_FLYSKY_AFHDS2A) {
     // Flysky sub-types have been converted into separate module types
     auto sub_type = yaml_parse_enum(enum_FLYSKY_Subtypes, val, val_len);
     if (sub_type == FLYSKY_SUBTYPE_AFHDS3)
       md->type = MODULE_TYPE_FLYSKY_AFHDS3;
+#endif
   } else if (md->type == MODULE_TYPE_MULTIMODULE) {
 #if defined(MULTIMODULE)
     // Read type/subType by the book (see MPM documentation)
@@ -2120,6 +2155,10 @@ static bool w_modSubtype(void* user, uint8_t* data, uint32_t bitoffs,
     str = yaml_output_enum(md->subType, enum_DSM2_Subtypes);
   } else if (md->type == MODULE_TYPE_PPM) {
     str = yaml_output_enum(md->subType, enum_PPM_Subtypes);
+  } else if (md->type == MODULE_TYPE_FLYSKY_AFHDS2A) {
+    str = yaml_output_enum(FLYSKY_SUBTYPE_AFHDS2A, enum_FLYSKY_Subtypes);
+  } else if (md->type == MODULE_TYPE_FLYSKY_AFHDS3) {
+    str = yaml_output_enum(FLYSKY_SUBTYPE_AFHDS3, enum_FLYSKY_Subtypes);
   } else {
     str = yaml_unsigned2str(val);
   }

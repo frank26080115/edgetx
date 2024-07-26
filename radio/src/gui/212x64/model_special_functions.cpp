@@ -154,8 +154,7 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
 {
   int sub = menuVerticalPosition;
   uint8_t eeFlags = (functions == g_model.customFn) ? EE_MODEL : EE_GENERAL;
-  if (menuHorizontalPosition<0 && event==EVT_KEY_LONG(KEY_ENTER) && !READ_ONLY()) {
-    killEvents(event);
+  if (menuHorizontalPosition<0 && event==EVT_KEY_LONG(KEY_ENTER)) {
     CustomFunctionData *cfn = &functions[sub];
     if (!CFN_EMPTY(cfn))
       POPUP_MENU_ADD_ITEM(STR_COPY);
@@ -326,7 +325,7 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
             val_max = MIXSRC_LAST_TELEM;
             drawSource(MODEL_SPECIAL_FUNC_3RD_COLUMN, y, val_displayed, attr);
             if (active) {
-              INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE);
+              INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE | INCDEC_SOURCE_INVERT);
               INCDEC_ENABLE_CHECK(functionsContext == &globalFunctionsContext ? isSourceAvailableInGlobalFunctions : isSourceAvailable);
             }
           }
@@ -335,7 +334,7 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
             val_max = MIXSRC_LAST_CH;
             drawSource(MODEL_SPECIAL_FUNC_3RD_COLUMN, y, val_displayed, attr);
             if (active) {
-              INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE);
+              INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE | INCDEC_SOURCE_INVERT);
               INCDEC_ENABLE_CHECK(isSourceAvailable);
             }
           }
@@ -354,7 +353,7 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
             val_max = MIXSRC_LAST_CH;
             drawSource(MODEL_SPECIAL_FUNC_3RD_COLUMN, y, val_displayed, attr);
             if (active) {
-              INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE);
+              INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE | INCDEC_SOURCE_INVERT);
               INCDEC_ENABLE_CHECK(isSourceAvailable);
             }
           }
@@ -372,7 +371,7 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
                 val_max = MIXSRC_LAST_CH;
                 drawSource(MODEL_SPECIAL_FUNC_3RD_COLUMN, y, val_displayed, attr);
                 if (active) {
-                  INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE);
+                  INCDEC_SET_FLAG(eeFlags | INCDEC_SOURCE | INCDEC_SOURCE_INVERT);
                   INCDEC_ENABLE_CHECK(isSourceAvailable);
                 }
                 break;
@@ -396,7 +395,6 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
           if (active || event==EVT_KEY_LONG(KEY_ENTER)) {
             CFN_PARAM(cfn) = CHECK_INCDEC_PARAM(event, val_displayed, val_min, val_max);
             if (func == FUNC_ADJUST_GVAR && attr && event==EVT_KEY_LONG(KEY_ENTER)) {
-              killEvents(event);
               if (CFN_GVAR_MODE(cfn) != FUNC_ADJUST_GVAR_CONSTANT)
                 POPUP_MENU_ADD_ITEM(STR_CONSTANT);
               if (CFN_GVAR_MODE(cfn) != FUNC_ADJUST_GVAR_SOURCE)
@@ -441,8 +439,12 @@ void menuSpecialFunctions(event_t event, CustomFunctionData * functions, CustomF
         case ITEM_CUSTOM_FUNCTIONS_ENABLE:
           drawCheckBox(MODEL_SPECIAL_FUNC_4TH_COLUMN_ONOFF, y, CFN_ACTIVE(cfn),
                        attr);
-          if (active)
+          if (active) {
             CFN_ACTIVE(cfn) = checkIncDec(event, CFN_ACTIVE(cfn), 0, 1, eeFlags);
+            if (checkIncDec_Ret && (func == FUNC_PLAY_SCRIPT)) {
+              LUA_LOAD_MODEL_SCRIPTS();
+            }
+          }
           break;
       }
     }

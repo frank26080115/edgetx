@@ -33,20 +33,7 @@ class ModelMenu : public TabsGroup
 #endif
 
  protected:
-#if defined(PCBNV14) || defined(PCBPL18)
-  void addGoToMonitorsButton(void);
-#endif
-  bool _modelHeliEnabled = true;
-  bool _modelFMEnabled = true;
-  bool _modelCurvesEnabled = true;
-  bool _modelGVEnabled = true;
-  bool _modelLSEnabled = true;
-  bool _modelSFEnabled = true;
-  bool _modelCustomScriptsEnabled = true;
-  bool _modelTelemetryEnabled = true;
-
   void build();
-  void checkEvents() override;
 
 #if defined(HARDWARE_KEYS)
   void onPressSYS() override;

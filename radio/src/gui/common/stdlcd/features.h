@@ -35,7 +35,13 @@
 #define CASE_IMU(x)
 #endif
 
-#if defined(BACKLIGHT_GPIO)
+#if defined(OLED_SCREEN)
+#define CASE_CONTRAST(x)
+#else
+#define CASE_CONTRAST(x) x,
+#endif
+
+#if defined(BACKLIGHT_GPIO) || defined(OLED_SCREEN)
 #define CASE_BACKLIGHT(x) x,
 #else
 #define CASE_BACKLIGHT(x)
@@ -57,12 +63,6 @@
   #define CASE_AUDIO(x) x,
 #else
   #define CASE_AUDIO(x)
-#endif
-
-#if defined(PWM_BACKLIGHT)
-  #define CASE_PWM_BACKLIGHT(x) x,
-#else
-  #define CASE_PWM_BACKLIGHT(x)
 #endif
 
 #if defined(GPS)

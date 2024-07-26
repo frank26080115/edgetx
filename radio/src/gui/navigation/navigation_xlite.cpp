@@ -50,6 +50,13 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
   int newval = val;
 
   if (s_editMode > 0) {
+    bool invert = false;
+    if ((i_flags & INCDEC_SOURCE_INVERT) && (newval < 0)) {
+      invert = true;
+      newval = -newval;
+      val = -val;
+    }
+
     if (event == EVT_KEY_FIRST(KEY_RIGHT) || event == EVT_KEY_REPT(KEY_RIGHT) ||
         event == EVT_KEY_FIRST(KEY_UP) || event == EVT_KEY_REPT(KEY_UP)) {
       do {
@@ -109,9 +116,14 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
 #endif
     }
 #endif
+
+    if (invert) {
+      newval = -newval;
+      val = -val;
+    }
   }
 
-  if (!READ_ONLY() && i_min == 0 && i_max == 1 &&
+  if (i_min == 0 && i_max == 1 &&
       event == EVT_KEY_BREAK(KEY_ENTER)) {
     s_editMode = 0;
     newval = !val;
@@ -138,7 +150,6 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
 
   if (i_flags & INCDEC_SOURCE) {
     if (event == EVT_KEY_LONG(KEY_ENTER) && !keysGetState(KEY_SHIFT)) {
-      killEvents(event);
       checkIncDecSelection = MIXSRC_NONE;
 
       if (i_min <= MIXSRC_FIRST_INPUT && i_max >= MIXSRC_FIRST_INPUT) {
@@ -179,10 +190,11 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
           }
         }
       }
+      if (i_flags & INCDEC_SOURCE_INVERT) POPUP_MENU_ADD_ITEM(STR_MENU_INVERT);
       POPUP_MENU_START(onSourceLongEnterPress);
     }
     if (checkIncDecSelection != 0) {
-      newval = checkIncDecSelection;
+      newval = (checkIncDecSelection == MIXSRC_INVERT ? -newval : checkIncDecSelection);
       if (checkIncDecSelection != MIXSRC_MIN && checkIncDecSelection != MIXSRC_MAX)
         s_editMode = EDIT_MODIFY_FIELD;
       checkIncDecSelection = 0;
@@ -190,7 +202,6 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
   }
   else if (i_flags & INCDEC_SWITCH) {
     if (event == EVT_KEY_LONG(KEY_ENTER) && !keysGetState(KEY_SHIFT)) {
-      killEvents(event);
       checkIncDecSelection = SWSRC_NONE;
       if (i_min <= SWSRC_FIRST_SWITCH && i_max >= SWSRC_LAST_SWITCH)       POPUP_MENU_ADD_ITEM(STR_MENU_SWITCHES);
       if (i_min <= SWSRC_FIRST_TRIM && i_max >= SWSRC_LAST_TRIM)           POPUP_MENU_ADD_ITEM(STR_MENU_TRIMS);
@@ -307,9 +318,7 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
 
     case EVT_KEY_FIRST(KEY_ENTER):
       if (!menuTab || l_posVert > 0) {
-        if (READ_ONLY_UNLOCKED()) {
-          s_editMode = (s_editMode <= 0);
-        }
+        s_editMode = (s_editMode <= 0);
       }
       break;
 

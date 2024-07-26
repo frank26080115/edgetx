@@ -47,4 +47,6 @@ class AutoLineEdit: public QLineEdit, public AutoWidget
   private:
     char *m_charField;
     QString *m_strField;
+
+    void setFieldInit(int len, GenericPanel * panel);
 };

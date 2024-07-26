@@ -22,22 +22,23 @@
 #pragma once
 
 #include "page.h"
-#include "form.h"
-#include "curve.h"
 
-class FormWindow;
+class Window;
 
 class MixEditWindow : public Page
 {
  public:
   MixEditWindow(int8_t channel, uint8_t index);
 
+  static LAYOUT_VAL(MIX_STATUS_BAR_WIDTH, 250, 180)
+  static LAYOUT_VAL(MIX_RIGHT_MARGIN, 0, 3)
+
  protected:
   uint8_t channel;
   uint8_t index;
 
   void buildHeader(Window *window);
-  void buildBody(FormWindow *window);
+  void buildBody(Window *window);
 
   void deleteLater(bool detach = true, bool trash = true) override;
 };

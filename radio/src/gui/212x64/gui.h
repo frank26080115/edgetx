@@ -51,11 +51,6 @@
 
 #define MENUS_SCROLLBAR_WIDTH          2
 
-inline void drawFieldLabel(coord_t x, coord_t y, const char * str)
-{
-  lcdDrawText(0, y, str);
-}
-
 extern uint8_t modelBitmap[MODEL_BITMAP_SIZE];
 bool loadModelBitmap(char * name, uint8_t * bitmap);
 
@@ -84,11 +79,14 @@ typedef int choice_t;
 
 choice_t editChoice(coord_t x, coord_t y, const char *label,
                     const char *const *values, choice_t value, choice_t min,
-                    choice_t max, LcdFlags attr, event_t event,
-                    IsValueAvailable isValueAvailable = nullptr);
+                    choice_t max, LcdFlags attr, event_t event, coord_t lblX = 0);
+choice_t editChoice(coord_t x, coord_t y, const char *label,
+                    const char *const *values, choice_t value, choice_t min,
+                    choice_t max, LcdFlags attr, event_t event, coord_t lblX,
+                    IsValueAvailable isValueAvailable);
 
 uint8_t editCheckBox(uint8_t value, coord_t x, coord_t y, const char *label,
-                     LcdFlags attr, event_t event);
+                     LcdFlags attr, event_t event, coord_t lblX = 0);
 
 swsrc_t editSwitch(coord_t x, coord_t y, swsrc_t value, LcdFlags attr,
                    event_t event);
@@ -130,11 +128,11 @@ void editName(coord_t x, coord_t y, char *name, uint8_t size, event_t event,
 
 void editSingleName(coord_t x, coord_t y, const char *label, char *name,
                     uint8_t size, event_t event, uint8_t active,
-                    uint8_t old_editMode);
+                    uint8_t old_editMode, coord_t lblX = 0);
 
-uint8_t editDelay(coord_t y, event_t event, uint8_t attr, const char * str, uint8_t delay);
+uint8_t editDelay(coord_t y, event_t event, uint8_t attr, const char * str, uint8_t delay, uint8_t prec);
 
-#define EDIT_DELAY(y, event, attr, str, delay) editDelay(y, event, attr, str, delay)
+#define EDIT_DELAY(y, event, attr, str, delay, prec) editDelay(y, event, attr, str, delay, prec)
 
 void copySelection(char * dst, const char * src, uint8_t size);
 
@@ -146,7 +144,7 @@ extern int8_t s_copySrcRow;
 extern int8_t s_copyTgtOfs;
 extern uint8_t s_currIdx;
 extern uint8_t s_currIdxSubMenu;
-extern uint16_t s_currSrcRaw;
+extern mixsrc_t s_currSrcRaw;
 extern uint16_t s_currScale;
 extern uint8_t s_copySrcIdx;
 extern uint8_t s_copySrcCh;

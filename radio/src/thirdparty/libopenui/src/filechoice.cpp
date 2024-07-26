@@ -20,25 +20,86 @@
 
 #include <algorithm>
 
+#include "opentx.h"
 #include "libopenui_file.h"
 #include "menu.h"
-#include "theme.h"
-#include "message_dialog.h"
+#include "menutoolbar.h"
 
-#if !defined(STR_SDCARD)
-#define STR_SDCARD "SD"
-#endif
+class FileChoiceMenuToolbar : public MenuToolbar
+{
+ public:
+  FileChoiceMenuToolbar(FileChoice *choice, Menu *menu) :
+      MenuToolbar(choice, menu, FC_COLS)
+  {
+    filterButton(choice, 'a', 'd', "aA-dD");
+    filterButton(choice, 'e', 'h', "eE-hH");
+    filterButton(choice, 'i', 'l', "iI-lL");
+    filterButton(choice, 'm', 'p', "mM-pP");
+    filterButton(choice, 'q', 't', "qQ-tT");
+    filterButton(choice, 'u', 'z', "uU-zZ");
+    filterButton(choice, '0', '9', "0-9");
 
-#if !defined(STR_NO_FILES_ON_SD)
-#define STR_NO_FILES_ON_SD "No files on SD Card!"
-#endif
+    bool found = false;
+    for (int i = 0; i <= choice->getMax(); i += 1) {
+      char c = choice->getString(i)[0];
+      if (c && !isdigit(c) && !isalpha(c)) {
+        found = true;
+        break;
+      }
+    }
+
+    if (found) {
+      addButton(
+          "._-", 0, choice->getMax(),
+          [=](int16_t index) {
+            char c = choice->getString(index)[0];
+            return c && !isdigit(c) && !isalpha(c);
+          },
+          STR_MENU_OTHER);
+    }
+
+    addButton(STR_SELECT_MENU_CLR, 0, 0, nullptr, nullptr, true);
+  }
+
+  void filterButton(FileChoice *choice, char from, char to, const char* title)
+  {
+    bool found = false;
+    for (int i = 0; i <= choice->getMax(); i += 1) {
+      char c = choice->getString(i)[0];
+      if (isupper(c)) c += 0x20;
+      if (c >= from && c <= to) {
+        found = true;
+        break;
+      }
+    }
+
+    if (found) {
+      char s[4];
+      s[0] = from; s[1] = '-'; s[2] = to; s[3] = 0;
+      addButton(
+          s, 0, choice->getMax(),
+          [=](int16_t index) {
+            char c = choice->getString(index)[0];
+            if (isupper(c)) c += 0x20;
+            return (c >= from && c <= to);
+          },
+          title);
+    }
+  }
+
+  static LAYOUT_VAL(FC_COLS, 3, 2)
+
+ protected:
+};
 
 FileChoice::FileChoice(Window *parent, const rect_t &rect, std::string folder,
                        const char *extension, int maxlen,
                        std::function<std::string()> getValue,
                        std::function<void(std::string)> setValue,
-                       bool stripExtension) :
-    ChoiceBase(parent, rect, CHOICE_TYPE_FOLDER),
+                       bool stripExtension, const char *title) :
+    Choice(
+        parent, rect, 0, 0, [=]() { return selectedIdx; },
+        [=](int val) { setValue(getString(val)); }, title, CHOICE_TYPE_FOLDER),
     folder(std::move(folder)),
     extension(extension),
     maxlen(maxlen),
@@ -46,13 +107,17 @@ FileChoice::FileChoice(Window *parent, const rect_t &rect, std::string folder,
     setValue(std::move(setValue)),
     stripExtension(stripExtension)
 {
-  lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
+  update();
 }
 
 std::string FileChoice::getLabelText() { return getValue(); }
 
-bool FileChoice::openMenu()
+void FileChoice::loadFiles()
 {
+  if (loaded) return;
+
+  loaded = true;
+
   FILINFO fno;
   DIR dir;
   std::list<std::string> files;
@@ -88,46 +153,45 @@ bool FileChoice::openMenu()
       files.emplace_back(newFile);
     }
 
-    if (!files.empty()) {
-      // sort files
-      files.sort(compare_nocase);
-      files.push_front("");
-
-      auto menu = new Menu(this);
-      int count = 0;
-      int current = -1;
-      std::string value = getValue();
-      for (const auto &file : files) {
-        menu->addLineBuffered(file, [=]() {
-          setValue(file);
-          lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
-        });
-        // TRACE("%s %d %s %d", value.c_str(), value.size(), file.c_str(),
-        // file.size());
-        if (value.compare(file) == 0) {
-          // TRACE("OK");
-          current = count;
-        }
-        ++count;
-      }
-      menu->updateLines();
-
-      if (current >= 0) {
-        menu->select(current);
-      }
-
-      menu->setCloseHandler([=]() {
-        editMode = false;
-        // setFocus(SET_FOCUS_DEFAULT);
-      });
-
-      return true;
-    }
+    f_closedir(&dir);
   }
 
-  new MessageDialog(this, STR_SDCARD, STR_NO_FILES_ON_SD);
+  if (!files.empty()) {
+    // sort files
+    files.sort(compare_nocase);
+    files.push_front("");
 
-  return false;
+    std::string value = getValue();
+    int idx = 0;
+    for (const auto &file : files) {
+      addValue(file.c_str());
+      if (strcmp(value.c_str(), file.c_str()) == 0) selectedIdx = idx;
+      idx += 1;
+    }
+
+    setMax(files.size() - 1);
+  }
+
+  fileCount = files.size();
 }
 
-void FileChoice::onClicked() { openMenu(); }
+void FileChoice::openMenu()
+{
+  loadFiles();
+
+  if (fileCount > 0) {
+    setEditMode(true);  // this needs to be done first before menu is created.
+
+    auto menu = new Menu(this);
+    if (menuTitle) menu->setTitle(menuTitle);
+
+    auto tb = new FileChoiceMenuToolbar(this, menu);
+    menu->setToolbar(tb);
+
+    // fillMenu(menu); - called by MenuToolbar
+
+    menu->setCloseHandler([=]() { setEditMode(false); });
+  } else {
+    new MessageDialog(this, STR_SDCARD, STR_NO_FILES_ON_SD);
+  }
+}

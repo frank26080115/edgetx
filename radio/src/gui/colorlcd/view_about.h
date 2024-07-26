@@ -21,8 +21,10 @@
 
 #include "libopenui.h"
 
-class AboutUs : public MessageDialog
+class AboutUs : public BaseDialog
 {
  public:
   AboutUs();
+
+  static LAYOUT_VAL(QR_SZ, 150, 150)
 };

@@ -26,6 +26,7 @@
 #include "opentx_types.h"
 #include "opentx_helpers.h"
 #include "touch.h"
+#include "switches.h"
 
 #if defined(SIMU)
 #include "targets/simu/simpgmspace.h"
@@ -97,12 +98,24 @@ enum RotaryEncoderMode {
 #define CASE_JACK_DETECT(x)
 #endif
 
-
 #include "debug.h"
-
 
 #include "myeeprom.h"
 #include "curves.h"
+
+// Define navigation type based on available keys
+#if LCD_W == 212
+  #define NAVIGATION_X9D
+#elif defined(KEYS_GPIO_REG_SHIFT)
+  #define NAVIGATION_XLITE
+#elif defined(KEYS_GPIO_REG_LEFT)
+  #define NAVIGATION_9X
+#elif defined(KEYS_GPIO_REG_PAGEUP) && defined(KEYS_GPIO_REG_TELE)
+  #define NAVIGATION_X7
+  #define NAVIGATION_X7_TX12
+#else
+  #define NAVIGATION_X7
+#endif
 
 void memswap(void * a, void * b, uint8_t size);
 
@@ -116,7 +129,7 @@ void memswap(void * a, void * b, uint8_t size);
 #define IS_SLIDER(x) (POT_CONFIG(x) == FLEX_SLIDER)
 
 #define IS_POT_AVAILABLE(x)						\
-  (POT_CONFIG(x) != FLEX_NONE && POT_CONFIG(x) <= FLEX_MULTIPOS)
+  (POT_CONFIG(x) != FLEX_NONE && POT_CONFIG(x) < FLEX_SWITCH)
 
 #define IS_POT_SLIDER_AVAILABLE(x) (IS_POT_AVAILABLE(x))
 
@@ -174,7 +187,13 @@ struct CustomFunctionsContext {
 };
 
 #include "strhelpers.h"
+#if defined(COLORLCD)
+#include "gui_common.h"
+#include "menus.h"
+#include "popups.h"
+#else
 #include "gui.h"
+#endif
 
 #if !defined(SIMU)
   #define assert(x)
@@ -193,6 +212,10 @@ inline bool SPLASH_NEEDED()
 #endif
 
 #define SPLASH_TIMEOUT (g_eeGeneral.splashMode == -4 ? 1500 : (g_eeGeneral.splashMode <= 0 ? (400-g_eeGeneral.splashMode * 200) : (400 - g_eeGeneral.splashMode * 100)))
+
+extern void startSplash();
+extern void waitSplash();
+extern void cancelSplash();
 
 extern uint8_t heartbeat;
 
@@ -328,15 +351,11 @@ void flightReset(uint8_t check=true);
   #define RESET_THR_TRACE() s_timeCum16ThrP = s_timeCumThr = 0
 #endif
 
-// disabled function (not used anywhere)
-#define READ_ONLY() false
-#define READ_ONLY_UNLOCKED() true
-
 void checkLowEEPROM();
 void checkThrottleStick();
 void checkSwitches();
 void checkAlarm();
-void checkAll();
+void checkAll(bool isBootCheck = false);
 
 void getADC();
 
@@ -389,57 +408,9 @@ inline int calcRESXto100(int x)
 
 int expo(int x, int k);
 
-inline void getMixSrcRange(const int source, int16_t & valMin, int16_t & valMax, LcdFlags * flags = 0)
-{
-  if (source >= MIXSRC_FIRST_TRIM && source <= MIXSRC_LAST_TRIM) {
-    valMax = g_model.extendedTrims ? TRIM_EXTENDED_MAX : TRIM_MAX;
-    valMin = -valMax;
-  }
-#if defined(LUA_INPUTS)
-  else if (source >= MIXSRC_FIRST_LUA && source <= MIXSRC_LAST_LUA) {
-    valMax = 30000;
-    valMin = -valMax;
-  }
-#endif
-  else if (source < MIXSRC_FIRST_CH) {
-    valMax = 100;
-    valMin = -valMax;
-  }
-  else if (source <= MIXSRC_LAST_CH) {
-    valMax = g_model.extendedLimits ? LIMIT_EXT_PERCENT : 100;
-    valMin = -valMax;
-  }
-#if defined(GVARS)
-  else if (source >= MIXSRC_FIRST_GVAR && source <= MIXSRC_LAST_GVAR) {
-    valMax = min<int>(CFN_GVAR_CST_MAX, MODEL_GVAR_MAX(source-MIXSRC_FIRST_GVAR));
-    valMin = max<int>(CFN_GVAR_CST_MIN, MODEL_GVAR_MIN(source-MIXSRC_FIRST_GVAR));
-    if (flags && g_model.gvars[source-MIXSRC_FIRST_GVAR].prec)
-      *flags |= PREC1;
-  }
-#endif
-  else if (source == MIXSRC_TX_VOLTAGE) {
-    valMax =  255;
-    valMin = 0;
-    if (flags)
-      *flags |= PREC1;
-  }
-  else if (source == MIXSRC_TX_TIME) {
-    valMax =  23 * 60 + 59;
-    valMin = 0;
-  }
-  else if (source >= MIXSRC_FIRST_TIMER && source <= MIXSRC_LAST_TIMER) {
-    valMax =  9 * 60 * 60 - 1;
-    valMin = -valMax;
-    if (flags)
-      *flags |= TIMEHOUR;
-  }
-  else {
-    valMax = 30000;
-    valMin = -valMax;
-  }
-}
+extern void getMixSrcRange(const int source, int16_t & valMin, int16_t & valMax, LcdFlags * flags = nullptr);
 
-void applyExpos(int16_t * anas, uint8_t mode, uint8_t ovwrIdx=0, int16_t ovwrValue=0);
+void applyExpos(int16_t * anas, uint8_t mode, int16_t ovwrIdx=0, int16_t ovwrValue=0);
 int16_t applyLimits(uint8_t channel, int32_t value);
 
 void evalInputs(uint8_t mode);
@@ -716,7 +687,9 @@ union ReusableBuffer
 
 #if defined(SDCARD)
   struct {
+#if defined(NUM_BODY_LINES)
     char lines[NUM_BODY_LINES][SD_SCREEN_FILE_LENGTH+1+1]; // the last char is used to store the flags (directory) of the line
+#endif
     uint32_t available;
     uint16_t offset;
     uint16_t count;
@@ -973,3 +946,6 @@ extern bool modelLSEnabled();
 extern bool modelSFEnabled();
 extern bool modelCustomScriptsEnabled();
 extern bool modelTelemetryEnabled();
+
+int pwrDelayFromYaml(int delay);
+int pwrDelayToYaml(int delay);

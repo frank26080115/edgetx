@@ -33,14 +33,20 @@ set(${PROJECT_NAME}_SRCS
   simulateduiwidgetBoxer.cpp
   simulateduiwidgetCommando8.cpp
   simulateduiwidgetEL18.cpp
+  simulateduiwidgetFatfishF16.cpp
   simulateduiwidgetJumperT12.cpp
+  simulateduiwidgetJumperT12max.cpp
+  simulateduiwidgetJumperT14.cpp
+  simulateduiwidgetJumperT15.cpp
   simulateduiwidgetJumperT16.cpp
   simulateduiwidgetJumperT18.cpp
+  simulateduiwidgetJumperT20.cpp
   simulateduiwidgetJumperTLITE.cpp
   simulateduiwidgetJumperTPRO.cpp
   simulateduiwidgetLR3PRO.cpp
   simulateduiwidgetNV14.cpp
   simulateduiwidgetPL18.cpp
+  simulateduiwidgetPocket.cpp
   simulateduiwidgetT8.cpp
   simulateduiwidgetTX12.cpp
   simulateduiwidgetTX16S.cpp

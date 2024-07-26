@@ -20,11 +20,20 @@
  */
 
 #include "model_logical_switches.h"
-#include "opentx.h"
+
 #include "libopenui.h"
+#include "list_line_button.h"
+#include "opentx.h"
+#include "page.h"
+#include "sourcechoice.h"
+#include "switchchoice.h"
 #include "switches.h"
+#include "themes/etx_lv_theme.h"
 
 #define SET_DIRTY() storageDirty(EE_MODEL)
+
+#define ETX_STATE_LS_ACTIVE LV_STATE_USER_1
+#define ETX_STATE_V1_SMALL_FONT LV_STATE_USER_1
 
 static const lv_coord_t col_dsc[] = {LV_GRID_FR(2), LV_GRID_FR(3),
                                      LV_GRID_TEMPLATE_LAST};
@@ -36,16 +45,16 @@ class LogicalSwitchEditPage : public Page
 {
  public:
   explicit LogicalSwitchEditPage(uint8_t index) :
-      Page(ICON_MODEL_LOGICAL_SWITCHES), index(index)
+      Page(ICON_MODEL_LOGICAL_SWITCHES, PAD_ZERO), index(index)
   {
-    buildHeader(&header);
-    buildBody(&body);
+    buildHeader(header);
+    buildBody(body);
   }
 
  protected:
   uint8_t index;
   bool active = false;
-  FormWindow* logicalSwitchOneWindow = nullptr;
+  Window* logicalSwitchOneWindow = nullptr;
   StaticText* headerSwitchName = nullptr;
   NumberEdit* v2Edit = nullptr;
 
@@ -59,32 +68,30 @@ class LogicalSwitchEditPage : public Page
     Page::checkEvents();
     if (active != isActive()) {
       if (isActive()) {
-        lv_obj_add_state(headerSwitchName->getLvObj(), LV_STATE_USER_1);
+        lv_obj_add_state(headerSwitchName->getLvObj(), ETX_STATE_LS_ACTIVE);
       } else {
-        lv_obj_clear_state(headerSwitchName->getLvObj(), LV_STATE_USER_1);
+        lv_obj_clear_state(headerSwitchName->getLvObj(), ETX_STATE_LS_ACTIVE);
       }
       active = isActive();
-      invalidate();
     }
   }
 
   void buildHeader(Window* window)
   {
-    header.setTitle(STR_MENULOGICALSWITCHES);
-    headerSwitchName = header.setTitle2(
+    header->setTitle(STR_MENULOGICALSWITCHES);
+    headerSwitchName = header->setTitle2(
         getSwitchPositionName(SWSRC_FIRST_LOGICAL_SWITCH + index));
 
-    lv_obj_set_style_text_color(headerSwitchName->getLvObj(),
-                                makeLvColor(COLOR_THEME_ACTIVE),
-                                LV_STATE_USER_1);
-    lv_obj_set_style_text_font(headerSwitchName->getLvObj(),
-                               getFont(FONT(BOLD)), LV_STATE_USER_1);
+    etx_txt_color(headerSwitchName->getLvObj(), COLOR_THEME_ACTIVE_INDEX,
+                  ETX_STATE_LS_ACTIVE);
+    etx_font(headerSwitchName->getLvObj(), FONT_BOLD_INDEX, ETX_STATE_LS_ACTIVE);
   }
 
   void getV2Range(LogicalSwitchData* cs, int16_t& v2_min, int16_t& v2_max)
   {
     getMixSrcRange(cs->v1, v2_min, v2_max);
-    if ((cs->func == LS_FUNC_APOS) || (cs->func == LS_FUNC_ANEG) || (cs->func == LS_FUNC_ADIFFEGREATER))
+    if ((cs->func == LS_FUNC_APOS) || (cs->func == LS_FUNC_ANEG) ||
+        (cs->func == LS_FUNC_ADIFFEGREATER))
       v2_min = 0;
   }
 
@@ -95,15 +102,15 @@ class LogicalSwitchEditPage : public Page
 
     logicalSwitchOneWindow->clear();
     logicalSwitchOneWindow->setFlexLayout();
-    FlexGridLayout grid(col_dsc, row_dsc, 2);
-    FlexGridLayout grid2(col_dsc2, row_dsc, 2);
+    FlexGridLayout grid(col_dsc, row_dsc, PAD_TINY);
+    FlexGridLayout grid2(col_dsc2, row_dsc, PAD_TINY);
 
     LogicalSwitchData* cs = lswAddress(index);
     uint8_t cstate = lswFamily(cs->func);
 
     // V1
-    auto line = logicalSwitchOneWindow->newLine(&grid);
-    new StaticText(line, rect_t{}, STR_V1, 0, COLOR_THEME_PRIMARY1);
+    auto line = logicalSwitchOneWindow->newLine(grid);
+    new StaticText(line, rect_t{}, STR_V1);
     switch (cstate) {
       case LS_FAMILY_BOOL:
       case LS_FAMILY_STICKY:
@@ -115,7 +122,7 @@ class LogicalSwitchEditPage : public Page
         break;
       case LS_FAMILY_COMP:
         new SourceChoice(line, rect_t{}, 0, MIXSRC_LAST_TELEM,
-                         GET_SET_DEFAULT(cs->v1));
+                         GET_SET_DEFAULT(cs->v1), true);
         break;
       case LS_FAMILY_TIMER:
         timer =
@@ -137,17 +144,17 @@ class LogicalSwitchEditPage : public Page
                              v2Edit->setValue(cs->v2);
                            }
                            SET_DIRTY();
-                         });
+                         }, true);
         break;
     }
 
     // V2
     if (cstate == LS_FAMILY_EDGE) {
-      line = logicalSwitchOneWindow->newLine(&grid2);
+      line = logicalSwitchOneWindow->newLine(grid2);
     } else {
-      line = logicalSwitchOneWindow->newLine(&grid);
+      line = logicalSwitchOneWindow->newLine(grid);
     }
-    new StaticText(line, rect_t{}, STR_V2, 0, COLOR_THEME_PRIMARY1);
+    new StaticText(line, rect_t{}, STR_V2);
     switch (cstate) {
       case LS_FAMILY_BOOL:
       case LS_FAMILY_STICKY:
@@ -184,7 +191,7 @@ class LogicalSwitchEditPage : public Page
       } break;
       case LS_FAMILY_COMP:
         new SourceChoice(line, rect_t{}, 0, MIXSRC_LAST_TELEM,
-                         GET_SET_DEFAULT(cs->v2));
+                         GET_SET_DEFAULT(cs->v2), true);
         break;
       case LS_FAMILY_TIMER:
         timer =
@@ -199,10 +206,9 @@ class LogicalSwitchEditPage : public Page
         getV2Range(cs, v2_min, v2_max);
         v2Edit = new NumberEdit(line, rect_t{}, v2_min, v2_max,
                                 GET_SET_DEFAULT(cs->v2));
-        lv_obj_set_width(v2Edit->getLvObj(), LV_SIZE_CONTENT);
 
         v2Edit->setDisplayHandler([=](int value) -> std::string {
-          if (cs->v1 <= MIXSRC_LAST_CH) value = calc100toRESX(value);
+          if (abs(cs->v1) <= MIXSRC_LAST_CH) value = calc100toRESX(value);
           std::string txt = getSourceCustomValueString(cs->v1, value, 0);
           return txt;
         });
@@ -210,50 +216,57 @@ class LogicalSwitchEditPage : public Page
     }
 
     // AND switch
-    line = logicalSwitchOneWindow->newLine(&grid);
-    new StaticText(line, rect_t{}, STR_AND_SWITCH, 0, COLOR_THEME_PRIMARY1);
+    line = logicalSwitchOneWindow->newLine(grid);
+    new StaticText(line, rect_t{}, STR_AND_SWITCH);
     choice = new SwitchChoice(line, rect_t{}, -MAX_LS_ANDSW, MAX_LS_ANDSW,
                               GET_SET_DEFAULT(cs->andsw));
     choice->setAvailableHandler(isSwitchAvailableInLogicalSwitches);
 
     // Duration
-    line = logicalSwitchOneWindow->newLine(&grid);
-    new StaticText(line, rect_t{}, STR_DURATION, 0, COLOR_THEME_PRIMARY1);
+    line = logicalSwitchOneWindow->newLine(grid);
+    new StaticText(line, rect_t{}, STR_DURATION);
     auto edit = new NumberEdit(line, rect_t{}, 0, MAX_LS_DURATION,
-                               GET_SET_DEFAULT(cs->duration), 0, PREC1);
+                               GET_SET_DEFAULT(cs->duration), PREC1);
     edit->setZeroText("---");
     edit->setDisplayHandler([](int32_t value) {
       return formatNumberAsString(value, PREC1, 0, nullptr, "s");
     });
 
     // Delay
-    line = logicalSwitchOneWindow->newLine(&grid);
-    new StaticText(line, rect_t{}, STR_DELAY, 0, COLOR_THEME_PRIMARY1);
+    line = logicalSwitchOneWindow->newLine(grid);
+    new StaticText(line, rect_t{}, STR_DELAY);
     if (cstate == LS_FAMILY_EDGE) {
-      new StaticText(line, rect_t{}, STR_NA, 0, COLOR_THEME_PRIMARY1);
+      new StaticText(line, rect_t{}, STR_NA);
     } else {
       auto edit = new NumberEdit(line, rect_t{}, 0, MAX_LS_DELAY,
-                                 GET_SET_DEFAULT(cs->delay), 0, PREC1);
+                                 GET_SET_DEFAULT(cs->delay), PREC1);
       edit->setDisplayHandler([](int32_t value) {
         if (value == 0) return std::string("---");
         return formatNumberAsString(value, PREC1, 0, nullptr, "s");
       });
     }
+
+    // Sticky persist
+    if (cstate == LS_FAMILY_STICKY) {
+      line = logicalSwitchOneWindow->newLine(grid);
+      new StaticText(line, rect_t{}, STR_PERSISTENT);
+      new ToggleSwitch(line, rect_t{}, GET_SET_DEFAULT(cs->lsPersist));
+    }
   }
 
-  void buildBody(FormWindow* window)
+  void buildBody(Window* window)
   {
     window->setFlexLayout();
-    window->padAll(0);
-    window->padLeft(4);
-    window->padRight(4);
-    FlexGridLayout grid(col_dsc, row_dsc, 2);
+    window->padLeft(PAD_SMALL);
+    window->padRight(PAD_SMALL);
+
+    FlexGridLayout grid(col_dsc, row_dsc, PAD_TINY);
 
     LogicalSwitchData* cs = lswAddress(index);
 
     // LS Func
-    auto line = window->newLine(&grid);
-    new StaticText(line, rect_t{}, STR_FUNC, 0, COLOR_THEME_PRIMARY1);
+    auto line = window->newLine(grid);
+    new StaticText(line, rect_t{}, STR_FUNC);
     auto functionChoice = new Choice(line, rect_t{}, STR_VCSWFUNC, 0,
                                      LS_FUNC_MAX, GET_DEFAULT(cs->func));
     functionChoice->setSetValueHandler([=](int32_t newValue) {
@@ -271,7 +284,7 @@ class LogicalSwitchEditPage : public Page
       updateLogicalSwitchOneWindow();
     });
 
-    logicalSwitchOneWindow = new FormWindow(window, rect_t{});
+    logicalSwitchOneWindow = new Window(window, rect_t{});
     updateLogicalSwitchOneWindow();
   }
 };
@@ -288,53 +301,16 @@ void getsEdgeDelayParam(char* s, LogicalSwitchData* ls)
                                 .c_str());
 }
 
-#if LCD_W > LCD_H  // Landscape
-
-static const lv_coord_t b_col_dsc[] = {30, 50, 88, 110,
-                                       88, 40, 40, LV_GRID_TEMPLATE_LAST};
-
-static const lv_coord_t b_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
-
-#define NM_ROW_CNT 1
-#define V2_COL_CNT 1
-#define ANDSW_ROW 0
-#define ANDSW_COL 4
-
-#else  // Portrait
-
-static const lv_coord_t b_col_dsc[] = {36, 58, 88, 54, 54, LV_GRID_TEMPLATE_LAST};
-
-static const lv_coord_t b_row_dsc[] = {LV_GRID_CONTENT, LV_GRID_CONTENT,
-                                       LV_GRID_TEMPLATE_LAST};
-
-#define NM_ROW_CNT 2
-#define V2_COL_CNT 2
-#define ANDSW_ROW 1
-#define ANDSW_COL 2
-
-#endif
-
-class LogicalSwitchButton : public Button
+class LogicalSwitchButton : public ListLineButton
 {
  public:
   LogicalSwitchButton(Window* parent, const rect_t& rect, int lsIndex) :
-      Button(parent, rect, nullptr, 0, 0, input_mix_line_create),
-      lsIndex(lsIndex)
+      ListLineButton(parent, lsIndex)
   {
-#if LCD_H > LCD_W
-    padTop(0);
-#endif
-    padLeft(3);
-    padRight(3);
-    lv_obj_set_layout(lvobj, LV_LAYOUT_GRID);
-    lv_obj_set_grid_dsc_array(lvobj, b_col_dsc, b_row_dsc);
-    lv_obj_set_style_pad_row(lvobj, 0, 0);
-    lv_obj_set_style_pad_column(lvobj, 2, 0);
+    setHeight(LS_BUTTON_H);
+    padAll(PAD_ZERO);
 
     check(isActive());
-
-    lv_obj_update_layout(parent->getLvObj());
-    if (lv_obj_is_visible(lvobj)) delayed_init(nullptr);
 
     lv_obj_add_event_cb(lvobj, LogicalSwitchButton::on_draw,
                         LV_EVENT_DRAW_MAIN_BEGIN, nullptr);
@@ -346,80 +322,75 @@ class LogicalSwitchButton : public Button
     auto line = (LogicalSwitchButton*)lv_obj_get_user_data(target);
     if (line) {
       if (!line->init)
-        line->delayed_init(e);
-      else
-        line->refresh();
+        line->delayed_init();
+      line->refresh();
     }
   }
 
-  void delayed_init(lv_event_t* e)
+  void delayed_init()
   {
+    init = true;
+
+    lv_obj_enable_style_refresh(false);
+
     lsName = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsName, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_grid_cell(lsName, LV_GRID_ALIGN_STRETCH, 0, 1,
-                         LV_GRID_ALIGN_CENTER, 0, NM_ROW_CNT);
+    etx_obj_add_style(lsName, styles->text_align_left, LV_PART_MAIN);
+    lv_obj_set_pos(lsName, NM_X, NM_Y);
+    lv_obj_set_size(lsName, NM_W, NM_H);
 
     lsFunc = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsFunc, LV_TEXT_ALIGN_LEFT, 0);
-    lv_obj_set_grid_cell(lsFunc, LV_GRID_ALIGN_STRETCH, 1, 1,
-                         LV_GRID_ALIGN_CENTER, 0, NM_ROW_CNT);
+    etx_obj_add_style(lsFunc, styles->text_align_left, LV_PART_MAIN);
+    lv_obj_set_pos(lsFunc, FN_X, FN_Y);
+    lv_obj_set_size(lsFunc, FN_W, FN_H);
 
     lsV1 = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsV1, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_grid_cell(lsV1, LV_GRID_ALIGN_STRETCH, 2, 1,
-                         LV_GRID_ALIGN_CENTER, 0, 1);
+    etx_obj_add_style(lsV1, styles->text_align_center, LV_PART_MAIN);
+    etx_font(lsV1, FONT_XS_INDEX, ETX_STATE_V1_SMALL_FONT);
+    lv_obj_set_pos(lsV1, V1_X, V1_Y);
+    lv_obj_set_size(lsV1, V1_W, V1_H);
 
     lsV2 = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsV2, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_grid_cell(lsV2, LV_GRID_ALIGN_STRETCH, 3, V2_COL_CNT,
-                         LV_GRID_ALIGN_CENTER, 0, 1);
+    etx_obj_add_style(lsV2, styles->text_align_center, LV_PART_MAIN);
+    lv_obj_set_pos(lsV2, V2_X, V2_Y);
+    lv_obj_set_size(lsV2, V2_W, V2_H);
 
     lsAnd = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsAnd, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_grid_cell(lsAnd, LV_GRID_ALIGN_STRETCH, ANDSW_COL, 1,
-                         LV_GRID_ALIGN_CENTER, ANDSW_ROW, 1);
+    etx_obj_add_style(lsAnd, styles->text_align_center, LV_PART_MAIN);
+    lv_obj_set_pos(lsAnd, AND_X, AND_Y);
+    lv_obj_set_size(lsAnd, AND_W, AND_H);
 
     lsDuration = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsDuration, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_grid_cell(lsDuration, LV_GRID_ALIGN_STRETCH, ANDSW_COL + 1, 1,
-                         LV_GRID_ALIGN_CENTER, ANDSW_ROW, 1);
+    etx_obj_add_style(lsDuration, styles->text_align_center, LV_PART_MAIN);
+    lv_obj_set_pos(lsDuration, DUR_X, DUR_Y);
+    lv_obj_set_size(lsDuration, DUR_W, DUR_H);
 
     lsDelay = lv_label_create(lvobj);
-    lv_obj_set_style_text_align(lsDelay, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_grid_cell(lsDelay, LV_GRID_ALIGN_STRETCH, ANDSW_COL + 2, 1,
-                         LV_GRID_ALIGN_CENTER, ANDSW_ROW, 1);
+    etx_obj_add_style(lsDelay, styles->text_align_center, LV_PART_MAIN);
+    lv_obj_set_pos(lsDelay, DEL_X, DEL_Y);
+    lv_obj_set_size(lsDelay, DEL_W, DEL_H);
 
-    init = true;
-    refresh();
     lv_obj_update_layout(lvobj);
 
-    if (e) {
-      auto param = lv_event_get_param(e);
-      lv_event_send(lvobj, LV_EVENT_DRAW_MAIN, param);
-    }
+    lv_obj_enable_style_refresh(true);
+    lv_obj_refresh_style(lvobj, LV_PART_ANY, LV_STYLE_PROP_ANY);
   }
 
-  bool isActive() const
+  bool isActive() const override
   {
-    return getSwitch(SWSRC_FIRST_LOGICAL_SWITCH + lsIndex);
+    return getSwitch(SWSRC_FIRST_LOGICAL_SWITCH + index);
   }
 
-  void checkEvents() override
-  {
-    Button::checkEvents();
-    check(isActive());
-  }
-
-  void refresh()
+  void refresh() override
   {
     if (!init) return;
 
     char s[20];
 
-    LogicalSwitchData* ls = lswAddress(lsIndex);
+    LogicalSwitchData* ls = lswAddress(index);
     uint8_t lsFamily = lswFamily(ls->func);
 
-    lv_label_set_text(lsName, getSwitchPositionName(SWSRC_FIRST_LOGICAL_SWITCH + lsIndex));
+    lv_label_set_text(
+        lsName, getSwitchPositionName(SWSRC_FIRST_LOGICAL_SWITCH + index));
     lv_label_set_text(lsFunc, STR_VCSWFUNC[ls->func]);
 
     // CSW params - V1
@@ -434,9 +405,14 @@ class LogicalSwitchButton : public Button
                                                      PREC1, 0, nullptr, "s")
                                     .c_str());
         break;
-      default:
-        lv_label_set_text(lsV1, getSourceString(ls->v1));
-        break;
+      default: {
+        char* s = getSourceString(ls->v1);
+        if (getTextWidth(s, 0, FONT(STD)) > 88)
+          lv_obj_add_state(lsV1, ETX_STATE_V1_SMALL_FONT);
+        else
+          lv_obj_clear_state(lsV1, ETX_STATE_V1_SMALL_FONT);
+        lv_label_set_text(lsV1, s);
+      } break;
     }
 
     // CSW params - V2
@@ -490,9 +466,39 @@ class LogicalSwitchButton : public Button
     }
   }
 
+  static LAYOUT_VAL(LS_BUTTON_H, 32, 44)
+
+  static constexpr coord_t NM_X = PAD_TINY;
+  static LAYOUT_VAL(NM_Y, 4, 10)
+  static LAYOUT_VAL(NM_W, 30, 36)
+  static LAYOUT_VAL(NM_H, 20, 20)
+  static constexpr coord_t FN_X = NM_X + NM_W + PAD_TINY;
+  static constexpr coord_t FN_Y = NM_Y;
+  static LAYOUT_VAL(FN_W, 50, 58)
+  static constexpr coord_t FN_H = NM_H;
+  static constexpr coord_t V1_X = FN_X + FN_W + PAD_TINY;
+  static LAYOUT_VAL(V1_Y, NM_Y, 0)
+  static LAYOUT_VAL(V1_W, 88, 88)
+  static constexpr coord_t V1_H = NM_H;
+  static constexpr coord_t V2_X = V1_X + V1_W + PAD_TINY;
+  static constexpr coord_t V2_Y = V1_Y;
+  static LAYOUT_VAL(V2_W, 110, 110)
+  static constexpr coord_t V2_H = NM_H;
+  static LAYOUT_VAL(AND_X, V2_X + V2_W + PAD_TINY, FN_X + FN_W + PAD_TINY)
+  static LAYOUT_VAL(AND_Y, NM_Y, 20)
+  static constexpr coord_t AND_W = V1_W;
+  static constexpr coord_t AND_H = NM_H;
+  static constexpr coord_t DUR_X = AND_X + AND_W + PAD_TINY;
+  static constexpr coord_t DUR_Y = AND_Y;
+  static LAYOUT_VAL(DUR_W, 40, 54)
+  static constexpr coord_t DUR_H = NM_H;
+  static constexpr coord_t DEL_X = DUR_X + DUR_W + PAD_TINY;
+  static constexpr coord_t DEL_Y = AND_Y;
+  static constexpr coord_t DEL_H = NM_H;
+  static constexpr coord_t DEL_W = DUR_W;
+
  protected:
   bool init = false;
-  uint8_t lsIndex;
 
   lv_obj_t* lsName = nullptr;
   lv_obj_t* lsFunc = nullptr;
@@ -503,18 +509,12 @@ class LogicalSwitchButton : public Button
   lv_obj_t* lsDelay = nullptr;
 };
 
-#if LCD_W > LCD_H
-#define LS_BUTTON_H 34
-#else
-#define LS_BUTTON_H 45
-#endif
-
 ModelLogicalSwitchesPage::ModelLogicalSwitchesPage() :
-    PageTab(STR_MENULOGICALSWITCHES, ICON_MODEL_LOGICAL_SWITCHES)
+    PageTab(STR_MENULOGICALSWITCHES, ICON_MODEL_LOGICAL_SWITCHES, PAD_SMALL)
 {
 }
 
-void ModelLogicalSwitchesPage::rebuild(FormWindow* window)
+void ModelLogicalSwitchesPage::rebuild(Window* window)
 {
   // When window.clear() is called the last button on screen is given focus
   // (???) This causes the page to jump to the end when rebuilt. Set flag to
@@ -525,7 +525,7 @@ void ModelLogicalSwitchesPage::rebuild(FormWindow* window)
   isRebuilding = false;
 }
 
-void ModelLogicalSwitchesPage::newLS(FormWindow* window, bool pasteLS)
+void ModelLogicalSwitchesPage::newLS(Window* window, bool pasteLS)
 {
   Menu* menu = new Menu(Layer::back());
   menu->setTitle(STR_MENU_LOGICAL_SWITCHES);
@@ -534,7 +534,8 @@ void ModelLogicalSwitchesPage::newLS(FormWindow* window, bool pasteLS)
   for (uint8_t i = 0; i < MAX_LOGICAL_SWITCHES; i++) {
     LogicalSwitchData* ls = lswAddress(i);
     if (ls->func == LS_FUNC_NONE) {
-      std::string ch_name(getSwitchPositionName(SWSRC_FIRST_LOGICAL_SWITCH + i));
+      std::string ch_name(
+          getSwitchPositionName(SWSRC_FIRST_LOGICAL_SWITCH + i));
       menu->addLineBuffered(ch_name.c_str(), [=]() {
         if (pasteLS) {
           *ls = clipboard.data.csw;
@@ -556,7 +557,7 @@ void ModelLogicalSwitchesPage::newLS(FormWindow* window, bool pasteLS)
   menu->updateLines();
 }
 
-void ModelLogicalSwitchesPage::plusPopup(FormWindow* window)
+void ModelLogicalSwitchesPage::plusPopup(Window* window)
 {
   if (clipboard.type == CLIPBOARD_TYPE_CUSTOM_SWITCH) {
     Menu* menu = new Menu(window);
@@ -567,18 +568,16 @@ void ModelLogicalSwitchesPage::plusPopup(FormWindow* window)
   }
 }
 
-void ModelLogicalSwitchesPage::build(FormWindow* window)
+void ModelLogicalSwitchesPage::build(Window* window)
 {
   static const lv_coord_t l_col_dsc[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 
-  window->padAll(4);
-  window->setFlexLayout(LV_FLEX_FLOW_COLUMN, 0);
+  window->setFlexLayout(LV_FLEX_FLOW_COLUMN, PAD_ZERO);
 
-  FlexGridLayout grid(l_col_dsc, row_dsc, 2);
+  FlexGridLayout grid(l_col_dsc, row_dsc, PAD_TINY);
 
-  FormWindow::Line* line;
+  FormLine* line;
   bool hasEmptySwitch = false;
-  Button* button;
 
   // Reset focusIndex after switching tabs
   if (!isRebuilding) focusIndex = prevFocusIndex;
@@ -589,9 +588,10 @@ void ModelLogicalSwitchesPage::build(FormWindow* window)
     bool isActive = (ls->func != LS_FUNC_NONE);
 
     if (isActive) {
-      line = window->newLine(&grid);
+      line = window->newLine(grid);
 
-      button = new LogicalSwitchButton(line, rect_t{0, 0, window->width() - 12, LS_BUTTON_H}, i);
+      auto button = new LogicalSwitchButton(
+          line, rect_t{0, 0, window->width() - 12, LogicalSwitchButton::LS_BUTTON_H}, i);
 
       button->setPressHandler([=]() {
         Menu* menu = new Menu(window);
@@ -652,9 +652,9 @@ void ModelLogicalSwitchesPage::build(FormWindow* window)
   }
 
   if (hasEmptySwitch) {
-    line = window->newLine(&grid);
+    line = window->newLine(grid);
     addButton =
-        new TextButton(line, rect_t{0, 0, window->width() - 12, LS_BUTTON_H},
+        new TextButton(line, rect_t{0, 0, window->width() - 12, LogicalSwitchButton::LS_BUTTON_H},
                        LV_SYMBOL_PLUS, [=]() {
                          plusPopup(window);
                          return 0;

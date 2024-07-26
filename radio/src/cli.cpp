@@ -462,14 +462,14 @@ int cliTestSD(const char ** argv)
 
 int cliTestNew()
 {
-  char * tmp = 0;
+  char * tmp = nullptr;
   cliSerialPrint("Allocating 1kB with new()");
   RTOS_WAIT_MS(200);
   tmp = new char[1024];
   if (tmp) {
     cliSerialPrint("\tsuccess");
     delete[] tmp;
-    tmp = 0;
+    tmp = nullptr;
   }
   else {
     cliSerialPrint("\tFAILURE");
@@ -481,7 +481,7 @@ int cliTestNew()
   if (tmp) {
     cliSerialPrint("\tFAILURE, tmp = %p", tmp);
     delete[] tmp;
-    tmp = 0;
+    tmp = nullptr;
   }
   else {
     cliSerialPrint("\tsuccess, allocaton failed, tmp = 0");
@@ -493,7 +493,7 @@ int cliTestNew()
   if (tmp) {
     cliSerialPrint("\tFAILURE, tmp = %p", tmp);
     delete[] tmp;
-    tmp = 0;
+    tmp = nullptr;
   }
   else {
     cliSerialPrint("\tsuccess, allocaton failed, tmp = 0");
@@ -859,8 +859,12 @@ int cliStackInfo(const char ** argv)
   cliSerialPrint("[MAIN] %d available / %d bytes", mainStackAvailable()*4, stackSize()*4);
   cliSerialPrint("[MENUS] %d available / %d bytes", menusStack.available()*4, menusStack.size());
   cliSerialPrint("[MIXER] %d available / %d bytes", mixerStack.available()*4, mixerStack.size());
+#if defined(AUDIO)
   cliSerialPrint("[AUDIO] %d available / %d bytes", audioStack.available()*4, audioStack.size());
+#endif
+#if defined(CLI)
   cliSerialPrint("[CLI] %d available / %d bytes", cliStack.available()*4, cliStack.size());
+#endif
   return 0;
 }
 
@@ -966,7 +970,7 @@ int cliSet(const char **argv)
       return -1;
     }
   }
-#if !defined(SOFTWARE_VOLUME)
+#if !defined(SOFTWARE_VOLUME) && defined(AUDIO)
   else if (!strcmp(argv[1], "volume")) {
     int level = 0;
     if (toInt(argv, 2, &level) > 0) {
@@ -995,24 +999,24 @@ int cliSet(const char **argv)
       }
       cliSerialPrint("%s: rfmod %d power %s", argv[0], module, argv[4]);
     }
-#if defined(INTMODULE_BOOTCMD_GPIO)
     else if (!strcmp(argv[3], "bootpin")) {
       int level = 0;
       if (toInt(argv, 4, &level) < 0) {
         cliSerialPrint("%s: invalid bootpin argument '%s'", argv[0], argv[4]);
         return -1;
       }
-      if (module == 0) {
-        if (level) {
-          GPIO_SetBits(INTMODULE_BOOTCMD_GPIO, INTMODULE_BOOTCMD_GPIO_PIN);
-          cliSerialPrint("%s: bootpin set", argv[0]);
-        } else {
-          GPIO_ResetBits(INTMODULE_BOOTCMD_GPIO, INTMODULE_BOOTCMD_GPIO_PIN);
-          cliSerialPrint("%s: bootpin reset", argv[0]);
-        }
+      const auto* mod = modulePortGetModuleDescription(INTERNAL_MODULE);
+      if (!mod || !mod->set_bootcmd) {
+        cliSerialPrint("%s: invalid module or has no bootcmd pin", argv[0]);
+        return -1;
+      }
+      mod->set_bootcmd(level);
+      if (level) {
+        cliSerialPrint("%s: bootcmd set", argv[0]);
+      } else {
+        cliSerialPrint("%s: bootcmd reset", argv[0]);
       }
     }
-#endif
     else {
       if (strlen(argv[2]) == 0) {
         cliSerialPrint("%s: missing rfmod arguments", argv[0]);
@@ -1137,7 +1141,7 @@ int cliSerialPassthrough(const char **argv)
       cliReceiveCallBack = spInternalModuleTx;
 
       // loop until cable disconnected
-      while (cdcConnected) {
+      while (usbPlugged()) {
 
         uint32_t cli_br = cliGetBaudRate();
         if (cli_br && (cli_br != (uint32_t)baudrate)) {
@@ -1722,8 +1726,7 @@ int cliCrypt(const char ** argv)
 }
 #endif
 
-#if defined(HARDWARE_TOUCH) && !defined(PCBNV14) && !defined(PCBPL18)
-
+#if defined(TP_GT911)
 // from tp_gt911.cpp
 extern uint8_t tp_gt911_cfgVer;
 
@@ -1794,7 +1797,7 @@ const CliCommand cliCommands[] = {
 #if defined(ACCESS_DENIED) && defined(DEBUG_CRYPT)
   { "crypt", cliCrypt, "<string to be encrypted>" },
 #endif
-#if defined(HARDWARE_TOUCH) && !defined(PCBNV14) && !defined(PCBPL18)
+#if defined(TP_GT911)
   { "reset_gt911", cliResetGT911, ""},
 #endif
   { nullptr, nullptr, nullptr }  /* sentinel */

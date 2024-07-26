@@ -79,11 +79,14 @@ do
         x7)
             BUILD_OPTIONS+="-DPCB=X7"
             ;;
-        x7-access)
+        x7access)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=ACCESS -DPXX1=YES"
             ;;
         t12)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T12 -DINTERNAL_MODULE_MULTI=ON"
+            ;;
+        mt12)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=MT12 -DINTERNAL_MODULE_MULTI=ON"
             ;;
         tx12)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=TX12"
@@ -106,6 +109,15 @@ do
         t20)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T20"
             ;;
+        t12max)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T12MAX"
+            ;;
+        t14)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T14"
+            ;;
+        t20v2)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T20V2"
+            ;;
         xlite)
             BUILD_OPTIONS+="-DPCB=XLITE"
             ;;
@@ -127,11 +139,14 @@ do
         x10)
             BUILD_OPTIONS+="-DPCB=X10"
             ;;
-        x10-access)
-            BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=ACCESS -DPXX1=YES"
+        x10express)
+            BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=EXPRESS -DPXX1=YES"
             ;;
         x12s)
             BUILD_OPTIONS+="-DPCB=X12S"
+            ;;
+        t15)
+            BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=T15 -DINTERNAL_MODULE_CRSF=ON"
             ;;
         t16)
             BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=T16 -DINTERNAL_MODULE_MULTI=ON"

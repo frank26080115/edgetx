@@ -21,10 +21,11 @@
 
 #include "model_setup.h"
 
-#include "opentx.h"
-#include "libopenui.h"
 #include "button_matrix.h"
+#include "filechoice.h"
+#include "libopenui.h"
 
+#include "hal/adc_driver.h"
 #include "storage/modelslist.h"
 #include "trainer_setup.h"
 #include "module_setup.h"
@@ -32,6 +33,17 @@
 #include "trims_setup.h"
 #include "throttle_params.h"
 #include "preflight_checks.h"
+#if defined(FUNCTION_SWITCHES)
+#include "function_switches.h"
+#endif
+#include "throttle_params.h"
+#include "timer_setup.h"
+#include "trainer_setup.h"
+#include "trims_setup.h"
+#include "module_setup.h"
+#include "opentx.h"
+#include "storage/modelslist.h"
+#include "themes/etx_lv_theme.h"
 
 #if defined(USBJ_EX)
 #include "model_usbjoystick.h"
@@ -39,302 +51,333 @@
 
 #include <algorithm>
 
-#define SET_DIRTY()     storageDirty(EE_MODEL)
+#define SET_DIRTY() storageDirty(EE_MODEL)
 
 ModelSetupPage::ModelSetupPage() :
-  PageTab(STR_MENU_MODEL_SETUP, ICON_MODEL_SETUP)
+    PageTab(STR_MENU_MODEL_SETUP, ICON_MODEL_SETUP)
 {
-}
-
-static void onModelNameChanged()
-{
-  auto model = modelslist.getCurrentModel();
-  if (model) {
-    model->setModelName(g_model.header.name);
-  }
-  SET_DIRTY();
 }
 
 struct ModelNameEdit : public ModelTextEdit {
   ModelNameEdit(Window *parent, const rect_t &rect) :
       ModelTextEdit(parent, rect, g_model.header.name,
-                    sizeof(g_model.header.name), 0)
+                    sizeof(g_model.header.name))
   {
-    setChangeHandler(onModelNameChanged);
+    setChangeHandler([=]() {
+                      auto model = modelslist.getCurrentModel();
+                      if (model) {
+                        model->setModelName(g_model.header.name);
+                      }
+                      SET_DIRTY();
+                    });
   }
 };
 
-static std::string getModelBitmap()
+static void viewOption(Window* parent, coord_t x, coord_t y,
+                std::function<uint8_t()> getValue,
+                std::function<void(uint8_t)> setValue, bool globalState)
 {
-  return std::string(g_model.header.bitmap, LEN_BITMAP_NAME);
+  auto lbl = new StaticText(parent, {x + ModelSetupPage::OPTS_W + PAD_MEDIUM, y + PAD_SMALL + 1, 0, 0},
+                          STR_ADCFILTERVALUES[globalState ? 1 : 2], COLOR_THEME_SECONDARY1);
+  new Choice(parent, {x, y, ModelSetupPage::OPTS_W, 0}, STR_ADCFILTERVALUES, 0, 2, getValue,
+              [=](int newValue) {
+                setValue(newValue);
+                lbl->show(newValue == 0);
+              });
+  lbl->show(getValue() == 0);
 }
 
-static void setModelBitmap(std::string newValue)
-{
-  strncpy(g_model.header.bitmap, newValue.c_str(), LEN_BITMAP_NAME);
-  auto model = modelslist.getCurrentModel();
-  if (model) {
-    strncpy(model->modelBitmap, newValue.c_str(), LEN_BITMAP_NAME);
-    model->modelBitmap[LEN_BITMAP_NAME] = '\0';
-  }
-  SET_DIRTY();
-}
-
-struct ModelBitmapEdit : public FileChoice {
-  ModelBitmapEdit(Window *parent, const rect_t &rect) :
-      FileChoice(parent, rect, BITMAPS_PATH, BITMAPS_EXT,
-                 LEN_BITMAP_NAME, getModelBitmap, setModelBitmap)
+static SetupLineDef viewOptionsPageSetupLines[] = {
   {
-  }
-};
-
-class SubScreenButton : public TextButton
-{
-  public:
-    SubScreenButton(Window* parent, const char* text,
-                    std::function<void(void)> pressHandler,
-                    std::function<bool(void)> checkActive = nullptr) :
-      TextButton(parent, rect_t{}, text, [=]() -> uint8_t {
-          pressHandler();
-          return 0;
-      }),
-      m_isActive(std::move(checkActive))
-    {
-      // Room for two lines of text
-      setHeight(62);
-      setWidth((LCD_W - 30) / 3);
-
-      lv_obj_set_width(label, lv_pct(100));
-      lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
-      lv_obj_set_style_text_align(label, LV_TEXT_ALIGN_CENTER, 0);
+    STR_RADIO_MENU_TABS, nullptr,
+  },
+  {
+    STR_THEME_EDITOR,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.radioThemesDisabled),
+                g_eeGeneral.radioThemesDisabled);
     }
-
-    void checkEvents() override
-    {
-      check(isActive());
+  },
+  {
+    STR_MENUSPECIALFUNCS,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.radioGFDisabled),
+                g_eeGeneral.radioGFDisabled);
     }
-
-  protected:
-    std::function<bool(void)> m_isActive = nullptr;
-
-    virtual bool isActive() { return m_isActive ? m_isActive() : false; }
-};
-
-static const lv_coord_t line_col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1),
-                                          LV_GRID_TEMPLATE_LAST};
-static const lv_coord_t line_row_dsc[] = {LV_GRID_CONTENT,
-                                          LV_GRID_TEMPLATE_LAST};
-
-class ModelViewOptions : public Page
-{
-   public:
-    class OptChoice : FormWindow
-    {
-      public:
-        OptChoice(Window* parent, const char *const values[], int vmin, int vmax,
-                  std::function<int()> _getValue,
-                  std::function<void(int)> _setValue,
-                  bool globalState) :
-          FormWindow(parent, rect_t{}),
-          m_getValue(std::move(_getValue)),
-          m_setValue(std::move(_setValue))
-        {
-          setFlexLayout(LV_FLEX_FLOW_ROW, 4);
-          lv_obj_set_flex_align(lvobj, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_SPACE_AROUND);
-
-          new Choice(this, rect_t{}, values, vmin, vmax,
-                     m_getValue,
-                     [=](int newValue) {
-                       m_setValue(newValue);
-                       setState();
-                     });
-          m_lbl = new StaticText(this, rect_t{}, STR_ADCFILTERVALUES[globalState ? 1: 2], 0, COLOR_THEME_SECONDARY1);
-          setState();
-        }
-
-      protected:
-        StaticText* m_lbl;
-        std::function<int()> m_getValue;
-        std::function<void(int)> m_setValue;
-
-        void setState()
-        {
-          if (m_getValue() == 0) {
-            lv_obj_clear_flag(m_lbl->getLvObj(), LV_OBJ_FLAG_HIDDEN);
-          } else {
-            lv_obj_add_flag(m_lbl->getLvObj(), LV_OBJ_FLAG_HIDDEN);
-          }
-        }
-    };
-
-    ModelViewOptions() : Page(ICON_MODEL_SETUP)
-    {
-      header.setTitle(STR_MENU_MODEL_SETUP);
-      header.setTitle2(STR_ENABLED_FEATURES);
-
-      body.padAll(8);
-
-      auto form = new FormWindow(&body, rect_t{});
-      form->setFlexLayout();
-      form->padAll(4);
-
-      FlexGridLayout grid(line_col_dsc, line_row_dsc, 2);
-
-      auto line = form->newLine(&grid);
-      new StaticText(line, rect_t{}, STR_RADIO_MENU_TABS, 0, COLOR_THEME_PRIMARY1);
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_THEME_EDITOR, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.radioThemesDisabled), g_eeGeneral.radioThemesDisabled);
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUSPECIALFUNCS, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.radioGFDisabled), g_eeGeneral.radioGFDisabled);
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUTRAINER, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.radioTrainerDisabled), g_eeGeneral.radioTrainerDisabled);
-
-      line = form->newLine(&grid);
-      new StaticText(line, rect_t{}, STR_MODEL_MENU_TABS, 0, COLOR_THEME_PRIMARY1);
-
+  },
+  {
+    STR_MENUTRAINER,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.radioTrainerDisabled),
+                g_eeGeneral.radioTrainerDisabled);
+    }
+  },
+  {
+    STR_MODEL_MENU_TABS, nullptr,
+  },
 #if defined(HELI)
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUHELISETUP, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelHeliDisabled), g_eeGeneral.modelHeliDisabled);
-#endif
-
-#if defined(FLIGHT_MODES)
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUFLIGHTMODES, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelFMDisabled), g_eeGeneral.modelFMDisabled);
-#endif
-
-#if defined(GVARS)
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENU_GLOBAL_VARS, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelGVDisabled), g_eeGeneral.modelGVDisabled);
-#endif
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUCURVES, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelCurvesDisabled), g_eeGeneral.modelCurvesDisabled);
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENULOGICALSWITCHES, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelLSDisabled), g_eeGeneral.modelLSDisabled);
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUCUSTOMFUNC, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelSFDisabled), g_eeGeneral.modelSFDisabled);
-
-#if defined(LUA_MODEL_SCRIPTS)
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUCUSTOMSCRIPTS, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelCustomScriptsDisabled), g_eeGeneral.modelCustomScriptsDisabled);
-#endif
-
-      line = form->newLine(&grid);
-      line->padLeft(10);
-      new StaticText(line, rect_t{}, STR_MENUTELEMETRY, 0, COLOR_THEME_PRIMARY1);
-      new OptChoice(line, STR_ADCFILTERVALUES, 0, 2, GET_SET_DEFAULT(g_model.modelTelemetryDisabled), g_eeGeneral.modelTelemetryDisabled);
+  {
+    STR_MENUHELISETUP,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelHeliDisabled),
+                g_eeGeneral.modelHeliDisabled);
     }
+  },
+#endif
+#if defined(FLIGHT_MODES)
+  {
+    STR_MENUFLIGHTMODES,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelFMDisabled),
+                g_eeGeneral.modelFMDisabled);
+    }
+  },
+#endif
+#if defined(GVARS)
+  {
+    STR_MENU_GLOBAL_VARS,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelGVDisabled),
+                g_eeGeneral.modelGVDisabled);
+    }
+  },
+#endif
+  {
+    STR_MENUCURVES,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelCurvesDisabled),
+                g_eeGeneral.modelCurvesDisabled);
+    }
+  },
+  {
+    STR_MENULOGICALSWITCHES,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelLSDisabled),
+                g_eeGeneral.modelLSDisabled);
+    }
+  },
+  {
+    STR_MENUCUSTOMFUNC,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelSFDisabled),
+                g_eeGeneral.modelSFDisabled);
+    }
+  },
+#if defined(LUA_MODEL_SCRIPTS)
+  {
+    STR_MENUCUSTOMSCRIPTS,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelCustomScriptsDisabled),
+                g_eeGeneral.modelCustomScriptsDisabled);
+    }
+  },
+#endif
+  {
+    STR_MENUTELEMETRY,
+    [](Window* parent, coord_t x, coord_t y) {
+      viewOption(parent, x, y,
+                GET_SET_DEFAULT(g_model.modelTelemetryDisabled),
+                g_eeGeneral.modelTelemetryDisabled);
+    }
+  },
 };
 
-void ModelSetupPage::build(FormWindow * window)
+struct CenterBeepsMatrix : public ButtonMatrix {
+  CenterBeepsMatrix(Window* parent, const rect_t& rect) :
+    ButtonMatrix(parent, rect)
+  {
+    // Setup button layout & texts
+    uint8_t btn_cnt = 0;
+
+    auto max_sticks = adcGetMaxInputs(ADC_INPUT_MAIN);
+    auto max_pots = adcGetMaxInputs(ADC_INPUT_FLEX);
+    max_analogs = max_sticks + max_pots;
+
+    for (uint8_t i = 0; i < max_analogs; i++) {
+      // multipos cannot be centered
+      if (i < max_sticks || (IS_POT_SLIDER_AVAILABLE(i - max_sticks) &&
+                            !IS_POT_MULTIPOS(i - max_sticks))) {
+        ana_idx[btn_cnt] = i;
+        btn_cnt++;
+      }
+    }
+
+    initBtnMap(min((int)btn_cnt, SW_BTNS), btn_cnt);
+
+    uint8_t btn_id = 0;
+    for (uint8_t i = 0; i < max_analogs; i++) {
+      if (i < max_sticks || (IS_POT_SLIDER_AVAILABLE(i - max_sticks) &&
+                            !IS_POT_MULTIPOS(i - max_sticks))) {
+        setTextAndState(btn_id);
+        btn_id++;
+      }
+    }
+
+    update();
+
+    setWidth(min((int)btn_cnt, SW_BTNS) * SW_BTN_W + 4);
+
+    uint8_t rows = ((btn_cnt - 1) / SW_BTNS) + 1;
+    setHeight((rows * 36) + 4);
+
+    lv_obj_set_style_pad_all(lvobj, 4, LV_PART_MAIN);
+
+    lv_obj_set_style_pad_row(lvobj, 4, LV_PART_MAIN);
+    lv_obj_set_style_pad_column(lvobj, 4, LV_PART_MAIN);
+  }
+
+  void onPress(uint8_t btn_id)
+  {
+    if (btn_id >= max_analogs) return;
+    uint8_t i = ana_idx[btn_id];
+    BFBIT_FLIP(g_model.beepANACenter, bfBit<BeepANACenter>(i));
+    setTextAndState(btn_id);
+    SET_DIRTY();
+  }
+
+  bool isActive(uint8_t btn_id)
+  {
+    if (btn_id >= max_analogs) return false;
+    uint8_t i = ana_idx[btn_id];
+    return bfSingleBitGet<BeepANACenter>(g_model.beepANACenter, i) != 0;
+  }
+
+  void setTextAndState(uint8_t btn_id)
+  {
+    auto max_sticks = adcGetMaxInputs(ADC_INPUT_MAIN);
+    if (ana_idx[btn_id] < max_sticks)
+      setText(btn_id, getAnalogShortLabel(ana_idx[btn_id]));
+    else
+      setText(btn_id,
+              getAnalogLabel(ADC_INPUT_FLEX, ana_idx[btn_id] - max_sticks));
+    setChecked(btn_id);
+  }
+
+  static LAYOUT_VAL(SW_BTNS, 8, 4)
+  static LAYOUT_VAL(SW_BTN_W, 56, 72)
+  static LAYOUT_VAL(SW_BTN_H, 36, 36)
+
+ private:
+  uint8_t max_analogs;
+  uint8_t ana_idx[MAX_ANALOG_INPUTS];
+};
+
+static SetupLineDef otherPageSetupLines[] = {
+  {
+    STR_JITTER_FILTER,
+    [](Window* parent, coord_t x, coord_t y) {
+      new Choice(parent, {x, y, 0, 0}, STR_ADCFILTERVALUES, 0, 2,
+                GET_SET_DEFAULT(g_model.jitterFilter));
+    }
+  },
+  {
+    STR_BEEPCTR, [](Window* parent, coord_t x, coord_t y) {}
+  },
+  {
+    nullptr,
+    [](Window* parent, coord_t x, coord_t y) {
+      auto bm = new CenterBeepsMatrix(parent, {PAD_MEDIUM, y, 0, 0});
+      parent->setHeight(bm->height() + PAD_SMALL);
+    }
+  },
+};
+
+static SetupLineDef setupLines[] = {
+  {
+    // Model name
+    STR_MODELNAME,
+    [](Window* parent, coord_t x, coord_t y) {
+      new ModelNameEdit(parent, {x, y, ModelSetupPage::NAM_W, 0});
+    }
+  },
+  {
+    // Model labels
+    STR_LABELS,
+    [](Window* parent, coord_t x, coord_t y) {
+      auto curmod = modelslist.getCurrentModel();
+      TextButton* btn = new TextButton(parent, {x, y, 0, 0}, modelslabels.getBulletLabelString(curmod, STR_UNLABELEDMODEL));
+      btn->setPressHandler([=]() {
+            Menu *menu = new Menu(MainWindow::instance(), true);
+            menu->setTitle(STR_LABELS);
+            for (auto &label : modelslabels.getLabels()) {
+              menu->addLineBuffered(
+                  label,
+                  [=]() {
+                    if (!modelslabels.isLabelSelected(label, curmod))
+                      modelslabels.addLabelToModel(label, curmod);
+                    else
+                      modelslabels.removeLabelFromModel(label, curmod);
+                    btn->setText(modelslabels.getBulletLabelString(
+                        curmod, STR_UNLABELEDMODEL));
+                    strncpy(g_model.header.labels,
+                            ModelMap::toCSV(modelslabels.getLabelsByModel(curmod))
+                                .c_str(),
+                            sizeof(g_model.header.labels));
+                    g_model.header.labels[sizeof(g_model.header.labels) - 1] = '\0';
+                    SET_DIRTY();
+                  },
+                  [=]() { return modelslabels.isLabelSelected(label, curmod); });
+            }
+            menu->updateLines();
+            return 0;
+          });
+    }
+  },
+  {
+    // Model bitmap
+    STR_BITMAP,
+    [](Window* parent, coord_t x, coord_t y) {
+      new FileChoice(parent, {x, y, 0, 0}, BITMAPS_PATH, BITMAPS_EXT, LEN_BITMAP_NAME,
+                     [=]() {
+                       return std::string(g_model.header.bitmap, LEN_BITMAP_NAME);
+                     },
+                     [=](std::string newValue) {
+                       strncpy(g_model.header.bitmap, newValue.c_str(), LEN_BITMAP_NAME);
+                       auto model = modelslist.getCurrentModel();
+                       if (model) {
+                         strncpy(model->modelBitmap, newValue.c_str(), LEN_BITMAP_NAME);
+                         model->modelBitmap[LEN_BITMAP_NAME] = '\0';
+                       }
+                       SET_DIRTY();
+                     }, false, STR_BITMAP);
+    }
+  },
+};
+
+void ModelSetupPage::build(Window * window)
 {
-  window->setFlexLayout(LV_FLEX_FLOW_COLUMN, 0);
+  coord_t y = SetupLine::showLines(window, 0, SubPage::EDT_X, padding, setupLines, DIM(setupLines));
 
-  FlexGridLayout grid(line_col_dsc, line_row_dsc, 2);
+  new SetupButtonGroup(window, {0, y, LCD_W - padding * 2, 0}, nullptr, BTN_COLS, PAD_TINY, {
+    // Modules
+    {STR_INTERNALRF, []() { new ModulePage(INTERNAL_MODULE); }, []() { return g_model.moduleData[INTERNAL_MODULE].type > 0; }},
+    {STR_EXTERNALRF, []() { new ModulePage(EXTERNAL_MODULE); }, []() { return g_model.moduleData[EXTERNAL_MODULE].type > 0; }},
+    {STR_TRAINER, []() { new TrainerPage(); }, []() { return g_model.trainerData.mode > 0; }},
+    // Timer buttons
+    {TR_TIMER "1", []() { new TimerWindow(0); }, []() { return g_model.timers[0].mode > 0; }},
+    {TR_TIMER "2", []() { new TimerWindow(1); }, []() { return g_model.timers[1].mode > 0; }},
+    {TR_TIMER "3", []() { new TimerWindow(2); }, []() { return g_model.timers[2].mode > 0; }},
 
-  // Model name
-  auto line = window->newLine(&grid);
-  new StaticText(line, rect_t{}, STR_MODELNAME, 0, COLOR_THEME_PRIMARY1);
-  new ModelNameEdit(line, rect_t{});
-
-  // Model labels
-  line = window->newLine(&grid);
-  new StaticText(line, rect_t{}, STR_LABELS, 0, COLOR_THEME_PRIMARY1);
-  auto curmod = modelslist.getCurrentModel();
-  labelTextButton =
-    new TextButton(line, rect_t{}, modelslabels.getBulletLabelString(curmod ,STR_UNLABELEDMODEL), [=] () {
-       Menu *menu = new Menu(window, true);
-       menu->setTitle(STR_LABELS);
-       for (auto &label: modelslabels.getLabels()) {
-         menu->addLineBuffered(label,
-           [=] () {
-             if (!modelslabels.isLabelSelected(label, curmod))
-               modelslabels.addLabelToModel(label, curmod);
-             else
-               modelslabels.removeLabelFromModel(label, curmod);
-             labelTextButton->setText(modelslabels.getBulletLabelString(curmod,STR_UNLABELEDMODEL));
-             strncpy(g_model.header.labels, ModelMap::toCSV(modelslabels.getLabelsByModel(curmod)).c_str(),sizeof(g_model.header.labels));
-             g_model.header.labels[sizeof(g_model.header.labels)-1] = '\0';
-             SET_DIRTY();
-           }, [=] () {
-             return modelslabels.isLabelSelected(label, curmod);
-           });
-       }
-       menu->updateLines();
-       return 0;
-     });
-
-  // Bitmap
-  line = window->newLine(&grid);
-  new StaticText(line, rect_t{}, STR_BITMAP, 0, COLOR_THEME_PRIMARY1);
-  // TODO: show bitmap thumbnail instead?
-  new ModelBitmapEdit(line, rect_t{});
-
-  // Model ADC jitter filter
-  line = window->newLine(&grid);
-  new StaticText(line, rect_t{}, STR_JITTER_FILTER, 0, COLOR_THEME_PRIMARY1);
-  new Choice(line, rect_t{}, STR_ADCFILTERVALUES, 0, 2,
-             GET_SET_DEFAULT(g_model.jitterFilter));
-
-  static const lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
-  static const lv_coord_t row_dsc[] = {LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
-
-  FlexGridLayout grid2(col_dsc, row_dsc, 4);
-
-  line = window->newLine(&grid2);
-  line->padTop(8);
-
-  // Modules
-  new SubScreenButton(line, STR_INTERNALRF, []() { new ModulePage(INTERNAL_MODULE); }, []() { return g_model.moduleData[INTERNAL_MODULE].type > 0; });
-  new SubScreenButton(line, STR_EXTERNALRF, []() { new ModulePage(EXTERNAL_MODULE); }, []() { return g_model.moduleData[EXTERNAL_MODULE].type > 0; });
-  new SubScreenButton(line, STR_TRAINER, []() { new TrainerPage(); }, []() { return g_model.trainerData.mode > 0; });
-
-  line = window->newLine(&grid2);
-  line->padTop(2);
-
-  // Timer buttons
-  new SubScreenButton(line, TR_TIMER "1", []() { new TimerWindow(0); }, []() { return g_model.timers[0].mode > 0; });
-  new SubScreenButton(line, TR_TIMER "2", []() { new TimerWindow(1); }, []() { return g_model.timers[1].mode > 0; });
-  new SubScreenButton(line, TR_TIMER "3", []() { new TimerWindow(2); }, []() { return g_model.timers[2].mode > 0; });
-
-  line = window->newLine(&grid2);
-  line->padTop(2);
-
-  new SubScreenButton(line, STR_PREFLIGHT, []() { new PreflightChecks(); });
-  new SubScreenButton(line, STR_TRIMS, []() { new TrimsSetup(); });
-  new SubScreenButton(line, STR_THROTTLE_LABEL, []() { new ThrottleParams(); });
-
-  line = window->newLine(&grid2);
-  line->padTop(2);
-
-  new SubScreenButton(line, STR_ENABLED_FEATURES, []() { new ModelViewOptions(); });
-
+    {STR_PREFLIGHT, []() { new PreflightChecks(); }},
+    {STR_TRIMS, []() { new TrimsSetup(); }},
+    {STR_THROTTLE_LABEL, []() { new ThrottleParams(); }},
+    {STR_ENABLED_FEATURES, []() { new SubPage(ICON_MODEL_SETUP, STR_MENU_MODEL_SETUP, STR_ENABLED_FEATURES, viewOptionsPageSetupLines, DIM(viewOptionsPageSetupLines)); }},
 #if defined(USBJ_EX)
-  new SubScreenButton(line, STR_USBJOYSTICK_LABEL, []() { new ModelUSBJoystickPage(); });
+    {STR_USBJOYSTICK_LABEL, []() { new ModelUSBJoystickPage(); }},
 #endif
+#if defined(FUNCTION_SWITCHES)
+    {STR_FUNCTION_SWITCHES, []() { new ModelFunctionSwitches(); }},
+#endif
+    {STR_MENU_OTHER, []() { new SubPage(ICON_MODEL_SETUP, STR_MENU_MODEL_SETUP, STR_MENU_OTHER, otherPageSetupLines, DIM(otherPageSetupLines)); }},
+  }, BTN_H);
 }

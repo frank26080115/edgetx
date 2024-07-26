@@ -18,8 +18,27 @@
 
 #include "menutoolbar.h"
 
-#include "font.h"
+#include "menu.h"
+#include "themes/etx_lv_theme.h"
 #include "translations.h"
+
+static const lv_obj_class_t menu_button_class = {
+    .base_class = &button_class,
+    .constructor_cb = nullptr,
+    .destructor_cb = nullptr,
+    .user_data = nullptr,
+    .event_cb = nullptr,
+    .width_def = 0,
+    .height_def = 0,
+    .editable = LV_OBJ_CLASS_EDITABLE_INHERIT,
+    .group_def = LV_OBJ_CLASS_GROUP_DEF_FALSE,
+    .instance_size = sizeof(lv_btn_t),
+};
+
+static lv_obj_t* menu_button_create(lv_obj_t* parent)
+{
+  return etx_create(&menu_button_class, parent);
+}
 
 static void toolbar_btn_defocus(lv_event_t* event)
 {
@@ -30,7 +49,7 @@ static void toolbar_btn_defocus(lv_event_t* event)
 
 MenuToolbarButton::MenuToolbarButton(Window* parent, const rect_t& rect,
                                      const char* picto) :
-    Button(parent, rect, nullptr, 0, 0, etx_menu_button_create)
+    ButtonBase(parent, rect, nullptr, menu_button_create)
 {
   lv_obj_add_flag(lvobj, LV_OBJ_FLAG_CLICK_FOCUSABLE);
   lv_obj_add_flag(lvobj, LV_OBJ_FLAG_SCROLL_ON_FOCUS);
@@ -43,18 +62,21 @@ MenuToolbarButton::MenuToolbarButton(Window* parent, const rect_t& rect,
 }
 
 MenuToolbar::MenuToolbar(Choice* choice, Menu* menu, const int columns) :
-    Window(menu, {0, (LCD_H - MENUS_MAX_HEIGHT) / 2, 76, MENUS_MAX_HEIGHT},
-           OPAQUE),
+    Window(menu, {0, 0, 0, MENUS_MAX_HEIGHT}),
     choice(choice),
     menu(menu),
     filterColumns(columns),
     group(lv_group_create())
 {
-  lv_obj_set_style_bg_color(lvobj, makeLvColor(COLOR_THEME_SECONDARY3), 0);
+  setWindowFlag(OPAQUE);
 
-  setWidth((MENUS_TOOLBAR_BUTTON_WIDTH + MENUS_TOOLBAR_BUTTON_PADDING) *
-               columns +
-           MENUS_TOOLBAR_BUTTON_PADDING);
+  padAll(PAD_SMALL);
+
+  etx_solid_bg(lvobj);
+  etx_obj_add_style(lvobj, styles->outline, LV_PART_MAIN);
+  etx_obj_add_style(lvobj, styles->outline_color_normal, LV_PART_MAIN);
+
+  setWidth((MENUS_TOOLBAR_BUTTON_WIDTH + PAD_SMALL) * columns + PAD_SMALL);
 
   addButton(STR_SELECT_MENU_ALL, choice->getMin(), choice->getMax(), nullptr,
             nullptr, true);
@@ -67,7 +89,7 @@ void MenuToolbar::resetFilter()
   if (lv_group_get_focused(group) != lvobj) {
     lv_group_focus_obj(lvobj);
     choice->fillMenu(menu);
-    menu->setTitle(choice->menuTitle);
+    menu->setTitle(choice->getTitle());
   }
 }
 
@@ -76,12 +98,7 @@ void MenuToolbar::onEvent(event_t event)
   if (event == EVT_KEY_BREAK(KEY_PAGEDN)) {
     lv_group_focus_next(group);
   }
-#if defined(KEYS_GPIO_REG_PAGEUP)
   else if (event == EVT_KEY_BREAK(KEY_PAGEUP)) {
-#else
-  else if (event == EVT_KEY_LONG(KEY_PAGEDN)) {
-    killEvents(event);
-#endif
     lv_group_focus_prev(group);
   }
 
@@ -93,23 +110,21 @@ rect_t MenuToolbar::getButtonRect(bool wideButton)
 {
   if (wideButton && (nxtBtnPos % filterColumns))
     nxtBtnPos = nxtBtnPos - (nxtBtnPos % filterColumns) + filterColumns;
-  coord_t x = (nxtBtnPos % filterColumns) *
-                  (MENUS_TOOLBAR_BUTTON_WIDTH + MENUS_TOOLBAR_BUTTON_PADDING) +
-              MENUS_TOOLBAR_BUTTON_PADDING;
-  coord_t y = (nxtBtnPos / filterColumns) *
-                  (MENUS_TOOLBAR_BUTTON_WIDTH + MENUS_TOOLBAR_BUTTON_PADDING) +
-              MENUS_TOOLBAR_BUTTON_PADDING;
-  coord_t w =
-      wideButton ? (MENUS_TOOLBAR_BUTTON_WIDTH + MENUS_TOOLBAR_BUTTON_PADDING) *
-                           (filterColumns - 1) +
-                       MENUS_TOOLBAR_BUTTON_WIDTH
-                 : MENUS_TOOLBAR_BUTTON_WIDTH;
+  coord_t x =
+      (nxtBtnPos % filterColumns) * (MENUS_TOOLBAR_BUTTON_WIDTH + PAD_SMALL);
+  coord_t y =
+      (nxtBtnPos / filterColumns) * (EdgeTxStyles::UI_ELEMENT_HEIGHT + PAD_SMALL);
+  coord_t w = wideButton ? (MENUS_TOOLBAR_BUTTON_WIDTH + PAD_SMALL) *
+                                   (filterColumns - 1) +
+                               MENUS_TOOLBAR_BUTTON_WIDTH
+                         : MENUS_TOOLBAR_BUTTON_WIDTH;
   nxtBtnPos += wideButton ? filterColumns : 1;
-  return {x, y, w, MENUS_TOOLBAR_BUTTON_WIDTH};
+  return {x, y, w, EdgeTxStyles::UI_ELEMENT_HEIGHT};
 }
 
 bool MenuToolbar::filterMenu(MenuToolbarButton* btn, int16_t filtermin,
-                             int16_t filtermax, const Choice::FilterFct& filterFunc,
+                             int16_t filtermax,
+                             const Choice::FilterFct& filterFunc,
                              const char* title)
 {
   btn->check(!btn->checked());
@@ -119,7 +134,7 @@ bool MenuToolbar::filterMenu(MenuToolbarButton* btn, int16_t filtermin,
     if (title)
       menu->setTitle(title);
     else
-      menu->setTitle(choice->menuTitle);
+      menu->setTitle(choice->getTitle());
     filter = [=](int16_t index) {
       if (filterFunc) return filterFunc(index);
       return index == 0 || (abs(index) >= filtermin && abs(index) <= filtermax);
@@ -133,30 +148,28 @@ bool MenuToolbar::filterMenu(MenuToolbarButton* btn, int16_t filtermin,
   return btn->checked();
 }
 
-typedef std::function<bool(int)> IsValueAvailable;
-static bool checkFirstAvailable(int min, int max,
-                                IsValueAvailable isValueAvailable)
-{
-  for (int i = min; i <= max; i++) {
-    if (isValueAvailable(i)) {
-      return true;
-    }
-  }
-  return false;
-}
-
 void MenuToolbar::addButton(const char* picto, int16_t filtermin,
-                            int16_t filtermax, const Choice::FilterFct& filterFunc,
+                            int16_t filtermax,
+                            const Choice::FilterFct& filterFunc,
                             const char* title, bool wideButton)
 {
-  int vmin = choice->vmin;
-  int vmax = choice->vmax;
+  int vmin = choice->getMin();
+  int vmax = choice->getMax();
 
   if (vmin > filtermin || vmax < filtermin) return;
 
-  if (choice->isValueAvailable &&
-      !checkFirstAvailable(filtermin, filtermax, choice->isValueAvailable))
-    return;
+  if (choice->isValueAvailable) {
+    bool found = false;
+    for (int i = filtermin; i <= filtermax; i += 1) {
+      if (choice->isValueAvailable(i)) {
+        if (filterFunc && !filterFunc(i))
+          continue;
+        found = true;
+        break;
+      }
+    }
+    if (!found) return;
+  }
 
   rect_t r = getButtonRect(wideButton);
   auto button = new MenuToolbarButton(this, r, picto);

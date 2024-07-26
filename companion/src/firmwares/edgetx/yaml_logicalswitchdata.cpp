@@ -116,7 +116,9 @@ Node convert<LogicalSwitchData>::encode(const LogicalSwitchData& rhs)
   node["delay"] = rhs.delay;
   node["duration"] = rhs.duration;
   node["andsw"] = YamlRawSwitchEncode(RawSwitch(rhs.andsw));
-  
+  node["lsPersist"] = (int)rhs.lsPersist;
+  node["lsState"] = (int)rhs.lsState;
+
   return node;
 }
 
@@ -161,6 +163,11 @@ bool convert<LogicalSwitchData>::decode(const Node& node,
   case LS_FAMILY_VCOMP: {
     std::string src_str;
     getline(def, src_str, ',');
+    if (def_str.size() >= 4 && def_str.substr(0, 4) == "lua(") {
+      std::string tmp_str;
+      getline(def, tmp_str, ',');
+      src_str += ("," + tmp_str);
+    }
     rhs.val1 = YamlRawSourceDecode(src_str).toValue();
     getline(def, src_str);
     rhs.val2 = YamlRawSourceDecode(src_str).toValue();
@@ -178,6 +185,11 @@ bool convert<LogicalSwitchData>::decode(const Node& node,
   default: {
     std::string src_str;
     getline(def, src_str, ',');
+    if (def_str.size() >= 4 && def_str.substr(0, 4) == "lua(") {
+      std::string tmp_str;
+      getline(def, tmp_str, ',');
+      src_str += ("," + tmp_str);
+    }
     rhs.val1 = YamlRawSourceDecode(src_str).toValue();
     def >> rhs.val2;
   } break;
@@ -189,6 +201,9 @@ bool convert<LogicalSwitchData>::decode(const Node& node,
   RawSwitch andsw;
   node["andsw"] >> andsw;
   rhs.andsw = andsw.toValue();
+
+  node["lsPersist"] >> rhs.lsPersist;
+  node["lsState"] >> rhs.lsState;
 
   return true;
 }

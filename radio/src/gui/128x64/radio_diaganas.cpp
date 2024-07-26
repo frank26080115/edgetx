@@ -41,7 +41,6 @@ void menuRadioDiagAnalogs(event_t event)
   switch (event) {
     case EVT_KEY_FIRST(KEY_RIGHT):
     case EVT_KEY_BREAK(KEY_PAGEDN):
-    case EVT_KEY_BREAK(KEY_PAGE):
     {
      if (viewpage == ANAVIEW_LAST)
        viewpage = ANAVIEW_FIRST;
@@ -53,7 +52,6 @@ void menuRadioDiagAnalogs(event_t event)
 
     case EVT_KEY_FIRST(KEY_LEFT):
     case EVT_KEY_BREAK(KEY_PAGEUP):
-    case EVT_KEY_LONG(KEY_PAGE):
     {
      if (viewpage == ANAVIEW_FIRST)
        viewpage = ANAVIEW_LAST;
@@ -95,15 +93,15 @@ void menuRadioDiagAnalogs(event_t event)
         if (entryCount == 0) {
           lastShownAnalogValue[i] = getAnalogValue(i); // Update value
         }
-        lcdDrawNumber(x+3*FW-1, y, lastShownAnalogValue[i],
+        lcdDrawNumber(x+3*FW+1, y, lastShownAnalogValue[i],
                       LEADING0|LEFT, 4);
         break;
       case (ANAVIEW_CALIB):
       default:
-        lcdDrawNumber(x+3*FW-1, y, anaIn(i), LEADING0|LEFT, 4);
+        lcdDrawNumber(x+3*FW+1, y, anaIn(i), LEADING0|LEFT, 4);
         break;
     }
-    lcdDrawNumber(x+10*FW-1, y,
+    lcdDrawNumber(x+(LCD_W / 2 - INDENT_WIDTH), y,
                   (int16_t)calibratedAnalogs[i]*25/256,
                   RIGHT);
   }

@@ -64,15 +64,15 @@ mkdir build
 cd build
 
 declare -a simulator_plugins=(x9lite x9lites
-                              x7 x7-access
-                              t8 t12 tx12 tx12mk2
-                              zorro commando8 boxer
-                              tlite tpro lr3pro
+                              x7 x7access
+                              t8 t12 t12max tx12 tx12mk2
+                              zorro commando8 boxer pocket
+                              tlite tpro tprov2 lr3pro t14
                               x9d x9dp x9dp2019 x9e
                               xlite xlites
-                              nv14 pl18 pl18ev
-                              x10 x10-access x12s
-                              t16 t18 tx16s)
+                              nv14 el18 pl18 pl18ev
+                              x10 x10express x12s
+                              t15 t16 t18 t20 t20v2 tx16s f16)
 
 for plugin in "${simulator_plugins[@]}"
 do
@@ -89,7 +89,7 @@ do
         x7)
             BUILD_OPTIONS+="-DPCB=X7"
             ;;
-        x7-access)
+        x7access)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=ACCESS -DPXX1=YES"
             ;;
         t12)
@@ -125,9 +125,21 @@ do
         tpro)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=TPRO"
             ;;
+        tprov2)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=TPROV2"
+            ;;
         t20)
            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T20"
            ;;
+        t12max)
+           BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T12MAX"
+           ;;
+        t14)
+           BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T14"
+           ;;
+        t20v2)
+           BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T20V2"
+            ;;
         xlite)
             BUILD_OPTIONS+="-DPCB=XLITE"
             ;;
@@ -149,11 +161,14 @@ do
         x10)
             BUILD_OPTIONS+="-DPCB=X10"
             ;;
-        x10-access)
+        x10express)
             BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=EXPRESS -DPXX1=YES"
             ;;
         x12s)
             BUILD_OPTIONS+="-DPCB=X12S"
+            ;;
+        t15)
+            BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=T15 -DINTERNAL_MODULE_CRSF=ON"
             ;;
         t16)
             BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=T16 -DINTERNAL_MODULE_MULTI=ON"
@@ -164,8 +179,14 @@ do
         tx16s)
             BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=TX16S"
             ;;
+        f16)
+            BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=F16"
+            ;;
         nv14)
             BUILD_OPTIONS+="-DPCB=NV14"
+            ;;
+        el18)
+            BUILD_OPTIONS+="-DPCB=NV14 -DPCBREV=EL18"
             ;;
         commando8)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=COMMANDO8"

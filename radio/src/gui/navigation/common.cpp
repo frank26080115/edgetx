@@ -48,7 +48,7 @@ int checkIncDecSelection = 0;
 
 void repeatLastCursorMove(event_t event)
 {
-  if (IS_PREVIOUS_EVENT(event) || IS_NEXT_EVENT(event)) {
+  if (IS_PREVIOUS_MOVE_EVENT(event) || IS_NEXT_MOVE_EVENT(event)) {
     pushEvent(event);
   }
   else {
@@ -115,6 +115,8 @@ void onSourceLongEnterPress(const char * result)
         break;
       }
     }
+  } else if (result == STR_MENU_INVERT) {
+    checkIncDecSelection = MIXSRC_INVERT;
   }
 }
 
@@ -125,5 +127,5 @@ void check_submenu_simple(event_t event, uint8_t rowcount)
 
 void check_simple(event_t event, uint8_t curr, const MenuHandler *menuTab, uint8_t menuTabSize, vertpos_t rowcount)
 {
-  check(event, curr, menuTab, menuTabSize, 0, 0, rowcount);
+  check(event, curr, menuTab, menuTabSize, nullptr, 0, rowcount);
 }

@@ -50,13 +50,11 @@ endif()
 if(INTERNAL_MODULE_MULTI)
   add_definitions(-DHARDWARE_INTERNAL_MODULE)
   add_definitions(-DINTERNAL_MODULE_MULTI)
-  add_definitions(-DINTERNAL_MODULE_SERIAL_TELEMETRY)
 endif()
 
 if(INTERNAL_MODULE_CRSF)
   add_definitions(-DHARDWARE_INTERNAL_MODULE)
   add_definitions(-DINTERNAL_MODULE_CRSF)
-  add_definitions(-DINTERNAL_MODULE_SERIAL_TELEMETRY)
 endif()
 
 if(INTERNAL_MODULE_AFHDS2A)
@@ -182,14 +180,9 @@ if(ENABLE_SERIAL_PASSTHROUGH)
   )
 endif()
 
-if(DEBUG)
-  add_definitions(-DDEBUG)
-endif()
-
 if(HAPTIC)
   add_definitions(-DHAPTIC)
   set(SRC ${SRC} haptic.cpp)
-  set(FIRMWARE_TARGET_SRC ${FIRMWARE_TARGET_SRC} haptic_driver.cpp)
 endif()
 
 # Protocols supported

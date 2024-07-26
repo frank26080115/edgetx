@@ -46,10 +46,14 @@
  *=========================*/
 
 /*1: use custom malloc/free, 0: use the built-in `lv_mem_alloc()` and `lv_mem_free()`*/
+#if defined(BOOT)
 #define LV_MEM_CUSTOM 1
+#else
+#define LV_MEM_CUSTOM 0
+#endif
 #if LV_MEM_CUSTOM == 0
     /*Size of the memory available for `lv_mem_alloc()` in bytes (>= 2kB)*/
-    #define LV_MEM_SIZE (8U * 1024U)          /*[bytes]*/
+    #define LV_MEM_SIZE (1024U * 1024U)          /*[bytes]*/
 
     /*Set an address for the memory pool instead of allocating it as a normal array. Can be in external SRAM too.*/
     #define LV_MEM_ADR 0     /*0: unused*/
@@ -57,6 +61,8 @@
     #if LV_MEM_ADR == 0
         //#define LV_MEM_POOL_INCLUDE your_alloc_library  /* Uncomment if using an external allocator*/
         //#define LV_MEM_POOL_ALLOC   your_alloc          /* Uncomment if using an external allocator*/
+        #define LV_MEM_POOL_INCLUDE <stdlib.h>
+        #define LV_MEM_POOL_ALLOC malloc
     #endif
 
 #else       /*LV_MEM_CUSTOM*/
@@ -131,7 +137,7 @@
  *With complex image decoders (e.g. PNG or JPG) caching can save the continuous open/decode of images.
  *However the opened images might consume additional RAM.
  *0: to disable caching*/
-#define LV_IMG_CACHE_DEF_SIZE   0
+#define LV_IMG_CACHE_DEF_SIZE   8
 
 /*Number of stops allowed per gradient. Increase this to allow more stops.
  *This adds (sizeof(lv_color_t) + 1) bytes per additional stop*/
@@ -169,25 +175,30 @@
 #else //SIMU
   #define LV_USE_GPU_STM32_DMA2D 1
 #endif
+
 #if LV_USE_GPU_STM32_DMA2D
     /*Must be defined to include path of CMSIS header of target processor
     e.g. "stm32f769xx.h" or "stm32f429xx.h"*/
+#ifdef STM32H7
+    #define LV_GPU_DMA2D_CMSIS_INCLUDE "stm32h7xx.h"
+#else
     #define LV_GPU_DMA2D_CMSIS_INCLUDE "stm32f4xx.h"
-    #if !defined(DMA2D_NLR_PL_Pos)
-      #define DMA2D_NLR_PL_Pos 16
-    #endif
-    #if !defined(DMA2D_NLR_NL_Pos)
-      #define DMA2D_NLR_NL_Pos 0
-    #endif
-    #if !defined(DMA2D_CR_START_Msk)
-      #define DMA2D_CR_START_Msk DMA2D_CR_START
-    #endif
-    #if !defined(DMA2D_FGPFCCR_AM_Pos)
-      #define DMA2D_FGPFCCR_AM_Pos 16
-    #endif
-    #if !defined(DMA2D_FGPFCCR_ALPHA_Pos)
-      #define DMA2D_FGPFCCR_ALPHA_Pos 24
-    #endif
+#endif
+//    #if !defined(DMA2D_NLR_PL_Pos)
+//      #define DMA2D_NLR_PL_Pos 16
+//    #endif
+//    #if !defined(DMA2D_NLR_NL_Pos)
+//      #define DMA2D_NLR_NL_Pos 0
+//    #endif
+//    #if !defined(DMA2D_CR_START_Msk)
+//      #define DMA2D_CR_START_Msk DMA2D_CR_START
+//    #endif
+//    #if !defined(DMA2D_FGPFCCR_AM_Pos)
+//      #define DMA2D_FGPFCCR_AM_Pos 16
+//    #endif
+//    #if !defined(DMA2D_FGPFCCR_ALPHA_Pos)
+//      #define DMA2D_FGPFCCR_ALPHA_Pos 24
+//    #endif
 #endif
 
 /*Use NXP's PXP GPU iMX RTxxx platforms*/
@@ -426,6 +437,12 @@
   /*Always set a default font*/
   #define LV_FONT_DEFAULT &lv_font_arimo_he_16
 
+#elif defined(TRANSLATIONS_UA)
+  #define LV_FONT_CUSTOM_DECLARE                  \
+    LV_FONT_DECLARE(lv_font_arimo_ua_16)
+  /*Always set a default font*/
+  #define LV_FONT_DEFAULT &lv_font_arimo_ua_16
+
 #else
   #define LV_FONT_CUSTOM_DECLARE                \
     LV_FONT_DECLARE(lv_font_roboto_16)
@@ -446,7 +463,11 @@
 #define LV_FONT_FMT_TXT_LARGE 0
 
 /*Enables/disables support for compressed fonts.*/
+#if defined(BOOT)
 #define LV_USE_FONT_COMPRESSED 1
+#else
+#define LV_USE_FONT_COMPRESSED 0
+#endif
 
 /*Enable subpixel rendering*/
 #define LV_USE_FONT_SUBPX 0
@@ -508,7 +529,7 @@
 /*Documentation of the widgets: https://docs.lvgl.io/latest/en/html/widgets/index.html*/
 
 #if !defined(BOOT)
-#define LV_USE_ARC        0
+#define LV_USE_ARC        1
 
 #define LV_USE_ANIMIMG    0
 
@@ -532,7 +553,7 @@
     #define LV_LABEL_LONG_TXT_HINT 1  /*Store some extra info in labels to speed up drawing of very long texts*/
 #endif
 
-#define LV_USE_LINE       0
+#define LV_USE_LINE       1
 
 #define LV_USE_ROLLER     0   /*Requires: lv_label*/
 #if LV_USE_ROLLER
@@ -585,7 +606,7 @@
 
 #define LV_USE_MENU       0
 
-#define LV_USE_METER      0
+#define LV_USE_METER      1
 
 #define LV_USE_MSGBOX     0
 
@@ -709,21 +730,25 @@
 #endif
 
 /*API for FATFS (needs to be added separately). Uses f_open, f_read, etc*/
+#if defined(BOOT)
 #define LV_USE_FS_FATFS  0
 #if LV_USE_FS_FATFS
     #define LV_FS_FATFS_LETTER '\0'     /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
     #define LV_FS_FATFS_CACHE_SIZE 0    /*>0 to cache this number of bytes in lv_fs_read()*/
 #endif
+#else
+#define LV_USE_FS_FATFS  1
+#if LV_USE_FS_FATFS
+    #define LV_FS_FATFS_LETTER 'A'      /*Set an upper cased letter on which the drive will accessible (e.g. 'A')*/
+    #define LV_FS_FATFS_CACHE_SIZE 0    /*>0 to cache this number of bytes in lv_fs_read()*/
+#endif
+#endif
 
 /*PNG decoder library*/
-#if !defined(BOOT)
-#define LV_USE_PNG 1
-#endif
+#define LV_USE_PNG 0
 
 /*BMP decoder library*/
-#if !defined(BOOT)
-#define LV_USE_BMP 1
-#endif
+#define LV_USE_BMP 0
 
 /* JPG + split JPG decoder library.
  * Split JPG is a custom format optimized for embedded systems. */
@@ -732,8 +757,13 @@
 /*GIF decoder library*/
 #define LV_USE_GIF 0
 
+#if defined(BOOT)
+/*QR code library*/
+#define LV_USE_QRCODE 0
+#else
 /*QR code library*/
 #define LV_USE_QRCODE 1
+#endif // !BOOT
 
 /*FreeType library*/
 #define LV_USE_FREETYPE 0

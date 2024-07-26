@@ -180,8 +180,14 @@ static void trainer_init_module_sbus()
 {
   if (sbus_trainer_mod_st) return;
 
+  // check if UART with inverter on heartbeat pin is available
   sbus_trainer_mod_st = modulePortInitSerial(EXTERNAL_MODULE, ETX_MOD_PORT_UART,
                                              &sbusTrainerParams, false);
+  if(sbus_trainer_mod_st == nullptr) {
+    // otherwise fall back to S.Port pin
+    sbus_trainer_mod_st = modulePortInitSerial(
+        EXTERNAL_MODULE, ETX_MOD_PORT_SPORT, &sbusTrainerParams, false);
+  }
 
   if (sbus_trainer_mod_st) {
     modulePortSetPower(EXTERNAL_MODULE,true);

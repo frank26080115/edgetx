@@ -21,8 +21,10 @@
 
 #include "stm32_pulse_driver.h"
 #include "stm32_gpio_driver.h"
+#include "stm32_gpio.h"
 #include "trainer_driver.h"
 
+#include "hal/gpio.h"
 #include "hal/module_port.h"
 #include "dataconstants.h"
 
@@ -30,21 +32,14 @@
 
 void board_trainer_init()
 {
-#if defined(TRAINER_DETECT_GPIO_PIN)
-  LL_GPIO_InitTypeDef pinInit;
-  LL_GPIO_StructInit(&pinInit);
-
-  pinInit.Pin = TRAINER_DETECT_GPIO_PIN;
-  pinInit.Mode = LL_GPIO_MODE_INPUT;
-  pinInit.Pull = LL_GPIO_PULL_UP;
-  stm32_gpio_enable_clock(TRAINER_DETECT_GPIO);
-  LL_GPIO_Init(TRAINER_DETECT_GPIO, &pinInit);
+#if defined(TRAINER_DETECT_GPIO)
+  gpio_init(TRAINER_DETECT_GPIO, GPIO_IN_PU, GPIO_PIN_SPEED_LOW);
 #endif  
 
   trainer_init();
 }
 
-#if defined(TRAINER_GPIO)
+#if defined(TRAINER_IN_GPIO)
 
 bool trainer_dsc_available() { return true; }
 
@@ -55,8 +50,7 @@ static_assert(__IS_TRAINER_TIMER_IN_CHANNEL_SUPPORTED(TRAINER_IN_TIMER_Channel),
               "Unsupported trainer timer input channel");
 
 static const stm32_pulse_timer_t trainerOutputTimer = {
-  .GPIOx = TRAINER_GPIO,
-  .GPIO_Pin = TRAINER_OUT_GPIO_PIN,
+  .GPIO = TRAINER_OUT_GPIO,
   .GPIO_Alternate = TRAINER_GPIO_AF,
   .TIMx = TRAINER_TIMER,
   .TIM_Freq = TRAINER_TIMER_FREQ,
@@ -75,8 +69,7 @@ void trainer_init_dsc_out()
 }
 
 static const stm32_pulse_timer_t trainerInputTimer = {
-  .GPIOx = TRAINER_GPIO,
-  .GPIO_Pin = TRAINER_IN_GPIO_PIN,
+  .GPIO = TRAINER_IN_GPIO,
   .GPIO_Alternate = TRAINER_GPIO_AF,
   .TIMx = TRAINER_TIMER,
   .TIM_Freq = TRAINER_TIMER_FREQ,
@@ -105,20 +98,21 @@ void trainer_stop_dsc() {}
 
 bool is_trainer_dsc_connected()
 {
-#if defined(TRAINER_DETECT_GPIO_PIN)
-  bool set = LL_GPIO_IsInputPinSet(TRAINER_DETECT_GPIO, TRAINER_DETECT_GPIO_PIN);
+#if defined(TRAINER_DETECT_GPIO)
+  bool set = gpio_read(TRAINER_DETECT_GPIO);
 #if defined(TRAINER_DETECT_INVERTED)
   return !set;
 #else
   return set;
 #endif
-#else // TRAINER_DETECT_GPIO_PIN
+#else // TRAINER_DETECT_GPIO
   return true;
 #endif
 }
 
 void trainer_init_module_cppm()
 {
+#if defined(HARDWARE_EXTERNAL_MODULE)
   auto port =  modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_TIMER,
                               ETX_MOD_PORT_TIMER, ETX_Pol_Normal,
                               ETX_MOD_DIR_RX);
@@ -129,12 +123,15 @@ void trainer_init_module_cppm()
 
   modulePortSetPower(EXTERNAL_MODULE,true);
   trainer_init_capture(tim);
+#endif
 }
 
 void trainer_stop_module_cppm()
 {
+#if defined(HARDWARE_EXTERNAL_MODULE)
   trainer_stop();
   modulePortSetPower(EXTERNAL_MODULE,false);
+#endif
 }
 
 #if defined(TRAINER_TIMER_IRQHandler)

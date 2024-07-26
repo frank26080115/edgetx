@@ -40,6 +40,7 @@ class GeneralSetupPanel : public GeneralPanel
     void on_splashScreenDuration_currentIndexChanged(int index);
     void on_alarmwarnChkB_stateChanged(int);
     void on_rssiPowerOffWarnChkB_stateChanged(int);
+    void on_trainerPowerOffWarnChkB_stateChanged(int);
     void on_gpsFormatCB_currentIndexChanged(int index);
     void on_displayTypeCB_currentIndexChanged(int index);
     void on_BLBright_SB_editingFinished();
@@ -90,14 +91,22 @@ class GeneralSetupPanel : public GeneralPanel
     void on_contrastSB_editingFinished();
     void on_registrationId_editingFinished();
 
-    void on_pwrOnDelay_valueChanged(int);
-    void on_pwrOffDelay_valueChanged(int);
+    void on_pwrOnDelay_currentIndexChanged(int);
+    void on_pwrOffDelay_currentIndexChanged(int);
+    void on_pwrOnOffHaptic_CB_stateChanged(int);
 
     void on_modelQuickSelect_CB_stateChanged(int);
     void on_startSoundCB_stateChanged(int);
+    void on_modelSelectLayout_CB_currentIndexChanged(int);
+    void on_labelSingleSelect_CB_currentIndexChanged(int);
+    void on_labelMultiMode_CB_currentIndexChanged(int);
+    void on_favMultiMode_CB_currentIndexChanged(int);
+    void on_invertLCD_CB_stateChanged(int);
 
   private:
     Ui::GeneralSetup *ui;
+
+    void showLabelSelectOptions();
 
     void setValues();
     void populateBacklightCB();

@@ -115,58 +115,41 @@ void logsInit()
 
 const char * logsOpen()
 {
+  if (!sdMounted())
+    return STR_NO_SDCARD;
+
   // Determine and set log file filename
   FRESULT result;
 
   // /LOGS/modelnamexxxxxx_YYYY-MM-DD-HHMMSS.log
   char filename[sizeof(LOGS_PATH) + LEN_MODEL_NAME + 18 + 4 + 1];
 
-  if (!sdMounted())
-    return STR_NO_SDCARD;
-
   // check and create folder here
-  strcpy(filename, STR_LOGS_PATH);
+  char* tmp = strAppend(filename, STR_LOGS_PATH);
   const char * error = sdCheckAndCreateDirectory(filename);
   if (error) {
     return error;
   }
 
-  filename[sizeof(LOGS_PATH) - 1] = '/';
-  memcpy(&filename[sizeof(LOGS_PATH)], g_model.header.name, sizeof(g_model.header.name));
-  filename[sizeof(LOGS_PATH) + LEN_MODEL_NAME] = '\0';
-
-  uint8_t i = sizeof(LOGS_PATH) + LEN_MODEL_NAME - 1;
-  uint8_t len = 0;
-  while (i > sizeof(LOGS_PATH) - 1) {
-    if (!len && filename[i])
-      len = i+1;
-    if (len) {
-      if (!filename[i])
-        filename[i] = '_';
-    }
-    i--;
-  }
-
-  if (len == 0) {
+  tmp = strAppend(tmp, "/");
+  if (g_model.header.name[0]) {
+    tmp = strAppend(tmp, sanitizeForFilename(g_model.header.name, LEN_MODEL_NAME));
+  } else {
 #if defined(EEPROM)
     uint8_t num = g_eeGeneral.currModel + 1;
 #else
     // TODO
     uint8_t num = 1;
 #endif
-    strcpy(&filename[sizeof(LOGS_PATH)], STR_MODEL);
-    filename[sizeof(LOGS_PATH) + PSIZE(TR_MODEL)] = (char)((num / 10) + '0');
-    filename[sizeof(LOGS_PATH) + PSIZE(TR_MODEL) + 1] = (char)((num % 10) + '0');
-    len = sizeof(LOGS_PATH) + PSIZE(TR_MODEL) + 2;
+    tmp = strAppend(tmp, STR_MODEL);
+    tmp = strAppendUnsigned(tmp, num, 2);
   }
-
-  char * tmp = &filename[len];
 
 #if defined(RTCLOCK)
   tmp = strAppendDate(tmp, true);
 #endif
 
-  strcpy(tmp, STR_LOGS_EXT);
+  strAppend(tmp, STR_LOGS_EXT);
 
   result = f_open(&g_oLogFile, filename, FA_OPEN_ALWAYS | FA_WRITE | FA_OPEN_APPEND);
   if (result != FR_OK) {
@@ -185,7 +168,7 @@ void logsClose()
   if (g_oLogFile.obj.fs && sdMounted()) {
     if (f_close(&g_oLogFile) != FR_OK) {
       // close failed, forget file
-      g_oLogFile.obj.fs = 0;
+      g_oLogFile.obj.fs = nullptr;
     }
     lastLogTime = 0;
   }
@@ -323,8 +306,12 @@ void logsWrite()
       for (int i=0; i<MAX_TELEMETRY_SENSORS; i++) {
         if (isTelemetryFieldAvailable(i)) {
           TelemetrySensor & sensor = g_model.telemetrySensors[i];
-          TelemetryItem & telemetryItem = telemetryItems[i];
+          TelemetryItem telemetryItem;
+          
           if (sensor.logs) {
+            if(TELEMETRY_STREAMING() && !telemetryItems[i].isOld())
+              telemetryItem = telemetryItems[i];
+
             if (sensor.unit == UNIT_GPS) {
               if (telemetryItem.gps.longitude && telemetryItem.gps.latitude) {
                 div_t qr = div((int)telemetryItem.gps.latitude, 1000000);

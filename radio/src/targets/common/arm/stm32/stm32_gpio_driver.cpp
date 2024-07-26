@@ -20,11 +20,17 @@
  */
 
 #include "stm32_gpio_driver.h"
+#include "stm32_hal_ll.h"
 
 void stm32_gpio_enable_clock(GPIO_TypeDef *GPIOx)
 {
   uint32_t reg_idx = (((uint32_t) GPIOx) - GPIOA_BASE) / 0x0400UL;
+#if defined(RCC_AHB4ENR_GPIOAEN)
+  uint32_t reg_msk = RCC_AHB4ENR_GPIOAEN << reg_idx;
+  LL_AHB4_GRP1_EnableClock(reg_msk);
+#else
   uint32_t reg_msk = RCC_AHB1ENR_GPIOAEN << reg_idx;
   LL_AHB1_GRP1_EnableClock(reg_msk);
+#endif
 }
 

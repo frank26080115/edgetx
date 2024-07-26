@@ -38,6 +38,7 @@ constexpr event_t _MSK_KEY_BREAK =     0x0200;
 constexpr event_t _MSK_KEY_REPT =      0x0400;
 constexpr event_t _MSK_KEY_FIRST =     0x0600;
 constexpr event_t _MSK_KEY_LONG =      0x0800;
+constexpr event_t _MSK_KEY_LONG_BRK =  0x0A00;
 constexpr event_t _MSK_KEY_FLAGS =     0x0E00;
 #else
 constexpr event_t _MSK_KEY_BREAK =     0x0020;
@@ -156,6 +157,22 @@ inline bool IS_NEXT_EVENT(event_t evt)
 inline bool IS_PREVIOUS_EVENT(event_t evt)
 {
   return evt == EVT_KEY_FIRST(KEY_UP) || evt == EVT_KEY_REPT(KEY_UP) ||
+         evt == EVT_KEY_FIRST(KEY_PLUS) || evt == EVT_KEY_REPT(KEY_PLUS) ||
+         evt == EVT_ROTARY_LEFT;
+}
+
+inline bool IS_NEXT_MOVE_EVENT(event_t evt)
+{
+  return evt == EVT_KEY_FIRST(KEY_DOWN) || evt == EVT_KEY_REPT(KEY_DOWN) ||
+         evt == EVT_KEY_FIRST(KEY_RIGHT) || evt == EVT_KEY_REPT(KEY_RIGHT) ||
+         evt == EVT_KEY_FIRST(KEY_MINUS) || evt == EVT_KEY_REPT(KEY_MINUS) ||
+         evt == EVT_ROTARY_RIGHT;
+}
+
+inline bool IS_PREVIOUS_MOVE_EVENT(event_t evt)
+{
+  return evt == EVT_KEY_FIRST(KEY_UP) || evt == EVT_KEY_REPT(KEY_UP) ||
+         evt == EVT_KEY_FIRST(KEY_LEFT) || evt == EVT_KEY_REPT(KEY_LEFT) ||
          evt == EVT_KEY_FIRST(KEY_PLUS) || evt == EVT_KEY_REPT(KEY_PLUS) ||
          evt == EVT_ROTARY_LEFT;
 }

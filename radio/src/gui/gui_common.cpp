@@ -73,6 +73,15 @@ bool isRssiSensorAvailable(int sensor)
   }
 }
 
+bool isVarioSensorAvailable(int sensor)
+{
+  if (sensor == 0)
+    return true;
+  else {
+    return (isSensorAvailable(sensor) && (isSensorUnit(sensor, UNIT_METERS_PER_SECOND) || isSensorUnit(sensor, UNIT_FEET_PER_SECOND)));
+  }
+}
+
 bool isSensorAvailable(int sensor)
 {
   if (sensor == 0)
@@ -170,7 +179,7 @@ int getChannelsUsed()
 bool isSourceAvailable(int source)
 {
   if (source < 0)
-    return false;
+    source = -source;
 
   if (source >= MIXSRC_FIRST_INPUT && source <= MIXSRC_LAST_INPUT) {
     return isInputAvailable(source - MIXSRC_FIRST_INPUT);
@@ -231,6 +240,11 @@ bool isSourceAvailable(int source)
 
   if (source >= MIXSRC_FIRST_TRAINER && source <= MIXSRC_LAST_TRAINER)
     return g_model.trainerData.mode > 0;
+
+#if defined(FUNCTION_SWITCHES)
+  if (source >= MIXSRC_FIRST_CUSTOMSWITCH_GROUP && source <= MIXSRC_LAST_CUSTOMSWITCH_GROUP)
+    return getSwitchCountInFSGroup(source - MIXSRC_FIRST_CUSTOMSWITCH_GROUP + 1) > 0;
+#endif
 
   if (source >= MIXSRC_FIRST_CH && source <= MIXSRC_LAST_CH) {
     return isChannelUsed(source - MIXSRC_FIRST_CH);
@@ -313,6 +327,11 @@ bool isSourceAvailableInInputs(int source)
 
   if (source >= MIXSRC_FIRST_SWITCH && source <= MIXSRC_LAST_SWITCH)
     return SWITCH_EXISTS(source - MIXSRC_FIRST_SWITCH);
+
+#if defined(FUNCTION_SWITCHES)
+  if (source >= MIXSRC_FIRST_CUSTOMSWITCH_GROUP && source <= MIXSRC_LAST_CUSTOMSWITCH_GROUP)
+    return getSwitchCountInFSGroup(source - MIXSRC_FIRST_CUSTOMSWITCH_GROUP + 1) > 0;
+#endif
 
   if (source >= MIXSRC_FIRST_CH && source <= MIXSRC_LAST_CH)
     return true;
@@ -442,8 +461,10 @@ bool isSerialModeAvailable(uint8_t port_nr, int mode)
 #endif
 
 #if !defined(CLI)
-  if (mode == UART_MODE_CLI)
-    return false;
+  if (mode == UART_MODE_CLI) return false;
+#else
+  // CLI is only supported on VCP
+  if (port_nr != SP_VCP && mode == UART_MODE_CLI) return false;
 #endif
 
 #if !defined(INTERNAL_GPS)
@@ -526,12 +547,8 @@ bool isThrottleSourceAvailable(int src)
      ((src >= MIXSRC_FIRST_CH) && (src <= MIXSRC_LAST_CH)));
 }
 
-bool isAssignableFunctionAvailable(int function, CustomFunctionData * functions)
+bool isAssignableFunctionAvailable(int function, bool modelFunctions)
 {
-#if defined(OVERRIDE_CHANNEL_FUNCTION) || defined(GVARS)
-  bool modelFunctions = (functions == g_model.customFn);
-#endif
-
   switch (function) {
     case FUNC_OVERRIDE_CHANNEL:
 #if defined(OVERRIDE_CHANNEL_FUNCTION)
@@ -566,6 +583,10 @@ bool isAssignableFunctionAvailable(int function, CustomFunctionData * functions)
     case FUNC_RGB_LED:
       return false;
 #endif
+#if !defined(VIDEO_SWITCH)
+    case FUNC_LCD_TO_VIDEO:
+      return false;
+#endif
     default:
       return true;
   }
@@ -574,7 +595,7 @@ bool isAssignableFunctionAvailable(int function, CustomFunctionData * functions)
 #if !defined(COLORLCD)
 bool isAssignableFunctionAvailable(int function)
 {
-  return isAssignableFunctionAvailable(function, menuHandlers[menuLevel] == menuModelSpecialFunctions ? g_model.customFn : g_eeGeneral.customFn);
+  return isAssignableFunctionAvailable(function, menuHandlers[menuLevel] == menuModelSpecialFunctions);
 }
 #endif
 
@@ -697,9 +718,7 @@ void checkExternalAntenna()
 #if defined(COLORLCD)
       runAntennaSelectionMenu();
 #else
-      POPUP_MENU_ADD_ITEM(STR_USE_INTERNAL_ANTENNA);
-      POPUP_MENU_ADD_ITEM(STR_USE_EXTERNAL_ANTENNA);
-      POPUP_MENU_START(onAntennaSelection);
+      POPUP_MENU_START(onAntennaSelection, 2, STR_USE_INTERNAL_ANTENNA, STR_USE_EXTERNAL_ANTENNA);
 #endif
     } else {
       globalData.externalAntennaEnabled = false;
@@ -1008,11 +1027,7 @@ bool isTrainerModeAvailable(int mode)
 #endif
 
   if (mode == TRAINER_MODE_MASTER_SERIAL) {
-#if defined(SBUS_TRAINER)
     return serialGetModePort(UART_MODE_SBUS_TRAINER) >= 0;
-#else
-    return false;
-#endif
   }
 
   if ((mode == TRAINER_MODE_MASTER_BLUETOOTH ||
@@ -1045,9 +1060,19 @@ bool isTrainerModeAvailable(int mode)
     }
     
     if (mode == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE) {
-      auto port =  modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_SERIAL,
-                                  ETX_MOD_PORT_UART, ETX_Pol_Normal,
-                                  ETX_MOD_DIR_RX);
+      const etx_module_port_t *port = nullptr;
+
+      // check if UART with inverter on heartbeat pin is available
+      port = modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_SERIAL,
+                            ETX_MOD_PORT_UART, ETX_Pol_Normal,
+                            ETX_MOD_DIR_RX);
+      if (!port) {
+        // otherwise fall back to S.Port pin
+        port =
+            modulePortFind(EXTERNAL_MODULE, ETX_MOD_TYPE_SERIAL,
+                           ETX_MOD_PORT_SPORT, ETX_Pol_Normal, ETX_MOD_DIR_RX);
+      }
+
       return port != nullptr;
     }
   }
@@ -1069,7 +1094,7 @@ bool isTrainerModeAvailable(int mode)
 
 bool modelHasNotes()
 {
-  char filename[sizeof(MODELS_PATH)+1+sizeof(g_model.header.name)+sizeof(TEXT_EXT)] = MODELS_PATH "/";
+  char filename[sizeof(MODELS_PATH)+1+LEN_MODEL_NAME*3+sizeof(TEXT_EXT)] = MODELS_PATH "/";
   char *buf = strcat_currentmodelname(&filename[sizeof(MODELS_PATH)], 0);
   strcpy(buf, TEXT_EXT);
   if (isFileAvailable(filename)) {
@@ -1230,4 +1255,178 @@ uint8_t getPotType(int index)
 void setPotType(int index, int value)
 {
   g_eeGeneral.potsConfig = bfSet<potconfig_t>(g_eeGeneral.potsConfig, value, (POT_CFG_BITS * index), POT_CFG_TYPE_BITS);
+}
+
+#if defined(NAVIGATION_X7) || defined(NAVIGATION_X9D)
+uint8_t MENU_FIRST_LINE_EDIT(const uint8_t * horTab, uint8_t horTabMax)
+{
+  if (horTab) {
+    uint8_t result = 0;
+    while (result < horTabMax && horTab[result] >= HIDDEN_ROW)
+      ++result;
+    return result;
+  }
+  else {
+    return 0;
+  }
+}
+#endif
+
+uint8_t MODULE_BIND_ROWS(int moduleIdx)
+{
+  if (isModuleELRS(moduleIdx) && (crossfireModuleStatus[moduleIdx].major >= 4 || (crossfireModuleStatus[moduleIdx].major == 3 && crossfireModuleStatus[moduleIdx].minor >= 4)))
+    return 1;
+
+  if (isModuleCrossfire(moduleIdx))
+    return 0;
+
+  if (isModuleMultimodule(moduleIdx)) {
+    if (IS_RX_MULTI(moduleIdx))
+      return 1;
+    else
+      return 2;
+  }
+  else if (isModuleXJTD8(moduleIdx) || isModuleSBUS(moduleIdx) || isModuleAFHDS3(moduleIdx) || isModuleDSMP(moduleIdx)) {
+    return 1;
+  }
+  else if (isModulePPM(moduleIdx) || isModulePXX1(moduleIdx) || isModulePXX2(moduleIdx) || isModuleDSM2(moduleIdx)) {
+    return 2;
+  }
+  else {
+    return HIDDEN_ROW;
+  }
+}
+
+uint8_t MODULE_CHANNELS_ROWS(int moduleIdx)
+{
+  if (!IS_MODULE_ENABLED(moduleIdx)) {
+    return HIDDEN_ROW;
+  }
+#if defined(MULTIMODULE)
+  else if (isModuleMultimodule(moduleIdx)) {
+    if (IS_RX_MULTI(moduleIdx))
+      return HIDDEN_ROW;
+    else if (g_model.moduleData[moduleIdx].multi.rfProtocol == MODULE_SUBTYPE_MULTI_DSM2)
+      return 1;
+    else
+      return 0;
+  }
+#endif
+  else if (isModuleDSM2(moduleIdx) || isModuleCrossfire(moduleIdx) ||
+             isModuleGhost(moduleIdx) || isModuleSBUS(moduleIdx) ||
+             isModuleDSMP(moduleIdx)) {
+    // fixed number of channels
+    return 0;
+  } else {
+    return 1;
+  }
+}
+
+#if defined(MULTIMODULE)
+uint8_t MULTI_DISABLE_CHAN_MAP_ROW_STATIC(uint8_t moduleIdx)
+{
+  if (!isModuleMultimodule(moduleIdx))
+    return HIDDEN_ROW;
+
+  uint8_t protocol = g_model.moduleData[moduleIdx].multi.rfProtocol;
+  if (protocol < MODULE_SUBTYPE_MULTI_LAST) {
+    const mm_protocol_definition * pdef = getMultiProtocolDefinition(protocol);
+    if (pdef->disable_ch_mapping)
+      return 0;
+  }
+
+  return HIDDEN_ROW;
+}
+
+uint8_t MULTI_DISABLE_CHAN_MAP_ROW(uint8_t moduleIdx)
+{
+  if (!isModuleMultimodule(moduleIdx))
+    return HIDDEN_ROW;
+
+  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
+  if (status.isValid()) {
+    return status.supportsDisableMapping() == true ? 0 : HIDDEN_ROW;
+  }
+
+  return MULTI_DISABLE_CHAN_MAP_ROW_STATIC(moduleIdx);
+}
+
+bool MULTIMODULE_PROTOCOL_KNOWN(uint8_t moduleIdx)
+{
+  if (!isModuleMultimodule(moduleIdx)) {
+    return false;
+  }
+
+  if (g_model.moduleData[moduleIdx].multi.rfProtocol < MODULE_SUBTYPE_MULTI_LAST) {
+    return true;
+  }
+
+  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
+  if (status.isValid()) {
+    return status.protocolValid();
+  }
+
+  return false;
+}
+
+bool MULTIMODULE_HAS_SUBTYPE(uint8_t moduleIdx)
+{
+  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
+  int proto = g_model.moduleData[moduleIdx].multi.rfProtocol;
+
+  if (status.isValid()) {
+    TRACE("(%d) status.protocolSubNbr = %d", proto, status.protocolSubNbr);
+    return status.protocolSubNbr > 0;
+  }
+  else
+  {
+    if (proto > MODULE_SUBTYPE_MULTI_LAST) {
+      return true;
+    }
+    else {
+      auto subProto = getMultiProtocolDefinition(proto);
+      return subProto->subTypeString != nullptr;
+    }
+  }
+}
+
+uint8_t MULTIMODULE_RFPROTO_COLUMNS(uint8_t moduleIdx)
+{
+#if LCD_W < 212
+  if (g_model.moduleData[moduleIdx].multi.rfProtocol == MODULE_SUBTYPE_MULTI_DSM2)
+    return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 1 : HIDDEN_ROW);
+  else
+    return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 0 : HIDDEN_ROW);
+#else
+  return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 1 : 0);
+#endif
+}
+
+uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx)
+{
+  if (!isModuleMultimodule(moduleIdx))
+    return false;
+
+  uint8_t protocol = g_model.moduleData[moduleIdx].multi.rfProtocol;
+  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
+
+  if (status.isValid())
+    return status.optionDisp;
+
+  if (protocol < MODULE_SUBTYPE_MULTI_LAST)
+    return getMultiProtocolDefinition(protocol)->optionsstr != nullptr;
+
+  return false;
+}
+#endif
+
+uint8_t MODULE_OPTION_ROW(uint8_t moduleIdx)
+{
+  if(isModuleR9MNonAccess(moduleIdx) || isModuleSBUS(moduleIdx))
+    return TITLE_ROW;
+  if(isModuleAFHDS3(moduleIdx))
+    return HIDDEN_ROW;
+  if(isModuleGhost(moduleIdx))
+    return 0;
+  return MULTIMODULE_OPTIONS_ROW(moduleIdx);
 }

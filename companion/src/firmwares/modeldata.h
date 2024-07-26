@@ -46,10 +46,8 @@ class AbstractStaticItemModel;
 constexpr char AIM_MODELDATA_TRAINERMODE[]  {"modeldata.trainermode"};
 constexpr char AIM_MODELDATA_FUNCSWITCHCONFIG[]  {"modeldata.funcswitchconfig"};
 constexpr char AIM_MODELDATA_FUNCSWITCHSTART[]  {"modeldata.funcswitchstart"};
-constexpr int LABEL_LENGTH=16;
-
-#define CHAR_FOR_NAMES " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-."
-#define CHAR_FOR_NAMES_REGEX "[ A-Za-z0-9_.-,\"]*"
+constexpr char AIM_MODELDATA_FUNCSWITCHGROUPSTARTSWITCH[] = {"modeldata.funcswitchgroupstartswitch"};
+constexpr char AIM_MODELDATA_FUNCSWITCHGROUPS[] = {"modeldata.funcswitchgroups"};
 
 class RSSIAlarmData {
   public:
@@ -87,6 +85,7 @@ enum TrainerMode {
   TRAINER_MODE_LAST = TRAINER_MODE_MULTI
 };
 
+#define MODEL_NAME_LEN 15
 #define INPUT_NAME_LEN 4
 #define CPN_MAX_BITMAP_LEN 14
 
@@ -125,7 +124,7 @@ class ModelData {
 
     char      semver[8 + 1];
     bool      used;
-    char      name[15+1];
+    char      name[MODEL_NAME_LEN + 1];
     char      filename[16+1];
     char      labels[100];
     int       modelIndex;      // Companion only, temporary index position managed by data model.
@@ -163,8 +162,8 @@ class ModelData {
     unsigned int switchWarningEnable;
     unsigned int thrTrimSwitch;
     unsigned int potsWarningMode;
-    bool potsWarnEnabled[CPN_MAX_POTS + CPN_MAX_SLIDERS];
-    int potsWarnPosition[CPN_MAX_POTS + CPN_MAX_SLIDERS];
+    bool potsWarnEnabled[CPN_MAX_INPUTS];
+    int potsWarnPosition[CPN_MAX_INPUTS];
     bool displayChecklist;
 
     GVarData gvarData[CPN_MAX_GVARS];
@@ -217,10 +216,9 @@ class ModelData {
     };
 
     enum FunctionSwitchStart {
-      FUNC_SWITCH_START_ACTIVE,
-      FUNC_SWITCH_START_FIRST = FUNC_SWITCH_START_ACTIVE,
-      FUNC_SWITCH_START_INACTIVE,
-      //FUNC_SWITCH_START_FIRST = FUNC_SWITCH_START_INACTIVE,
+      FUNC_SWITCH_START_ON,
+      FUNC_SWITCH_START_FIRST = FUNC_SWITCH_START_ON,
+      FUNC_SWITCH_START_OFF,
       FUNC_SWITCH_START_PREVIOUS,
       FUNC_SWITCH_START_LAST = FUNC_SWITCH_START_PREVIOUS
     };
@@ -230,7 +228,7 @@ class ModelData {
     unsigned int functionSwitchGroup;
     unsigned int functionSwitchStartConfig;
     unsigned int functionSwitchLogicalState;
-    char functionSwitchNames[CPN_MAX_FUNCTION_SWITCHES][HARDWARE_NAME_LEN + 1];
+    char functionSwitchNames[CPN_MAX_SWITCHES_FUNCTION][HARDWARE_NAME_LEN + 1];
 
     // Custom USB joytsick mapping
     unsigned int usbJoystickExtMode;
@@ -334,15 +332,22 @@ class ModelData {
     void setFuncSwitchConfig(unsigned int index, unsigned int value);
     static QString funcSwitchConfigToString(unsigned int value);
     static AbstractStaticItemModel * funcSwitchConfigItemModel();
-
+    static AbstractStaticItemModel * funcSwitchGroupStartSwitchModel(int switchcnt);
+    static AbstractStaticItemModel * funcSwitchGroupsModel();
+ 
     unsigned int getFuncSwitchGroup(unsigned int index) const;
     void setFuncSwitchGroup(unsigned int index, unsigned int value);
 
-    unsigned int getFuncSwitchAlwaysOnGroup(unsigned int index) const;
-    void setFuncSwitchAlwaysOnGroup(unsigned int index, unsigned int value);
+    unsigned int getFuncSwitchAlwaysOnGroup(unsigned int group) const;
+    unsigned int getFuncSwitchAlwaysOnGroupForSwitch(unsigned int index) const;
+    void setFuncSwitchAlwaysOnGroup(unsigned int group, unsigned int value);
+    void setGroupSwitchState(uint8_t group, int switchcnt);
 
     unsigned int getFuncSwitchStart(unsigned int index) const;
     void setFuncSwitchStart(unsigned int index, unsigned int value);
+    int getFuncGroupSwitchCount(unsigned int group, int switchcnt) const;
+    unsigned int getFuncGroupSwitchStart(unsigned int group, int switchcnt) const;
+    void setFuncGroupSwitchStart(unsigned int group, unsigned int value, int switchcnt);
     static QString funcSwitchStartToString(unsigned int value);
     static AbstractStaticItemModel * funcSwitchStartItemModel();
 
@@ -384,13 +389,13 @@ class ModelData {
     void updateTelemetryRef(int & idx);
     void updateTelemetryRef(unsigned int & idx);
     void updateModuleFailsafes(ModuleData * md);
-    inline void updateSourceRef(RawSource & src) { updateTypeIndexRef<RawSource, RawSourceType>(src, updRefInfo.srcType); }
+    inline void updateSourceRef(RawSource & src) { updateTypeIndexRef<RawSource, RawSourceType>(src, updRefInfo.srcType, 1); }
     inline void updateSwitchRef(RawSwitch & swtch) { updateTypeIndexRef<RawSwitch, RawSwitchType>(swtch, updRefInfo.swtchType, 1); }
     inline void updateTimerMode(RawSwitch & swtch) { updateTypeIndexRef<RawSwitch, RawSwitchType>(swtch, updRefInfo.swtchType, 1, false, (int)SWITCH_TYPE_TIMER_MODE, 0); }
     inline void updateSourceIntRef(int & value)
     {
       RawSource src = RawSource(value);
-      updateTypeIndexRef<RawSource, RawSourceType>(src, updRefInfo.srcType);
+      updateTypeIndexRef<RawSource, RawSourceType>(src, updRefInfo.srcType, 1);
       if (value != src.toValue())
         value = src.toValue();
     }

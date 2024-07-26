@@ -22,11 +22,15 @@
 #ifndef _BOARD_H_
 #define _BOARD_H_
 
+//#include "stm32_hal.h"
+//#include "stm32_hal_ll.h"
 #include "definitions.h"
 #include "opentx_constants.h"
 
 // Defines used in board_common.h
 #define ROTARY_ENCODER_NAVIGATION
+
+#define BOOTLOADER_KEYS 0x42
 
 #include "board_common.h"
 #include "hal.h"
@@ -72,6 +76,10 @@ enum {
   // X10
   PCBREV_X10_STD = 0,
   PCBREV_X10_EXPRESS = 3,
+
+  //T15
+  PCBREV_T15_STD = 0,
+  PCBREV_T15_IPS = 1,
 };
 
 #if defined(SIMU)
@@ -79,7 +87,7 @@ enum {
 #elif defined(PCBX10)
   #if defined(PCBREV_EXPRESS)
     #define IS_FIRMWARE_COMPATIBLE_WITH_BOARD() (hardwareOptions.pcbrev == PCBREV_X10_EXPRESS)
-  #elif defined(RADIO_FAMILY_T16)
+  #elif defined(RADIO_FAMILY_T16) || defined(RADIO_F16)
     #define IS_FIRMWARE_COMPATIBLE_WITH_BOARD() (true)
   #else
     #define IS_FIRMWARE_COMPATIBLE_WITH_BOARD() (hardwareOptions.pcbrev == PCBREV_X10_STD)
@@ -100,9 +108,6 @@ void flashWrite(uint32_t * address, const uint32_t * buffer);
 uint32_t isFirmwareStart(const uint8_t * buffer);
 uint32_t isBootloaderStart(const uint8_t * buffer);
 
-// SDRAM driver
-void SDRAM_Init();
-
 #if defined(INTERNAL_MODULE_PXX1) || defined(INTERNAL_MODULE_PXX2)
   #define HARDWARE_INTERNAL_RAS
 #endif
@@ -118,21 +123,20 @@ void SDRAM_Init();
 //
 #define INTERNAL_MODULE_ON()                                  \
   do {                                                        \
-    GPIO_SetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN); \
+    gpio_set(INTMODULE_PWR_GPIO);			      \
     delay_ms(1);                                              \
   } while (0)
 
 #else
 
 // Just turn the modue ON for all other targets
-#define INTERNAL_MODULE_ON() \
-  GPIO_SetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN)
+#define INTERNAL_MODULE_ON()    gpio_set(INTMODULE_PWR_GPIO)
 
 #endif
 
-#define INTERNAL_MODULE_OFF()   GPIO_ResetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN)
-#define EXTERNAL_MODULE_ON()    GPIO_SetBits(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN)
-#define EXTERNAL_MODULE_OFF()   GPIO_ResetBits(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN)
+#define INTERNAL_MODULE_OFF()   gpio_clear(INTMODULE_PWR_GPIO)
+#define EXTERNAL_MODULE_ON()    gpio_set(EXTMODULE_PWR_GPIO)
+#define EXTERNAL_MODULE_OFF()   gpio_clear(EXTMODULE_PWR_GPIO)
 
 #if !defined(PXX2)
   #define IS_PXX2_INTERNAL_ENABLED()            (false)
@@ -147,12 +151,8 @@ void SDRAM_Init();
   #define IS_PXX1_INTERNAL_ENABLED()            (true)
 #endif
 
-#if !defined(NUM_FUNCTIONS_SWITCHES)
-#define NUM_FUNCTIONS_SWITCHES        0
-#endif
-
 // POTS and SLIDERS default configuration
-#if defined(RADIO_TX16S)
+#if defined(RADIO_TX16S) || defined(RADIO_F16)
 #define XPOS_CALIB_DEFAULT  {0x3, 0xc, 0x15, 0x1e, 0x26}
 #endif
 
@@ -161,6 +161,10 @@ void SDRAM_Init();
 #define NUM_TRIMS_KEYS                          (NUM_TRIMS * 2)
 
 // Battery driver
+#if defined(RADIO_T15)
+#define VOLTAGE_DROP 65
+#endif
+
 #if defined(PCBX10)
   // Lipo 2S
   #define BATTERY_WARN      66 // 6.6V
@@ -226,7 +230,7 @@ void lcdCopy(void * dest, void * src);
 #define BACKLIGHT_FORCED_ON     BACKLIGHT_LEVEL_MAX + 1
 #if defined(PCBX12S)
 #define BACKLIGHT_LEVEL_MIN   5
-#elif defined(RADIO_FAMILY_T16)
+#elif defined(RADIO_FAMILY_T16) || defined(RADIO_X10E)
 #define BACKLIGHT_LEVEL_MIN   1
 #else
 #define BACKLIGHT_LEVEL_MIN   46
@@ -291,7 +295,7 @@ void telemetryPortInvertedInit(uint32_t baudrate);
 
 
 // Aux serial port driver
-#if defined(RADIO_TX16S)
+#if defined(RADIO_TX16S) || defined(RADIO_F16)
   #define DEBUG_BAUDRATE                  400000
   #define LUA_DEFAULT_BAUDRATE            115200
 #else
@@ -318,10 +322,31 @@ void bluetoothWriteWakeup();
 uint8_t bluetoothIsWriting();
 void bluetoothDisable();
 
-#if defined (RADIO_TX16S)
+#if defined(RADIO_TX16S) || defined(RADIO_F16)
   #define BATTERY_DIVIDER 1495
 #else
   #define BATTERY_DIVIDER 1629
-#endif 
+#endif
+
+#if defined(FUNCTION_SWITCHES)
+#define NUM_FUNCTIONS_SWITCHES 6
+#define NUM_FUNCTIONS_GROUPS   3
+#define DEFAULT_FS_CONFIG                                         \
+  (SWITCH_2POS << 10) + (SWITCH_2POS << 8) + (SWITCH_2POS << 6) + \
+      (SWITCH_2POS << 4) + (SWITCH_2POS << 2) + (SWITCH_2POS << 0)
+
+#define DEFAULT_FS_GROUPS                                 \
+  (1 << 10) + (1 << 8) + (1 << 6) + (1 << 4) + (1 << 2) + \
+      (1 << 0)  // Set all FS to group 1 to act like a 6pos
+
+#define DEFAULT_FS_STARTUP_CONFIG                         \
+  ((FS_START_PREVIOUS << 10) + (FS_START_PREVIOUS << 8) + \
+   (FS_START_PREVIOUS << 6) + (FS_START_PREVIOUS << 4) +  \
+   (FS_START_PREVIOUS << 2) +                             \
+   (FS_START_PREVIOUS << 0))  // keep last state by default
+
+#else
+#define NUM_FUNCTIONS_SWITCHES 0
+#endif
 
 #endif // _BOARD_H_

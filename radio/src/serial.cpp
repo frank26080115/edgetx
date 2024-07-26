@@ -242,7 +242,7 @@ static void serialSetCallBacks(int mode, void* ctx, const etx_serial_port_t* por
 
 #if defined(INTERNAL_GPS)
   case UART_MODE_GPS:
-    gpsSetSerialDriver(ctx, drv);
+    gpsSetSerialDriver(ctx, drv, GPS_PROTOCOL_AUTO);
     break;
 #endif
 
@@ -455,8 +455,13 @@ void serialInit(uint8_t port_nr, int mode)
 
   serialSetupPort(mode, params);
 
-  if (mode == UART_MODE_NONE ||
-      !port || params.baudrate == 0 ||
+  if (mode == UART_MODE_NONE ) {
+    // Even if port has no mode, port power needs to be set
+    serialSetPowerState(port_nr);
+    return;
+  }
+
+  if (!port || params.baudrate == 0 ||
       !port->uart || !port->uart->init)
     return;
   

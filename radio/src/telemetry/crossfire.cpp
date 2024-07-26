@@ -20,9 +20,9 @@
  */
 
 #include "crossfire.h"
-
 #include "opentx.h"
 
+// clang-format off
 #define CS(id,subId,name,unit,precision) {id,subId,unit,precision,name}
 
 const CrossfireSensor crossfireSensors[] = {
@@ -57,8 +57,11 @@ const CrossfireSensor crossfireSensors[] = {
   CS(FLIGHT_MODE_ID, 0, STR_SENSOR_FLIGHT_MODE,   UNIT_TEXT,              0),
   CS(CF_VARIO_ID,    0, STR_SENSOR_VSPD,          UNIT_METERS_PER_SECOND, 2),
   CS(BARO_ALT_ID,    0, STR_SENSOR_ALT,           UNIT_METERS,            2),
-  CS(0,              0, "UNKNOWN",          UNIT_RAW,               0),
+  CS(0,              0, "UNKNOWN",                UNIT_RAW,               0),
 };
+// clang-format on
+
+CrossfireModuleStatus crossfireModuleStatus[2] = {0};
 
 const CrossfireSensor & getCrossfireSensor(uint8_t id, uint8_t subId)
 {
@@ -258,6 +261,18 @@ void processCrossfireTelemetryFrame(uint8_t module, uint8_t* rxBuffer,
 
 #if defined(LUA)
     default:
+      if (id == DEVICE_INFO_ID && rxBuffer[4]== MODULE_ADDRESS) {
+        uint8_t nameSize = rxBuffer[1] - 18;
+        strncpy((char *)&crossfireModuleStatus[module].name, (const char *)&rxBuffer[5], CRSF_NAME_MAXSIZE);
+        crossfireModuleStatus[module].name[CRSF_NAME_MAXSIZE -1] = 0; // For some reason, GH din't like strlcpy
+        if (strncmp((const char *) &rxBuffer[5 + nameSize], "ELRS", 4) == 0)
+          crossfireModuleStatus[module].isELRS = true;
+        crossfireModuleStatus[module].major = rxBuffer[14 + nameSize];
+        crossfireModuleStatus[module].minor = rxBuffer[15 + nameSize];
+        crossfireModuleStatus[module].revision = rxBuffer[16 + nameSize];
+        crossfireModuleStatus[module].queryCompleted = true;
+      }
+
       if (luaInputTelemetryFifo && luaInputTelemetryFifo->hasSpace(rxBufferCount - 2)) {
         for (uint8_t i = 1; i < rxBufferCount - 1; i++) {
           // destination address and CRC are skipped

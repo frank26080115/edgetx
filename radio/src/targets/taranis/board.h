@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#pragma once
 
 #include <inttypes.h>
 #include "hal.h"
@@ -31,17 +30,13 @@
 #include "opentx_constants.h"
 #include "board_common.h"
 
-#if defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER)  || defined(RADIO_ZORRO)  || defined(RADIO_POCKET) || defined(RADIO_MT12)
-  #define  NAVIGATION_X7_TX12
-#endif
-
 #if defined(ROTARY_ENCODER_NAVIGATION)
 // Rotary Encoder driver
 void rotaryEncoderInit();
 void rotaryEncoderCheck();
 #endif
 
-#if defined(STM32F413xx)
+#if defined(STM32F413xx) || defined(STM32F407xG)
 #define FLASHSIZE                       0x100000 // 1M
 #else
 #define FLASHSIZE                       0x80000  // 512k
@@ -50,6 +45,18 @@ void rotaryEncoderCheck();
 #define FIRMWARE_ADDRESS                0x08000000
 
 #define LUA_MEM_MAX                     (0)    // max allowed memory usage for complete Lua  (in bytes), 0 means unlimited
+
+#if defined(PCBXLITE)
+# define BOOTLOADER_KEYS                0x0F
+#elif defined(RADIO_MT12)
+# define BOOTLOADER_KEYS                0x06
+#else
+# define BOOTLOADER_KEYS                0x42
+#endif
+
+#if defined(RADIO_FAMILY_T20)
+# define SECONDARY_BOOTLOADER_KEYS      0x1200
+#endif
 
 extern uint16_t sessionTimer;
 
@@ -73,8 +80,8 @@ uint32_t isFirmwareStart(const uint8_t * buffer);
 uint32_t isBootloaderStart(const uint8_t * buffer);
 
 // Pulses driver
-#define INTERNAL_MODULE_ON()   GPIO_SetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN)
-#define INTERNAL_MODULE_OFF()  GPIO_ResetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN)
+#define INTERNAL_MODULE_ON()   gpio_set(INTMODULE_PWR_GPIO)
+#define INTERNAL_MODULE_OFF()  gpio_clear(INTMODULE_PWR_GPIO)
 
 #if (defined(INTERNAL_MODULE_PXX1) || defined(INTERNAL_MODULE_PXX2)) && (!defined(PCBX9LITE) || defined(PCBX9LITES))
   #define HARDWARE_INTERNAL_RAS
@@ -88,7 +95,11 @@ uint32_t isBootloaderStart(const uint8_t * buffer);
 
 #if defined(TRAINER_DETECT_GPIO)
   // Trainer detect is a switch on the jack
-  #define TRAINER_CONNECTED()           (GPIO_ReadInputDataBit(TRAINER_DETECT_GPIO, TRAINER_DETECT_GPIO_PIN) == TRAINER_DETECT_GPIO_PIN_VALUE)
+  #if defined(TRAINER_DETECT_INVERTED)
+    #define TRAINER_CONNECTED()           (gpio_read(TRAINER_DETECT_GPIO) ? 0 : 1)
+  #else
+    #define TRAINER_CONNECTED()           (gpio_read(TRAINER_DETECT_GPIO) ? 1 : 0)
+  #endif
 #elif defined(PCBXLITES)
   // Trainer is on the same connector than Headphones
   enum JackState
@@ -115,6 +126,7 @@ uint32_t isBootloaderStart(const uint8_t * buffer);
 #if defined(FUNCTION_SWITCHES)
 
 #define NUM_FUNCTIONS_SWITCHES 6
+#define NUM_FUNCTIONS_GROUPS   3
 
 #define DEFAULT_FS_CONFIG                                         \
   (SWITCH_2POS << 10) + (SWITCH_2POS << 8) + (SWITCH_2POS << 6) + \
@@ -136,17 +148,6 @@ uint32_t isBootloaderStart(const uint8_t * buffer);
 
 #endif
 
-#if defined(FUNCTION_SWITCHES)
-extern uint8_t fsPreviousState;
-void evalFunctionSwitches();
-void setFSStartupPosition();
-void fsLedOff(uint8_t);
-void fsLedOn(uint8_t);
-uint8_t getFSLogicalState(uint8_t index);
-uint8_t getFSPhysicalState(uint8_t index);
-bool getFSLedState(uint8_t index);
-#endif
-
 #if defined(ADC_GPIO_PIN_STICK_TH)
   #define SURFACE_RADIO  true
 #endif
@@ -163,7 +164,7 @@ extern HardwareOptions hardwareOptions;
   #define BATTERY_WARN                  87 // 8.7V
   #define BATTERY_MIN                   85 // 8.5V
   #define BATTERY_MAX                   115 // 11.5V
-#elif defined(PCBXLITE) || defined(RADIO_T20)
+#elif defined(PCBXLITE) || defined(RADIO_FAMILY_T20)
   // 2 x Li-Ion
   #define BATTERY_WARN                  66 // 6.6V
   #define BATTERY_MIN                   67 // 6.7V
@@ -202,16 +203,16 @@ extern "C" {
 
 // Power driver
 #define SOFT_PWR_CTRL
+#if defined(PWR_BUTTON_PRESS) && !defined(RADIO_COMMANDO8)
+#  define STARTUP_ANIMATION
+#endif
+
 void pwrInit();
 uint32_t pwrCheck();
 void pwrOn();
 void pwrOff();
 bool pwrPressed();
 bool pwrOffPressed();
-#if defined(PWR_BUTTON_PRESS)
-#define STARTUP_ANIMATION
-uint32_t pwrPressedDuration();
-#endif
 void pwrResetHandler();
 #define pwrForcePressed()   false
 
@@ -337,13 +338,15 @@ void ledBlue();
 
 #if defined(RADIO_MT12)
 #define LCD_BRIGHTNESS_DEFAULT          50
+#elif defined(RADIO_T12MAX)
+#define LCD_BRIGHTNESS_DEFAULT          30
 #endif
 
 #if defined(OLED_SCREEN)
   #define LCD_CONTRAST_DEFAULT          254 // full brightness
 #elif defined(RADIO_TX12) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_MT12)
   #define LCD_CONTRAST_DEFAULT          20
-#elif defined(RADIO_TPRO) || defined(RADIO_FAMILY_JUMPER_T12) || defined(RADIO_TPRO) || defined(RADIO_COMMANDO8)
+#elif defined(RADIO_TPRO) || defined(RADIO_FAMILY_JUMPER_T12) || defined(RADIO_TPRO) || defined(RADIO_COMMANDO8) || defined(RADIO_T12MAX)
   #define LCD_CONTRAST_DEFAULT          25
 #else
   #define LCD_CONTRAST_DEFAULT          15
@@ -376,6 +379,9 @@ void lcdRefresh();
 void lcdRefresh(bool wait=true); // TODO uint8_t wait to simplify this
 #endif
 void lcdSetRefVolt(unsigned char val);
+#if LCD_W == 128
+void lcdSetInvert(bool invert);
+#endif
 #ifdef __cplusplus
 void lcdSetContrast(bool useDefault = false);
 #endif
@@ -416,13 +422,13 @@ void setTopBatteryValue(uint32_t volts);
 
 #if defined(RADIO_ZORRO) || defined(RADIO_TX12MK2) || defined(RADIO_BOXER) || defined(RADIO_MT12) || defined(RADIO_POCKET)
   #define VOLTAGE_DROP 45
-#elif defined(RADIO_TPROV2) || defined(RADIO_T20)
+#elif defined(RADIO_TPROV2) || defined(RADIO_FAMILY_T20)
   #define VOLTAGE_DROP 60
 #else
   #define VOLTAGE_DROP 20
 #endif
 
-#if defined(RADIO_T20)
+#if defined(RADIO_FAMILY_T20)
 #define NUM_TRIMS                               8
 #else
 #define NUM_TRIMS                               4
@@ -430,4 +436,3 @@ void setTopBatteryValue(uint32_t volts);
 
 #define NUM_TRIMS_KEYS                          (NUM_TRIMS * 2)
 
-#endif // _BOARD_H_

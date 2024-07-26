@@ -31,11 +31,11 @@ void GVarNumberEdit::value_changed(lv_event_t* e)
   edit->update();
 }
 
-GVarNumberEdit::GVarNumberEdit(Window* parent, const rect_t& rect, int32_t vmin,
+GVarNumberEdit::GVarNumberEdit(Window* parent, int32_t vmin,
                                int32_t vmax, std::function<int32_t()> getValue,
                                std::function<void(int32_t)> setValue,
                                LcdFlags textFlags, int32_t voffset, int32_t vdefault) :
-    Window(parent, rect),
+    Window(parent, {0, 0, NUM_EDIT_W + GV_BTN_W + PAD_TINY * 3, EdgeTxStyles::UI_ELEMENT_HEIGHT + PAD_TINY * 2}),
     vmin(vmin),
     vmax(vmax),
     getValue(getValue),
@@ -43,14 +43,11 @@ GVarNumberEdit::GVarNumberEdit(Window* parent, const rect_t& rect, int32_t vmin,
     textFlags(textFlags),
     voffset(voffset)
 {
-  lv_obj_set_flex_flow(lvobj, LV_FLEX_FLOW_ROW_WRAP);
-  lv_obj_set_style_pad_column(lvobj, lv_dpx(4), 0);
-  lv_obj_set_style_flex_cross_place(lvobj, LV_FLEX_ALIGN_CENTER, 0);
-  lv_obj_set_size(lvobj, LV_SIZE_CONTENT, LV_SIZE_CONTENT);
+  padAll(PAD_TINY);
   
   // GVAR field
   gvar_field = new Choice(
-      this, rect_t{}, -MAX_GVARS, MAX_GVARS - 1,
+      this, {0, 0, NUM_EDIT_W, 0}, -MAX_GVARS, MAX_GVARS - 1,
       [=]() {
         uint16_t gvar1 = GV_GET_GV1_VALUE(vmin, vmax);
         return GV_INDEX_CALC_DELTA(getValue(), gvar1);
@@ -64,23 +61,21 @@ GVarNumberEdit::GVarNumberEdit(Window* parent, const rect_t& rect, int32_t vmin,
       });
   gvar_field->setTextHandler(
       [=](int32_t value) { return getGVarString(value); });
-  gvar_field->setWidth(70);
 
   num_field = new NumberEdit(
-      this, rect_t{}, vmin, vmax, [=]() { return getValue() + voffset; },
-      nullptr, windowFlags, textFlags);
-  num_field->setWidth(70);
+      this, {0, 0, NUM_EDIT_W, 0}, vmin, vmax, [=]() { return getValue() + voffset; },
+      nullptr);
+  num_field->setTextFlag(textFlags);
   num_field->setDefault(vdefault);
 
 #if defined(GVARS)
   // The GVAR button
   if (modelGVEnabled()) {
-    m_gvBtn = new TextButton(this, rect_t{}, STR_GV, [=]() {
+    m_gvBtn = new TextButton(this, {NUM_EDIT_W + PAD_TINY, 0, GV_BTN_W, 0}, STR_GV, [=]() {
       switchGVarMode();
       return GV_IS_GV_VALUE(getValue(), vmin, vmax);
     });
     m_gvBtn->check(GV_IS_GV_VALUE(getValue(), vmin, vmax));
-    lv_obj_set_height(m_gvBtn->getLvObj(), lv_obj_get_height(gvar_field->getLvObj()));
   }
 #endif
 
@@ -119,8 +114,6 @@ void GVarNumberEdit::setSuffix(std::string value)
 void GVarNumberEdit::onEvent(event_t event)
 {
   if (event == EVT_KEY_LONG(KEY_ENTER)) {
-    // TODO: check this...
-    // killEvents(event);
     switchGVarMode();
   } else {
     Window::onEvent(event);
@@ -131,30 +124,32 @@ void GVarNumberEdit::update()
 {
   bool has_focus = act_field && act_field->hasFocus();
 
-  auto gvar_obj = gvar_field->getLvObj();
-  auto num_obj = num_field->getLvObj();
-
-  lv_obj_add_flag(gvar_obj, LV_OBJ_FLAG_HIDDEN);
-  lv_obj_add_flag(num_obj, LV_OBJ_FLAG_HIDDEN);
+  gvar_field->hide();
+  num_field->hide();
   
   int32_t value = getValue();
   if (GV_IS_GV_VALUE(value, vmin, vmax)) {
     // GVAR mode
     act_field = gvar_field;
     num_field->setSetValueHandler(nullptr);
-    lv_obj_clear_flag(gvar_obj, LV_OBJ_FLAG_HIDDEN);
-    lv_event_send(gvar_obj, LV_EVENT_VALUE_CHANGED, nullptr);
+    gvar_field->show();
+    lv_event_send(gvar_field->getLvObj(), LV_EVENT_VALUE_CHANGED, nullptr);
   } else {
     // number edit mode
     act_field = num_field;
     num_field->setSetValueHandler(
         [=](int32_t newValue) { return setValue(newValue - voffset); });
     num_field->setValue(value + voffset);
-    lv_obj_clear_flag(num_obj, LV_OBJ_FLAG_HIDDEN);
+    num_field->show();
   }
 
   if (has_focus) {
     auto act_obj = act_field->getLvObj();
     lv_group_focus_obj(act_obj);
   }
+}
+
+void GVarNumberEdit::setDisplayHandler(std::function<std::string(int value)> function)
+{
+  num_field->setDisplayHandler(function);
 }

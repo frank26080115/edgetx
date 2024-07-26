@@ -48,7 +48,7 @@
 
 #define DEFAULT_MODEL_SORT NAME_ASC
 
-#if LCD_W > LCD_H // Landscape
+#if !PORTRAIT_LCD // Landscape
 #define LABEL_TRUNCATE_LENGTH 21
 #else
 #define LABEL_TRUNCATE_LENGTH 16
@@ -157,6 +157,7 @@ class ModelMap : protected std::multimap<uint16_t, ModelCell *>
   {
     this->filtlbls = std::move(filtlbls);
   }
+  void clearFilter() { filtlbls.clear(); }
   void addFilteredLabel(const std::string &lbl);
   bool isLabelFiltered(const std::string &lbl);
   std::set<uint32_t> filteredLabels() { return filtlbls; }

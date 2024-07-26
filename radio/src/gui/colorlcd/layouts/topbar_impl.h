@@ -24,6 +24,8 @@
 #include "topbar.h"
 #include "layouts/layout_factory_impl.h"
 
+class HeaderIcon;
+
 typedef WidgetsContainerImpl<MAX_TOPBAR_ZONES, MAX_TOPBAR_OPTIONS> TopBarBase;
 
 class TopBar: public TopBarBase
@@ -49,15 +51,24 @@ class TopBar: public TopBarBase
 
     void setVisible(float visible);
     coord_t getVisibleHeight(float visible) const; // 0.0 -> 1.0
+    void showEdgeTxButton();
+    void hideEdgeTxButton();
   
-    void paint(BitmapBuffer * dc) override;
-
     void checkEvents() override;
 
     bool isTopBar() override { return true; }
 
     void removeWidget(unsigned int index) override;
 
+    static LAYOUT_VAL(TOPBAR_ZONE_WIDTH, 70, 70)
+    static LAYOUT_VAL(TOPBAR_ZONE_VMARGIN, 3, 3)
+    static LAYOUT_VAL(TOPBAR_ZONE_HMARGIN, 2, 2)
+    static constexpr coord_t TOPBAR_ZONE_HEIGHT = EdgeTxStyles::MENU_HEADER_HEIGHT - 2 * TOPBAR_ZONE_VMARGIN;
+
+    static LAYOUT_VAL(HDR_DATE_XO, 48, 48)
+    static LAYOUT_VAL(MENU_HEADER_BUTTONS_LEFT, 47, 47)
+
   protected:
     uint32_t lastRefresh = 0;
+    HeaderIcon* headerIcon = nullptr;
 };

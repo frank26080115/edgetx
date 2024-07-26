@@ -32,78 +32,13 @@
 #include "file_preview.h"
 #include "file_browser.h"
 #include "progress.h"
+#include "themes/etx_lv_theme.h"
+#include "fullscreen_dialog.h"
 
 constexpr int WARN_FILE_LENGTH = 40 * 1024;
 
 #define CELL_CTRL_DIR  LV_TABLE_CELL_CTRL_CUSTOM_1
 #define CELL_CTRL_FILE LV_TABLE_CELL_CTRL_CUSTOM_2
-
-class FileNameEditWindow : public Page
-{
-  public:
-  FileNameEditWindow(const std::string iName) :
-      Page(ICON_RADIO_SD_MANAGER), name(std::move(iName))
-  {
-    buildHeader(&header);
-    buildBody(&body);
-  };
-
-#if defined(DEBUG_WINDOWS)
-  std::string getName() const override { return "FileNameEditWindow"; }
-#endif
-  protected:
-  const std::string name;
-
-  void buildHeader(Window *window)
-  {
-    header.setTitle(STR_RENAME_FILE);
-  }
-
-  void buildBody(Window *window)
-  {
-    window->padAll(0);
-
-    auto form = new FormWindow(window, rect_t());
-    form->setFlexLayout(LV_FLEX_FLOW_COLUMN, 4);
-    form->padAll(4);
-    form->padTop(12);
-
-    uint8_t nameLength;
-    uint8_t extLength;
-    char extension[LEN_FILE_EXTENSION_MAX + 1];
-    memset(extension, 0, sizeof(extension));
-    const char *ext =
-        getFileExtension(name.c_str(), 0, 0, &nameLength, &extLength);
-
-    if (extLength > LEN_FILE_EXTENSION_MAX) extLength = LEN_FILE_EXTENSION_MAX;
-    if (ext) strncpy(extension, ext, extLength);
-
-    const uint8_t maxNameLength = SD_SCREEN_FILE_LENGTH - extLength;
-    nameLength -= extLength;
-    if (nameLength > maxNameLength) nameLength = maxNameLength;
-    memset(reusableBuffer.sdManager.originalName, 0, SD_SCREEN_FILE_LENGTH);
-
-    strncpy(reusableBuffer.sdManager.originalName, name.c_str(), nameLength);
-    reusableBuffer.sdManager.originalName[nameLength] = '\0';
-
-    auto newFileName = new TextEdit(
-        form, rect_t{0, 0, LCD_W-8, 0}, reusableBuffer.sdManager.originalName,
-        SD_SCREEN_FILE_LENGTH - extLength, LcdFlags(0));
-    newFileName->setChangeHandler([=]() {
-      char *newValue = reusableBuffer.sdManager.originalName;
-      size_t totalSize = strlen(newValue);
-      char changedName[SD_SCREEN_FILE_LENGTH + 1];
-      memset(changedName, 0, sizeof(changedName));
-      strncpy(changedName, newValue, totalSize);
-      changedName[totalSize] = '\0';
-      if (extLength) {
-        strncpy(changedName + totalSize, extension, extLength);
-      }
-      changedName[totalSize + extLength] = '\0';
-      f_rename((const TCHAR *)name.c_str(), (const TCHAR *)changedName);
-    });
-  };
-};
 
 RadioSdManagerPage::RadioSdManagerPage() :
   PageTab(STR_SD_CARD, ICON_RADIO_SD_MANAGER)
@@ -157,18 +92,13 @@ class FlashDialog: public FullScreenDialog
 class FrskyOtaFlashDialog;
 ModuleCallback onUpdateStateChangedCallbackFor(FrskyOtaFlashDialog* dialog);
 
-class FrskyOtaFlashDialog : public Dialog
+class FrskyOtaFlashDialog : public BaseDialog
 {
  public:
-  explicit FrskyOtaFlashDialog(Window* parent, std::string title) :
-    Dialog(parent, title, rect_t{})
+  explicit FrskyOtaFlashDialog(Window* parent, const char* title) :
+    BaseDialog(parent, title, true)
   {
-    setCloseWhenClickOutside(true);
-    auto form = &content->form;
-    new StaticText(form, rect_t{}, STR_WAITING_FOR_RX, 0, COLOR_THEME_PRIMARY1);
-
-    content->setWidth(LCD_W * 0.8);
-    content->updateSize();
+    new StaticText(form, rect_t{}, STR_WAITING_FOR_RX);
   }
 
   void flash(const char * filename, ModuleIndex module)
@@ -256,7 +186,7 @@ class FrskyOtaFlashDialog : public Dialog
       }
     }
 
-    Dialog::checkEvents();
+    BaseDialog::checkEvents();
   }
 
  protected:
@@ -280,7 +210,7 @@ ModuleCallback onUpdateStateChangedCallbackFor(FrskyOtaFlashDialog* dialog) {
 
 #endif  // PXX2
 
-#if LCD_W > LCD_H // landscape
+#if !PORTRAIT_LCD // landscape
 static const lv_coord_t col_dsc[] = {LV_GRID_FR(3), LV_GRID_FR(2), LV_GRID_TEMPLATE_LAST};
 static const lv_coord_t row_dsc[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 #else // portrait
@@ -288,12 +218,12 @@ static const lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 static const lv_coord_t row_dsc[] = {LV_GRID_FR(2), LV_GRID_FR(1), LV_GRID_TEMPLATE_LAST};
 #endif
 
-void RadioSdManagerPage::build(FormWindow * window)
+void RadioSdManagerPage::build(Window * window)
 {
-  FlexGridLayout grid(col_dsc, row_dsc, 0);
-  window->padAll(0);
+  FlexGridLayout grid(col_dsc, row_dsc, PAD_ZERO);
+  window->padAll(PAD_ZERO);
   
-  FormWindow* form = new FormWindow(window, rect_t{});
+  Window* form = new Window(window, rect_t{});
   form->setWidth(window->width());
   form->setHeight(window->height());
   grid.apply(form);
@@ -301,7 +231,6 @@ void RadioSdManagerPage::build(FormWindow * window)
   browser = new FileBrowser(form, rect_t{}, ROOT_PATH);
   grid.add(browser);
   grid.nextCell();
-  lv_obj_set_scrollbar_mode(browser->getLvObj(), LV_SCROLLBAR_MODE_AUTO);
 
   auto obj = browser->getLvObj();
   lv_obj_set_style_grid_cell_x_align(obj, LV_GRID_ALIGN_STRETCH, 0);
@@ -309,15 +238,11 @@ void RadioSdManagerPage::build(FormWindow * window)
 
   // Adjust file browser width
   browser->adjustWidth();
-  
-  preview = new FilePreview(form, rect_t{});
+
+  preview = new FilePreview(form, rect_t{0, 0, PREVIEW_W, PREVIEW_H});
+  preview->padAll(PAD_SMALL);
   grid.add(preview);
   grid.nextCell();
-
-  obj = preview->getLvObj();
-  lv_obj_set_style_pad_all(obj, lv_dpx(8), 0);
-  lv_obj_set_style_grid_cell_x_align(obj, LV_GRID_ALIGN_STRETCH, 0);
-  lv_obj_set_style_grid_cell_y_align(obj, LV_GRID_ALIGN_STRETCH, 0);
 
   browser->setFileAction([=](const char* path, const char* name, const char* fullpath) {
       fileAction(path, name, fullpath);
@@ -341,8 +266,9 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
         audioQueue.playFile(fullpath, 0, ID_PLAY_FROM_SD_MANAGER);
       });
     }
+#if defined(HARDWARE_INTERNAL_MODULE) || defined(HARDWARE_EXTERNAL_MODULE)
 #if defined(MULTIMODULE) && !defined(DISABLE_MULTI_UPDATE)
-    if (!READ_ONLY() && !strcasecmp(ext, MULTI_FIRMWARE_EXT)) {
+    if (!strcasecmp(ext, MULTI_FIRMWARE_EXT)) {
       MultiFirmwareInformation information;
       if (information.readMultiFirmwareInformation(fullpath) == nullptr) {
 #if defined(INTERNAL_MODULE_MULTI)
@@ -358,7 +284,7 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
       }
     }
 #endif
-    else if (!READ_ONLY() && !strcasecmp(ext, ELRS_FIRMWARE_EXT)) {
+    else if (!strcasecmp(ext, ELRS_FIRMWARE_EXT)) {
       menu->addLine(STR_FLASH_EXTERNAL_ELRS, [=]() {
         MultiFirmwareUpdate(fullpath, EXTERNAL_MODULE, MULTI_TYPE_ELRS);
       });
@@ -382,19 +308,19 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
             sprintf(buf, " %s %dkB. %s", STR_FILE_SIZE, fileLength / 1024,
                     STR_FILE_OPEN);
             new ConfirmDialog(window, STR_WARNING, buf,
-                              [=] { new ViewTextWindow(path, name); });
+                              [=] { new ViewTextWindow(path, name, ICON_RADIO_SD_MANAGER); });
           } else {
-            new ViewTextWindow(path, name);
+            new ViewTextWindow(path, name, ICON_RADIO_SD_MANAGER);
           }
         }
       });
     }
-    if (!READ_ONLY() && !strcasecmp(ext, FIRMWARE_EXT)) {
+    if (!strcasecmp(ext, FIRMWARE_EXT)) {
       if (isBootloader(fullpath)) {
         menu->addLine(STR_FLASH_BOOTLOADER,
                       [=]() { BootloaderUpdate(fullpath); });
       }
-    } else if (!READ_ONLY() && !strcasecmp(ext, SPORT_FIRMWARE_EXT)) {
+    } else if (!strcasecmp(ext, SPORT_FIRMWARE_EXT)) {
 
       auto mod_desc = modulePortGetModuleDescription(SPORT_MODULE);
       if (mod_desc && mod_desc->set_pwr) {
@@ -405,7 +331,7 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
                     [=]() { FrSkyFirmwareUpdate(fullpath, INTERNAL_MODULE); });
       menu->addLine(STR_FLASH_EXTERNAL_MODULE,
                     [=]() { FrSkyFirmwareUpdate(fullpath, EXTERNAL_MODULE); });
-    } else if (!READ_ONLY() && !strcasecmp(ext, FRSKY_FIRMWARE_EXT)) {
+    } else if (!strcasecmp(ext, FRSKY_FIRMWARE_EXT)) {
       FrSkyFirmwareInformation information;
       if (readFrSkyFirmwareInformation(fullpath, information) ==
           nullptr) {
@@ -484,51 +410,64 @@ void RadioSdManagerPage::fileAction(const char* path, const char* name,
 #endif  // _NYI_
       }
     }
+#endif
 #if defined(LUA)
     else if (isExtensionMatching(ext, SCRIPTS_EXT)) {
       menu->addLine(STR_EXECUTE_FILE, [=]() {
         luaExec(fullpath);
-        StandaloneLuaWindow::instance()->attach();
       });
     }
 #endif
   }
-  if (!READ_ONLY()) {
-    menu->addLine(STR_COPY_FILE, [=]() {
-      clipboard.type = CLIPBOARD_TYPE_SD_FILE;
-      f_getcwd(clipboard.data.sd.directory, CLIPBOARD_PATH_LEN);
-      strncpy(clipboard.data.sd.filename, name, CLIPBOARD_PATH_LEN - 1);
-    });
-    if (clipboard.type == CLIPBOARD_TYPE_SD_FILE) {
-      menu->addLine(STR_PASTE, [=]() {
-        static char lfn[FF_MAX_LFN + 1];  // TODO optimize that!
-        char destFileName[2 * CLIPBOARD_PATH_LEN + 1];
-        f_getcwd((TCHAR*)lfn, FF_MAX_LFN);
-        // prevent copying to the same directory with the same name
-        char* destNamePtr = clipboard.data.sd.filename;
-        if (!strcmp(clipboard.data.sd.directory, lfn)) {
-          destNamePtr =
-              strAppend(destFileName, FILE_COPY_PREFIX, CLIPBOARD_PATH_LEN);
-          destNamePtr = strAppend(destNamePtr, clipboard.data.sd.filename,
-                                  CLIPBOARD_PATH_LEN);
-          destNamePtr = destFileName;
-        }
-        sdCopyFile(clipboard.data.sd.filename, clipboard.data.sd.directory,
-                   destNamePtr, lfn);
-        clipboard.type = CLIPBOARD_TYPE_NONE;
+  menu->addLine(STR_COPY_FILE, [=]() {
+    clipboard.type = CLIPBOARD_TYPE_SD_FILE;
+    f_getcwd(clipboard.data.sd.directory, CLIPBOARD_PATH_LEN);
+    strncpy(clipboard.data.sd.filename, name, CLIPBOARD_PATH_LEN - 1);
+  });
+  if (clipboard.type == CLIPBOARD_TYPE_SD_FILE) {
+    menu->addLine(STR_PASTE, [=]() {
+      static char lfn[FF_MAX_LFN + 1];  // TODO optimize that!
+      char destFileName[2 * CLIPBOARD_PATH_LEN + 1];
+      f_getcwd((TCHAR*)lfn, FF_MAX_LFN);
+      // prevent copying to the same directory with the same name
+      char* destNamePtr = clipboard.data.sd.filename;
+      if (!strcmp(clipboard.data.sd.directory, lfn)) {
+        destNamePtr =
+            strAppend(destFileName, FILE_COPY_PREFIX, CLIPBOARD_PATH_LEN);
+        destNamePtr = strAppend(destNamePtr, clipboard.data.sd.filename,
+                                CLIPBOARD_PATH_LEN);
+        destNamePtr = destFileName;
+      }
+      sdCopyFile(clipboard.data.sd.filename, clipboard.data.sd.directory,
+                  destNamePtr, lfn);
+      clipboard.type = CLIPBOARD_TYPE_NONE;
 
         browser->refresh();
       });
-    }
-    menu->addLine(STR_RENAME_FILE, [=]() {
-      auto few = new FileNameEditWindow(name);
-      few->setCloseHandler([=]() { browser->refresh(); });
-    });
-    menu->addLine(STR_DELETE_FILE, [=]() {
-      f_unlink(fullpath);
+  }
+  menu->addLine(STR_RENAME_FILE, [=]() {
+    uint8_t nameLength;
+    uint8_t extLength;
+
+    const char *ext = getFileExtension(name, 0, 0, &nameLength, &extLength);
+
+    const uint8_t maxNameLength = SD_SCREEN_FILE_LENGTH - extLength;
+    nameLength = min((uint8_t)(nameLength - extLength), maxNameLength);
+
+    std::string fname(name, nameLength);
+    std::string extension("");
+    if (ext) extension = ext;
+
+    new LabelDialog(Layer::back(), fname.c_str(), maxNameLength, STR_RENAME_FILE, [=](std::string label) {
+      label += extension;
+      f_rename((const TCHAR *)name, (const TCHAR *)label.c_str());
       browser->refresh();
     });
-  }
+  });
+  menu->addLine(STR_DELETE_FILE, [=]() {
+    f_unlink(fullpath);
+    browser->refresh();
+  });
 }
 
 void RadioSdManagerPage::BootloaderUpdate(const char* fn)

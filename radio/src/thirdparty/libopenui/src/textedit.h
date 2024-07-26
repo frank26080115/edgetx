@@ -19,31 +19,44 @@
 #pragma once
 
 #include "form.h"
+#include "button.h"
 
-class TextEdit : public FormField
+class TextArea;
+
+class TextEdit : public TextButton
 {
-
  public:
-  TextEdit(Window* parent, const rect_t& rect, char* value, uint8_t length,
-           LcdFlags windowFlags = 0);
+  TextEdit(Window* parent, const rect_t& rect, char* text, uint8_t length,
+                 std::function<void(void)> updateHandler = nullptr);
 
 #if defined(DEBUG_WINDOWS)
-  std::string getName() const override { return "TextEdit"; }
+  std::string getName() const override { return "TextEdit \"" + text + "\""; }
 #endif
 
-  uint8_t getMaxLength() const { return length; }
-  char* getData() const { return value; }
-
+  void preview(bool edited, char* text, uint8_t length);
   void update();
 
+  static LAYOUT_VAL(DEF_W, 100, 100)
+
  protected:
-  static void event_cb(lv_event_t* e);
-  
-  char* value;
+  std::function<void(void)> updateHandler = nullptr;
+  TextArea* edit = nullptr;
+  char* text;
   uint8_t length;
 
-  void trim();
+  void openEdit();
+};
 
-  void changeEnd(bool forceChanged = false) override;
-  void onClicked() override;
+class ModelTextEdit : public TextEdit
+{
+ public:
+  ModelTextEdit(Window* parent, const rect_t& rect, char* value,
+                uint8_t length);
+};
+
+class RadioTextEdit : public TextEdit
+{
+ public:
+  RadioTextEdit(Window* parent, const rect_t& rect, char* value,
+                uint8_t length);
 };

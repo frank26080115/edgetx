@@ -61,6 +61,13 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
 #endif
 
   if (s_editMode > 0) {
+    bool invert = false;
+    if ((i_flags & INCDEC_SOURCE_INVERT) && (newval < 0)) {
+      invert = true;
+      newval = -newval;
+      val = -val;
+    }
+
     if (event == evt_rot_inc || event == EVT_KEY_FIRST(KEY_PLUS) ||
         event == EVT_KEY_REPT(KEY_PLUS)) {
 
@@ -119,25 +126,21 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
 #endif
     }
 #endif
+
+    if (invert) {
+      newval = -newval;
+      val = -val;
+    }
   }
-  
-  if (!READ_ONLY() && i_min == 0 && i_max == 1 &&
+
+  if (i_min == 0 && i_max == 1 &&
       event == EVT_KEY_BREAK(KEY_ENTER)) {
     s_editMode = 0;
     newval = !val;
   }
 
-  if (newval != val) {
-    storageDirty(i_flags & (EE_GENERAL|EE_MODEL));
-    checkIncDec_Ret = (newval > val ? 1 : -1);
-  }
-  else {
-    checkIncDec_Ret = 0;
-  }
-
   if (i_flags & INCDEC_SOURCE) {
     if (event == EVT_KEY_LONG(KEY_ENTER)) {
-      killEvents(event);
       checkIncDecSelection = MIXSRC_NONE;
 
       if (i_min <= MIXSRC_FIRST_INPUT && i_max >= MIXSRC_FIRST_INPUT) {
@@ -178,10 +181,11 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
           }
         }
       }
+      if (i_flags & INCDEC_SOURCE_INVERT) POPUP_MENU_ADD_ITEM(STR_MENU_INVERT);
       POPUP_MENU_START(onSourceLongEnterPress);
     }
     if (checkIncDecSelection != 0) {
-      newval = checkIncDecSelection;
+      newval = (checkIncDecSelection == MIXSRC_INVERT ? -newval : checkIncDecSelection);
       if (checkIncDecSelection != MIXSRC_MIN && checkIncDecSelection != MIXSRC_MAX)
         s_editMode = EDIT_MODIFY_FIELD;
       checkIncDecSelection = 0;
@@ -189,7 +193,6 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
   }
   else if (i_flags & INCDEC_SWITCH) {
     if (event == EVT_KEY_LONG(KEY_ENTER)) {
-      killEvents(event);
       checkIncDecSelection = SWSRC_NONE;
       if (i_min <= SWSRC_FIRST_SWITCH && i_max >= SWSRC_LAST_SWITCH)       POPUP_MENU_ADD_ITEM(STR_MENU_SWITCHES);
       if (i_min <= SWSRC_FIRST_TRIM && i_max >= SWSRC_LAST_TRIM)           POPUP_MENU_ADD_ITEM(STR_MENU_TRIMS);
@@ -212,6 +215,15 @@ int checkIncDec(event_t event, int val, int i_min, int i_max,
       checkIncDecSelection = 0;
     }
   }
+
+  if (newval != val) {
+    storageDirty(i_flags & (EE_GENERAL|EE_MODEL));
+    checkIncDec_Ret = (newval > val ? 1 : -1);
+  }
+  else {
+    checkIncDec_Ret = 0;
+  }
+
   return newval;
 }
 
@@ -272,23 +284,14 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
   if (menuTab) {
     int cc = curr;
     switch (event) {
-#if defined(KEYS_GPIO_REG_PAGEUP)
-      case EVT_KEY_FIRST(KEY_PAGEUP):
-#else
-      case EVT_KEY_LONG(KEY_PAGE):
-#endif
+      case EVT_KEY_BREAK(KEY_PAGEUP):
         if (s_editMode>0)
           break;
 
         cc = chgMenu(curr, menuTab, menuTabSize, -1);
-        killEvents(event);
         break;
 
-#if defined(KEYS_GPIO_REG_PAGEDN)
-      case EVT_KEY_FIRST(KEY_PAGEDN):
-#else
-      case EVT_KEY_BREAK(KEY_PAGE):
-#endif
+      case EVT_KEY_BREAK(KEY_PAGEDN):
         if (s_editMode>0)
           break;
 
@@ -320,11 +323,11 @@ void check(event_t event, uint8_t curr, const MenuHandler *menuTab,
     case EVT_KEY_BREAK(KEY_ENTER):
       if (s_editMode > 1)
         break;
-      if (menuHorizontalPosition < 0 && maxcol > 0 && READ_ONLY_UNLOCKED()) {
+      if (menuHorizontalPosition < 0 && maxcol > 0) {
         l_posHorz = 0;
         AUDIO_KEY_PRESS();
       }
-      else if (READ_ONLY_UNLOCKED()) {
+      else {
         s_editMode = (s_editMode<=0);
         AUDIO_KEY_PRESS();
       }

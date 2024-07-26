@@ -59,7 +59,6 @@ void menuModelExpoOne(event_t event)
 {
   if (event == EVT_KEY_LONG(KEY_MENU)) {
     pushMenu(menuChannelsView);
-    killEvents(event);
   }
 
   ExpoData * ed = expoAddress(s_currIdx);
@@ -103,10 +102,10 @@ void menuModelExpoOne(event_t event)
         lcdDrawTextAlignedLeft(y, STR_SOURCE);
         drawSource(EXPO_ONE_2ND_COLUMN, y, ed->srcRaw, STREXPANDED|attr);
         if (attr && menuHorizontalPosition==0)
-          ed->srcRaw = checkIncDec(event, ed->srcRaw, INPUTSRC_FIRST, INPUTSRC_LAST, EE_MODEL|INCDEC_SOURCE|NO_INCDEC_MARKS, isSourceAvailableInInputs);
-        if (ed->srcRaw >= MIXSRC_FIRST_TELEM) {
-          drawSensorCustomValue(EXPO_ONE_2ND_COLUMN+30, y, (ed->srcRaw - MIXSRC_FIRST_TELEM)/3, getValue(ed->srcRaw), LEFT|(menuHorizontalPosition==1?attr:0));
-          if (attr && menuHorizontalPosition == 1) ed->scale = checkIncDec(event, ed->scale, 0, maxTelemValue(ed->srcRaw - MIXSRC_FIRST_TELEM + 1), EE_MODEL);
+          ed->srcRaw = checkIncDec(event, ed->srcRaw, INPUTSRC_FIRST, INPUTSRC_LAST, EE_MODEL|INCDEC_SOURCE|INCDEC_SOURCE_INVERT|NO_INCDEC_MARKS, isSourceAvailableInInputs);
+        if (abs(ed->srcRaw) >= MIXSRC_FIRST_TELEM) {
+          drawSensorCustomValue(EXPO_ONE_2ND_COLUMN+30, y, (abs(ed->srcRaw) - MIXSRC_FIRST_TELEM)/3, getValue(ed->srcRaw), LEFT|(menuHorizontalPosition==1?attr:0));
+          if (attr && menuHorizontalPosition == 1) ed->scale = checkIncDec(event, ed->scale, 0, maxTelemValue(abs(ed->srcRaw) - MIXSRC_FIRST_TELEM + 1), EE_MODEL);
         }
         else if (attr) {
           menuHorizontalPosition = 0;
@@ -115,8 +114,8 @@ void menuModelExpoOne(event_t event)
 
       case EXPO_FIELD_SCALE:
         lcdDrawTextAlignedLeft(y, STR_SCALE);
-        drawSensorCustomValue(EXPO_ONE_2ND_COLUMN, y, (ed->srcRaw - MIXSRC_FIRST_TELEM)/3, convertTelemValue(ed->srcRaw - MIXSRC_FIRST_TELEM + 1, ed->scale), LEFT|attr);
-        if (attr) ed->scale = checkIncDec(event, ed->scale, 0, maxTelemValue(ed->srcRaw - MIXSRC_FIRST_TELEM + 1), EE_MODEL);
+        drawSensorCustomValue(EXPO_ONE_2ND_COLUMN, y, (abs(ed->srcRaw) - MIXSRC_FIRST_TELEM)/3, convertTelemValue(abs(ed->srcRaw) - MIXSRC_FIRST_TELEM + 1, ed->scale), LEFT|attr);
+        if (attr) ed->scale = checkIncDec(event, ed->scale, 0, maxTelemValue(abs(ed->srcRaw) - MIXSRC_FIRST_TELEM + 1), EE_MODEL);
         break;
 
       case EXPO_FIELD_WEIGHT:
@@ -136,7 +135,7 @@ void menuModelExpoOne(event_t event)
 
 #if defined(FLIGHT_MODES)
       case EXPO_FIELD_FLIGHT_MODES:
-        drawFieldLabel(EXPO_ONE_2ND_COLUMN, y, STR_FLMODE);
+        lcdDrawTextAlignedLeft(y, STR_FLMODE);
         ed->flightModes = editFlightModes(EXPO_ONE_2ND_COLUMN, y, event, ed->flightModes, attr);
         break;
 #endif
@@ -152,13 +151,13 @@ void menuModelExpoOne(event_t event)
       case EXPO_FIELD_TRIM:
         lcdDrawTextAlignedLeft(y, STR_TRIM);
         {
-          const char* trim_str = getTrimSourceLabel(ed->srcRaw, ed->trimSource);
+          const char* trim_str = getTrimSourceLabel(abs(ed->srcRaw), ed->trimSource);
           LcdFlags flags = RIGHT | (menuHorizontalPosition==0 ? attr : 0);
           lcdDrawText(EXPO_ONE_2ND_COLUMN, y, trim_str, flags);
 
           if (attr) {
             int8_t min = TRIM_ON;
-            if (ed->srcRaw >= MIXSRC_FIRST_STICK && ed->srcRaw <= MIXSRC_LAST_STICK) {
+            if (abs(ed->srcRaw) >= MIXSRC_FIRST_STICK && abs(ed->srcRaw) <= MIXSRC_LAST_STICK) {
               min = -TRIM_OFF;
             }
             ed->trimSource = -checkIncDecModel(event, -ed->trimSource, min, keysGetMaxTrims());

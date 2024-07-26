@@ -24,29 +24,18 @@
 
 #define SET_DIRTY() storageDirty(EE_GENERAL)
 
-static const lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(3),
-                                         LV_GRID_TEMPLATE_LAST};
-
-static const lv_coord_t row_dsc[] = {LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
-
-SerialConfigWindow::SerialConfigWindow(Window *parent, const rect_t &rect) :
-    FormWindow(parent, rect)
+SerialConfigWindow::SerialConfigWindow(Window *parent, FlexGridLayout& grid)
 {
-  setFlexLayout();
-  FlexGridLayout grid(col_dsc, row_dsc, 2);
-
-  bool display_ttl_warning = false;
   for (uint8_t port_nr = 0; port_nr < MAX_SERIAL_PORTS; port_nr++) {
     auto port = serialGetPort(port_nr);
     if (!port || !port->name) continue;
 
-    if (port_nr != SP_VCP) display_ttl_warning = true;
+    auto line = parent->newLine(grid);
+    (new StaticText(line, rect_t{}, port->name))->padLeft(PAD_SMALL);
 
-    auto line = newLine(&grid);
-    new StaticText(line, rect_t{}, port->name, 0, COLOR_THEME_PRIMARY1);
-
-    auto box = new FormWindow(line, rect_t{});
-    box->setFlexLayout(LV_FLEX_FLOW_ROW, lv_dpx(8));
+    auto box = new Window(line, rect_t{});
+    box->padAll(PAD_TINY);
+    box->setFlexLayout(LV_FLEX_FLOW_ROW, PAD_MEDIUM);
     lv_obj_set_style_grid_cell_x_align(box->getLvObj(), LV_GRID_ALIGN_STRETCH, 0);
     lv_obj_set_style_flex_cross_place(box->getLvObj(), LV_FLEX_ALIGN_CENTER, 0);
     
@@ -62,8 +51,7 @@ SerialConfigWindow::SerialConfigWindow(Window *parent, const rect_t &rect) :
         [=](int value) { return isSerialModeAvailable(port_nr, value); });
 
     if (port->set_pwr != nullptr) {
-      new StaticText(box, rect_t{}, STR_AUX_SERIAL_PORT_POWER, 0,
-                     COLOR_THEME_PRIMARY1);
+      new StaticText(box, rect_t{}, STR_AUX_SERIAL_PORT_POWER);
       new ToggleSwitch(
           box, rect_t{}, [=] { return serialGetPower(port_nr); },
           [=](int8_t newValue) {
@@ -71,11 +59,14 @@ SerialConfigWindow::SerialConfigWindow(Window *parent, const rect_t &rect) :
             SET_DIRTY();
           });
     }
-  }
-
-  if (display_ttl_warning) {
-    grid.setColSpan(2);
-    auto line = newLine(&grid);
-    new StaticText(line, rect_t{}, STR_TTL_WARNING, 0, COLOR_THEME_WARNING);
+      
+    if (port_nr != SP_VCP) {
+        grid.setColSpan(2);
+        auto line = parent->newLine(grid);
+        line->padLeft(WARN_PADL);
+        line->padBottom(WARN_PADB);
+        new StaticText(line, rect_t{}, STR_TTL_WARNING, COLOR_THEME_WARNING);
+        grid.setColSpan(1);
+    }
   }
 }

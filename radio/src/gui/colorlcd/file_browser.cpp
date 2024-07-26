@@ -21,7 +21,7 @@
 
 #include "file_browser.h"
 #include "libopenui_file.h"
-#include "font.h"
+#include "fonts.h"
 
 #include <list>
 #include <string>
@@ -166,8 +166,6 @@ FileBrowser::FileBrowser(Window* parent, const rect_t& rect, const char* dir) :
 {
   lv_obj_add_event_cb(lvobj, fb_event, LV_EVENT_ALL, nullptr);
 
-  setColumnCount(1);
-
   f_chdir(dir);
 
   if (lv_obj_has_state(lvobj, LV_STATE_FOCUSED)) {
@@ -279,6 +277,7 @@ void FileBrowser::onPress(const char* name, bool is_dir)
   const char* fullpath = getFullPath(name);  
   if (is_dir) {
     f_chdir(fullpath);
+    if (fileSelected) fileSelected(nullptr, nullptr, nullptr);
     refresh();
     return;
   }

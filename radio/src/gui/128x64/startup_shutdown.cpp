@@ -21,7 +21,6 @@
 
 #include "opentx.h"
 
-
 #define SLEEP_BITMAP_WIDTH             128
 #define SLEEP_BITMAP_HEIGHT            64
 
@@ -29,7 +28,7 @@ const unsigned char bmp_sleep[]  = {
 #include "sleep.lbm"
 };
 
-#if defined(RADIO_T20)
+#if defined(RADIO_FAMILY_T20)
 constexpr uint8_t steps = NUM_FUNCTIONS_SWITCHES/2;
 #elif defined(FUNCTION_SWITCHES)
 constexpr uint8_t steps = NUM_FUNCTIONS_SWITCHES;
@@ -53,7 +52,7 @@ void drawStartupAnimation(uint32_t duration, uint32_t totalDuration)
   for (uint8_t j = 0; j < steps; j++) {
     if (index2 > j) {
       fsLedOn(j);
-#if defined(RADIO_T20)
+#if defined(RADIO_FAMILY_T20)
       fsLedOn(j + steps);
 #endif
     }
@@ -89,12 +88,12 @@ void drawShutdownAnimation(uint32_t duration, uint32_t totalDuration,
 
   for (uint8_t j = 0; j < steps; j++) {
     fsLedOff(j);
-#if defined(RADIO_T20)
+#if defined(RADIO_FAMILY_T20)
     fsLedOff(j + steps);
 #endif
     if (steps - index2 > j) {
       fsLedOn(j);
-#if defined(RADIO_T20)
+#if defined(RADIO_FAMILY_T20)
       fsLedOn(j + steps);
 #endif
     }

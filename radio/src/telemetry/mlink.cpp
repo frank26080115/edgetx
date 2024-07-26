@@ -30,6 +30,7 @@ struct MLinkSensor
   const char * name;
 };
 
+// clang-format off
 #define MS(id,name,unit,precision) {id,unit,precision,name}
 
 const MLinkSensor mlinkSensors[] = {
@@ -53,6 +54,7 @@ const MLinkSensor mlinkSensors[] = {
   MS(MLINK_TX_RSSI,         STR_SENSOR_TX_RSSI,           UNIT_RAW,               0),
   MS(MLINK_TX_LQI,          STR_SENSOR_TX_QUALITY,        UNIT_RAW,               0),
 };
+// clang-format on
 
 const MLinkSensor * getMLinkSensor(uint16_t id)
 {
@@ -140,7 +142,7 @@ void processMLinkPacket(const uint8_t * packet, bool multi)
           setTelemetryValue(PROTOCOL_TELEMETRY_MLINK, MLINK_LQI, 0, address, mlinkLQI, UNIT_RAW, 0);
           telemetryData.rssi.set(mlinkLQI);
           if (mlinkLQI > 0) {
-            telemetryStreaming = TELEMETRY_TIMEOUT10ms;
+            telemetryStreaming = 2*TELEMETRY_TIMEOUT10ms;
           }
           break;
       }

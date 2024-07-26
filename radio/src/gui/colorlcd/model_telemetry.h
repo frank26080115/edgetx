@@ -19,29 +19,32 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _MODEL_TELEMETRY_H
-#define _MODEL_TELEMETRY_H
+#pragma once
 
 #include "tabsgroup.h"
+#include "opentx.h"
 
-class ModelTelemetryPage: public PageTab {
-  public:
-    ModelTelemetryPage();
+class ModelTelemetryPage : public PageTab
+{
+ public:
+  ModelTelemetryPage();
 
-    void build(FormWindow * window) override;
+  bool isVisible() const override { return modelTelemetryEnabled(); }
 
-    void checkEvents() override;
+  void build(Window* window) override;
 
-  protected:
-    int lastKnownIndex = 0;
-    FormWindow* window = nullptr;
-    FormWindow* sensorWindow = nullptr;
-    TextButton* discover = nullptr;
-    TextButton* deleteAll = nullptr;
+  static LAYOUT_VAL(NUM_EDIT_W, 100, 65)
 
-    void editSensor(FormWindow * window, uint8_t index);
-    void rebuild(FormWindow * window, int8_t focusSensorIndex=-1);
-    void buildSensorList(int8_t focusSensorIndex=-1);
+ protected:
+  int lastKnownIndex = 0;
+  Window* window = nullptr;
+  Window* sensorWindow = nullptr;
+  TextButton* discover = nullptr;
+  TextButton* deleteAll = nullptr;
+
+  void checkEvents() override;
+
+  void editSensor(Window* window, uint8_t index);
+  void rebuild(Window* window, int8_t focusSensorIndex = -1);
+  void buildSensorList(int8_t focusSensorIndex = -1);
 };
-
-#endif //_MODEL_TELEMETRY_H

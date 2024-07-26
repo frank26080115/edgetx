@@ -66,11 +66,10 @@ static void copy_kb_data_backup(lv_indev_data_t* data)
   memcpy(data, &kb_data_backup, sizeof(lv_indev_data_t));
 }
 
-constexpr event_t _KEY_PRESSED = _MSK_KEY_FLAGS & ~_MSK_KEY_BREAK;
-
 static bool evt_to_indev_data(event_t evt, lv_indev_data_t *data)
 {
   event_t key = EVT_KEY_MASK(evt);
+
   switch(key) {
 
   case KEY_ENTER:
@@ -90,7 +89,8 @@ static bool evt_to_indev_data(event_t evt, lv_indev_data_t *data)
     return false;
   }
 
-  if (evt & _KEY_PRESSED) {
+  event_t flgs = evt & _MSK_KEY_FLAGS;
+  if (flgs != _MSK_KEY_BREAK && flgs != _MSK_KEY_LONG_BRK) {
     data->state = LV_INDEV_STATE_PRESSED;
   } else {
     data->state = LV_INDEV_STATE_RELEASED;
@@ -111,7 +111,6 @@ static void dispatch_kb_event(Window* w, event_t evt)
   } else if (key != KEY_ENTER) {
     w->onEvent(evt);
   } else if (evt == EVT_KEY_LONG(KEY_ENTER)) {
-    killEvents(KEY_ENTER);
     lv_event_send(w->getLvObj(), LV_EVENT_LONG_PRESSED, nullptr);
   }
 }
@@ -122,6 +121,12 @@ static void keyboardDriverRead(lv_indev_drv_t *drv, lv_indev_data_t *data)
 
   if (isEvent()) { // event waiting
     event_t evt = getEvent();
+
+    if ((evt & _MSK_KEY_FLAGS) == _MSK_KEY_LONG_BRK) {
+      data->state = LV_INDEV_STATE_RELEASED;
+      backup_kb_data(data);
+      return;
+    }
 
     if(evt == EVT_KEY_FIRST(KEY_PAGEUP) ||
        evt == EVT_KEY_FIRST(KEY_PAGEDN) ||
@@ -168,29 +173,13 @@ static void keyboardDriverRead(lv_indev_drv_t *drv, lv_indev_data_t *data)
   }
 }
 
-static void copy_ts_to_indev_data(const TouchState &st, lv_indev_data_t *data)
-{
-  data->point.x = st.x;
-  data->point.y = st.y;
-}
-
-static lv_indev_data_t touch_data_backup;
-
-static void backup_touch_data(lv_indev_data_t* data)
-{
-  memcpy(&touch_data_backup, data, sizeof(lv_indev_data_t));
-}
-
-static void copy_touch_data_backup(lv_indev_data_t* data)
-{
-  memcpy(data, &touch_data_backup, sizeof(lv_indev_data_t));
-}
-
 extern "C" void touchDriverRead(lv_indev_drv_t *drv, lv_indev_data_t *data)
 {
 #if defined(HARDWARE_TOUCH)
+  static lv_indev_data_t touch_data_backup;
+
   if(!touchPanelEventOccured()) {
-    copy_touch_data_backup(data);
+    memcpy(data, &touch_data_backup, sizeof(lv_indev_data_t));
     return;
   }
 
@@ -213,14 +202,16 @@ extern "C" void touchDriverRead(lv_indev_drv_t *drv, lv_indev_data_t *data)
   
   if(st.event == TE_NONE) {
     TRACE("TE_NONE");
-  } else if(st.event == TE_DOWN || st.event == TE_SLIDE) {
-    TRACE("INDEV_STATE_PRESSED");
-    data->state = LV_INDEV_STATE_PRESSED;
-    copy_ts_to_indev_data(st, data);
   } else {
-    TRACE("INDEV_STATE_RELEASED");
-    data->state = LV_INDEV_STATE_RELEASED;
-    copy_ts_to_indev_data(st, data);
+    if(st.event == TE_DOWN || st.event == TE_SLIDE) {
+      TRACE("TE_PRESSED");
+      data->state = LV_INDEV_STATE_PRESSED;
+    } else {
+      TRACE("TE_RELEASED");
+      data->state = LV_INDEV_STATE_RELEASED;
+    }
+    data->point.x = st.x;
+    data->point.y = st.y;
   }
 
   static bool onebeep=true; // TODO... This probably needs to be fixed in the driver it's sending two events
@@ -232,8 +223,8 @@ extern "C" void touchDriverRead(lv_indev_drv_t *drv, lv_indev_data_t *data)
   } else {
     onebeep = true;
   }
-  
-  backup_touch_data(data);
+
+  memcpy(&touch_data_backup, data, sizeof(lv_indev_data_t));
 #endif
 }
 
@@ -267,14 +258,14 @@ static void rotaryDriverRead(lv_indev_drv_t *drv, lv_indev_data_t *data)
   static int8_t prevDir = 0;
   static uint32_t lastDt = 0;
 
-  rotenc_t newPos = rotaryEncoderGetRawValue();
-  rotenc_t diff = (newPos - prevPos) / ROTARY_ENCODER_GRANULARITY;
-  prevPos += diff * ROTARY_ENCODER_GRANULARITY;
+  rotenc_t newPos = rotaryEncoderGetValue();
+  rotenc_t diff = newPos - prevPos;
 
   data->enc_diff = (int16_t)diff;
   data->state = LV_INDEV_STATE_RELEASED;
 
   if (diff != 0) {
+    prevPos = newPos;
     reset_inactivity();
 
     int8_t dir = 0;
@@ -306,32 +297,6 @@ int8_t rotaryEncoderGetAccel() { return 0; }
 
 #endif // defined(ROTARY_ENCODER_NAVIGATION)
 
-// Return 32 bit version of color (for recolor of buttons)
-uint32_t makeLvColor32(uint32_t colorFlags)
-{
-  auto color = COLOR_VAL(colorFlags);
-  return (GET_RED(color) << 16u) | (GET_GREEN(color) << 8) | GET_BLUE(color);
-}
-
-// Create recolor version of string value
-std::string makeRecolor(std::string value, uint32_t colorFlags)
-{
-  char s[32];
-  snprintf(s, 32, "#%06" PRIx32 " %s#", makeLvColor32(colorFlags), value.c_str());
-  return std::string(s);
-}
-
-/**
- * Helper function to translate a colorFlags value to a lv_color_t suitable
- * for passing to an lv_obj function
- * @param colorFlags a textFlags value.  This value will contain the color shifted by 16 bits.
- */
-lv_color_t makeLvColor(uint32_t colorFlags)
-{
-  auto color = COLOR_VAL(colorFlags);
-  return lv_color_make(GET_RED(color), GET_GREEN(color), GET_BLUE(color));
-}
-
 static void init_lvgl_drivers()
 {
   // Register the driver and save the created display object
@@ -358,18 +323,27 @@ static void init_lvgl_drivers()
 
 void initLvglTheme()
 {
+  static lv_theme_t theme;
+
   /* Initialize the ETX theme */
-  lv_theme_t* th = etx_lv_theme_init(
-      NULL, lv_palette_main(LV_PALETTE_BLUE), lv_palette_main(LV_PALETTE_RED),
-      LV_FONT_DEFAULT);
+  theme.disp = NULL;
+  theme.color_primary = lv_palette_main(LV_PALETTE_BLUE);
+  theme.color_secondary = lv_palette_main(LV_PALETTE_RED);
+  theme.font_small = LV_FONT_DEFAULT;
+  theme.font_normal = LV_FONT_DEFAULT;
+  theme.font_large = LV_FONT_DEFAULT;
+  theme.flags = 0;
 
   /* Assign the theme to the current display*/
-  lv_disp_set_theme(NULL, th);
+  lv_disp_set_theme(NULL, &theme);
 }
 
 LvglWrapper::LvglWrapper()
 {
   init_lvgl_drivers();
+
+  extern void lv_stb_init();
+  lv_stb_init();
 
   // Create main window and load that screen
   auto window = MainWindow::instance();

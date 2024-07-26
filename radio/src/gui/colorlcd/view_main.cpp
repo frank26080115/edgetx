@@ -26,20 +26,19 @@
 #include "menu_screen.h"
 #include "model_select.h"
 #include "opentx.h"
-#include "theme.h"
 #include "topbar_impl.h"
 #include "view_channels.h"
 #include "view_main_menu.h"
 
 static void tile_view_deleted_cb(lv_event_t* e)
 {
-  TRACE("CHILD_DELETED tile[%d]", lv_event_get_user_data(e));
   lv_obj_t* target = lv_event_get_target(e);
   lv_obj_t* obj = lv_event_get_current_target(e);
 
   // LV_EVENT_CHILD_DELETED is bubbled to all parents, so
   // we'd better make sure this is one of our own.
   if (obj == target) {
+    TRACE("CHILD_DELETED tile[%d]", lv_event_get_user_data(e));
     lv_obj_del(obj);
   }
 }
@@ -70,14 +69,13 @@ static void tile_view_scroll(lv_event_t* e)
 ViewMain* ViewMain::_instance = nullptr;
 
 ViewMain::ViewMain() :
-    NavWindow(MainWindow::instance(), MainWindow::instance()->getRect(), OPAQUE)
+    NavWindow(MainWindow::instance(), MainWindow::instance()->getRect())
 {
   Layer::push(this);
 
   tile_view = lv_tileview_create(lvobj);
   lv_obj_set_pos(tile_view, rect.x, rect.y);
   lv_obj_set_size(tile_view, rect.w, rect.h);
-  lv_obj_set_style_bg_opa(tile_view, LV_OPA_TRANSP, LV_PART_MAIN);
   lv_obj_set_scrollbar_mode(tile_view, LV_SCROLLBAR_MODE_OFF);
   lv_obj_clear_flag(tile_view, LV_OBJ_FLAG_SCROLL_ELASTIC);
 
@@ -85,8 +83,6 @@ ViewMain::ViewMain() :
   lv_obj_set_user_data(tile_view, this);
   lv_obj_add_event_cb(tile_view, tile_view_scroll, LV_EVENT_SCROLL, nullptr);
   lv_obj_add_event_cb(tile_view, tile_view_scroll, LV_EVENT_SCROLL_END,
-                      nullptr);
-  lv_obj_add_event_cb(lvobj, ViewMain::long_pressed, LV_EVENT_LONG_PRESSED,
                       nullptr);
 
   // create last to be on top
@@ -125,11 +121,14 @@ unsigned ViewMain::getMainViewsCount() const
 
 rect_t ViewMain::getMainZone(rect_t zone, bool hasTopbar) const
 {
-  auto visibleHeight = topbar->getVisibleHeight(hasTopbar ? 1.0 : 0.0);
-  zone.y += visibleHeight;
-  zone.h -= visibleHeight;
-
-  return zone;
+  if (isVisible) {
+    auto visibleHeight = topbar->getVisibleHeight(hasTopbar ? 1.0 : 0.0);
+    zone.y += visibleHeight;
+    zone.h -= visibleHeight;
+    return zone;
+  } else {
+    return {0, 0, LCD_W, LCD_H};
+  }
 }
 
 unsigned ViewMain::getCurrentMainView() const
@@ -179,16 +178,12 @@ static bool hasTopbar(unsigned view)
 
 void ViewMain::enableTopbar()
 {
-  if (topbar && topbar->getLvObj()) {
-    lv_obj_clear_flag(topbar->getLvObj(), LV_OBJ_FLAG_HIDDEN);
-  }
+  if (topbar) topbar->show();
 }
 
 void ViewMain::disableTopbar()
 {
-  if (topbar && topbar->getLvObj()) {
-    lv_obj_add_flag(topbar->getLvObj(), LV_OBJ_FLAG_HIDDEN);
-  }
+  if (topbar) topbar->hide();
 }
 
 void ViewMain::updateTopbarVisibility()
@@ -202,12 +197,12 @@ void ViewMain::updateTopbarVisibility()
   int leftScroll = scrollPos % width();
   if (leftScroll == 0) {
     int view = scrollPos / pageWidth;
-    setTopbarVisible(hasTopbar(view));
+    setTopbarVisible(::hasTopbar(view));
     if (customScreens[view]) customScreens[view]->adjustLayout();
   } else {
     int leftIdx = scrollPos / pageWidth;
-    bool leftTopbar = hasTopbar(leftIdx);
-    bool rightTopbar = hasTopbar(leftIdx + 1);
+    bool leftTopbar = ::hasTopbar(leftIdx);
+    bool rightTopbar = ::hasTopbar(leftIdx + 1);
 
     if (leftTopbar != rightTopbar) {
       float ratio = (float)leftScroll / (float)pageWidth;
@@ -224,14 +219,6 @@ void ViewMain::updateTopbarVisibility()
       customScreens[leftIdx]->adjustLayout();
       customScreens[leftIdx + 1]->adjustLayout();
     }
-  }
-}
-
-// Update screens after theme loaded / changed
-void ViewMain::updateFromTheme()
-{
-  for (int i = 0; i < MAX_CUSTOM_SCREENS; i += 1) {
-    if (customScreens[i]) customScreens[i]->updateFromTheme();
   }
 }
 
@@ -318,14 +305,8 @@ bool ViewMain::enableWidgetSelect(bool enable)
 
   for (uint32_t i = 0; i < cont->getZonesCount(); i++) {
     Widget* widget = cont->getWidget(i);
-    if (!widget) continue;
-    if (enable) {
-      widget->setFocusHandler([=](bool) { refreshWidgetSelectTimer(); });
-      lv_group_add_obj(lv_group_get_default(), widget->getLvObj());
-    } else {
-      widget->setFocusHandler(nullptr);
-      lv_group_remove_obj(widget->getLvObj());
-    }
+    if (widget)
+      widget->enableFocus(enable);
   }
 
   if (enable) {
@@ -351,15 +332,6 @@ void ViewMain::openMenu()
   viewMainMenu = new ViewMainMenu(this, [=]() { viewMainMenu = nullptr; });
 }
 
-void ViewMain::paint(BitmapBuffer* dc)
-{
-  TRACE_WINDOWS("### ViewMain::paint(offset_x=%d;offset_y=%d) ###",
-                dc->getOffsetX(), dc->getOffsetY());
-
-  // TODO: set it as "window background" w/ LVGL
-  EdgeTxTheme::instance()->drawBackground(dc);
-}
-
 void ViewMain::ws_timer(lv_timer_t* t)
 {
   ViewMain* view = (ViewMain*)t->user_data;
@@ -367,15 +339,62 @@ void ViewMain::ws_timer(lv_timer_t* t)
   view->enableWidgetSelect(false);
 }
 
-void ViewMain::long_pressed(lv_event_t* e)
+bool ViewMain::onLongPress()
 {
-  auto obj = lv_event_get_target(e);
-  auto view = (ViewMain*)lv_obj_get_user_data(obj);
-  if (!view) return;
+  if (isAppMode()) {
+    int view = getCurrentMainView();
+    customScreens[view]->getWidget(0)->setFullscreen(true);
+  } else {
+    enableWidgetSelect(true);
+  }
+  lv_indev_wait_release(lv_indev_get_act());
+  return false;
+}
 
-  if (view->enableWidgetSelect(true)) {
-    // kill subsequent CLICKED event
-    lv_obj_clear_state(obj, LV_STATE_PRESSED);
-    lv_indev_wait_release(lv_indev_get_act());
+void ViewMain::show(bool visible)
+{
+  if (deleted()) return;
+  isVisible = visible;
+  int view = getCurrentMainView();
+  setTopbarVisible(visible && ::hasTopbar(view));
+  if (visible && (::hasTopbar(view) || isAppMode()))
+    topbar->showEdgeTxButton();
+  else
+    topbar->hideEdgeTxButton();
+  if (customScreens[view]) {
+    customScreens[view]->show(visible);
+    customScreens[view]->showWidgets(visible);
+  }
+}
+
+bool ViewMain::isAppMode()
+{
+  int view = getCurrentMainView();
+  if (!customScreens[view]) return false;
+  return ((Layout*)customScreens[view])->isAppMode();
+}
+
+bool ViewMain::hasTopbar()
+{
+  int view = getCurrentMainView();
+  return ::hasTopbar(view);
+}
+
+void ViewMain::showTopBarEdgeTxButton()
+{
+  topbar->showEdgeTxButton();
+}
+
+void ViewMain::hideTopBarEdgeTxButton()
+{
+  topbar->hideEdgeTxButton();
+}
+
+void ViewMain::runBackground()
+{
+  topbar->runBackground();
+  for (int i = 0; i < MAX_CUSTOM_SCREENS; i += 1) {
+    if (customScreens[i])
+      customScreens[i]->runBackground();
   }
 }

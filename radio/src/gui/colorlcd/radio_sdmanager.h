@@ -19,8 +19,11 @@
  * GNU General Public License for more details.
  */
 
+#pragma once
+
 #include "dataconstants.h"
 #include "tabsgroup.h"
+
 enum MultiModuleType : short;
 
 class FileBrowser;
@@ -33,7 +36,10 @@ class RadioSdManagerPage : public PageTab
   
  public:
   RadioSdManagerPage();
-  void build(FormWindow* window) override;
+  void build(Window* window) override;
+
+  static LAYOUT_VAL(PREVIEW_W, LCD_W * 2 / 5 - PAD_SMALL * 2, LCD_W - PAD_MEDIUM * 2)
+  static LAYOUT_VAL(PREVIEW_H, LCD_H - 68, (LCD_H - 68) / 3)
 
  protected:
   void fileAction(const char* path, const char* name, const char* fullpath);

@@ -19,23 +19,24 @@
 #pragma once
 
 #include "form.h"
+#include "bitmaps.h"
 
-constexpr WindowFlags BUTTON_CHECKED = WINDOW_FLAGS_LAST << 1u;
+class StaticIcon;
 
-class Button : public FormField
+// Base button class - default LVGL style unless overridden on create
+class ButtonBase : public FormField
 {
  public:
-  Button(Window* parent, const rect_t& rect,
-         std::function<uint8_t(void)> pressHandler = nullptr,
-         WindowFlags windowFlags = 0, LcdFlags textFlags = 0,
-         LvglCreate objConstruct = nullptr);
+  ButtonBase(Window* parent, const rect_t& rect,
+             std::function<uint8_t(void)> pressHandler = nullptr,
+             LvglCreate objConstruct = nullptr);
 
 #if defined(DEBUG_WINDOWS)
-  std::string getName() const override { return "Button"; }
+  std::string getName() const override { return "ButtonBase"; }
 #endif
 
   virtual void onPress();
-  virtual void onLongPress();
+  bool onLongPress() override;
 
   void onClicked() override;
   void checkEvents() override;
@@ -58,48 +59,62 @@ class Button : public FormField
     checkHandler = std::move(handler);
   }
 
-#if defined(HARDWARE_TOUCH)
-  bool onTouchEnd(coord_t x, coord_t y) override;
-#endif
-
  protected:
   std::function<uint8_t(void)> pressHandler;
   std::function<uint8_t(void)> longPressHandler;
   std::function<void(void)> checkHandler;
-
-  static void long_pressed(lv_event_t* e);
 };
 
-class TextButton: public Button
+class Button : public ButtonBase
 {
-  public:
-   TextButton(Window* parent, const rect_t& rect, std::string text,
-              std::function<uint8_t(void)> pressHandler = nullptr,
-              WindowFlags windowFlags = OPAQUE);
-              
+ public:
+  Button(Window* parent, const rect_t& rect,
+         std::function<uint8_t(void)> pressHandler = nullptr);
+
 #if defined(DEBUG_WINDOWS)
-   std::string getName() const override
-   {
-     return "TextButton \"" + text + "\"";
-   }
+  std::string getName() const override { return "Button"; }
+#endif
+};
+
+class TextButton : public ButtonBase
+{
+ public:
+  TextButton(Window* parent, const rect_t& rect, std::string text,
+             std::function<uint8_t(void)> pressHandler = nullptr);
+
+#if defined(DEBUG_WINDOWS)
+  std::string getName() const override { return "TextButton \"" + text + "\""; }
 #endif
 
-   void setText(std::string value)
-   {
-     if (value != text) {
-       text = std::move(value);
-       lv_label_set_text(label, text.c_str());
-     }
-   }
+  void setText(std::string value)
+  {
+    if (value != text) {
+      text = std::move(value);
+      lv_label_set_text(label, text.c_str());
+    }
+  }
 
-   void setBgColorHandler(std::function<LcdFlags(void)> handler = nullptr)
-   {
-     bgColorHandler = std::move(handler);
-   }
+  void setWrap()
+  {
+    lv_obj_set_width(label, lv_pct(100));
+    etx_obj_add_style(label, styles->text_align_center, LV_PART_MAIN);
+    lv_label_set_long_mode(label, LV_LABEL_LONG_WRAP);
+  }
 
-  protected:
-    lv_obj_t * label = nullptr;
+ protected:
+  lv_obj_t* label = nullptr;
 
-    std::string text;
-    std::function<LcdFlags(void)> bgColorHandler = nullptr;
+  std::string text;
+};
+
+class IconButton : public ButtonBase
+{
+ public:
+  IconButton(Window* parent, EdgeTxIcon icon, coord_t x, coord_t y,
+             std::function<uint8_t(void)> pressHandler = nullptr);
+  
+  void setIcon(EdgeTxIcon icon);
+
+ protected:
+  StaticIcon* iconImage = nullptr;
 };

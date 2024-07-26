@@ -22,16 +22,16 @@
 #pragma once
 
 #include "page.h"
-#include "form.h"
+#include "window.h"
 #include "curve.h"
 
 class NumberEdit;
 
-class CurveEdit: public FormField
+class CurveEdit: public Window
 {
   public:
     CurveEdit(Window * parent, const rect_t & rect, uint8_t index);
-    static void SetCurrentSource(uint32_t source);
+    static void SetCurrentSource(mixsrc_t source);
 
     void deleteLater(bool detach = true, bool trash = true) override
     {
@@ -40,7 +40,7 @@ class CurveEdit: public FormField
 
       preview.deleteLater(true, false);
 
-      FormField::deleteLater(detach, trash);
+      Window::deleteLater(detach, trash);
     }
 
     void updatePreview();
@@ -68,24 +68,30 @@ class CurveDataEdit : public Window
 
     void update();
 
+    static LAYOUT_VAL(NUM_BTN_WIDTH, 48, 48)
+    static LAYOUT_VAL(NUM_HDR_HEIGHT, 12, 12)
+
   protected:
     uint8_t index;
     CurveEdit * curveEdit;
     NumberEdit* numEditX[16];
 
-    void curvePointsRow(FormWindow::Line* parent, int start, int count, int curvePointsCount, bool isCustom);
+    void curvePointsRow(FormLine* parent, int start, int count, int curvePointsCount, bool isCustom);
 };
 
 class CurveEditWindow : public Page
 {
   public:
-    CurveEditWindow(uint8_t index);
+    CurveEditWindow(uint8_t index, std::function<void(void)> refreshView = nullptr);
 
   protected:
     uint8_t index;
     CurveEdit * curveEdit = nullptr;
     CurveDataEdit * curveDataEdit = nullptr;
+    std::function<void(void)> refreshView = nullptr;
 
     void buildHeader(Window * window);
-    void buildBody(FormWindow * window);
+    void buildBody(Window * window);
+
+    void onCancel() override;
 };

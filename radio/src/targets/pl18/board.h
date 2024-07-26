@@ -38,6 +38,8 @@
 #define LUA_MEM_EXTRA_MAX               (2 MB)    // max allowed memory usage for Lua bitmaps (in bytes)
 #define LUA_MEM_MAX                     (6 MB)    // max allowed memory usage for complete Lua  (in bytes), 0 means unlimited
 
+#define BOOTLOADER_KEYS 0x42
+
 extern uint16_t sessionTimer;
 
 #define SLAVE_MODE()                    (g_model.trainerData.mode == TRAINER_MODE_SLAVE)
@@ -59,20 +61,20 @@ uint32_t isFirmwareStart(const uint8_t * buffer);
 uint32_t isBootloaderStart(const uint8_t * buffer);
 
 // SDRAM driver
-void SDRAM_Init();
+extern "C" void SDRAM_Init();
 
 // Pulses driver
 #if !defined(SIMU)
 
-#define INTERNAL_MODULE_ON()            GPIO_SetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN)
-#define INTERNAL_MODULE_OFF()           GPIO_ResetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN)
-#define EXTERNAL_MODULE_ON()            GPIO_SetBits(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN)
-#define EXTERNAL_MODULE_OFF()           GPIO_ResetBits(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN)
+#define INTERNAL_MODULE_ON()            gpio_set(INTMODULE_PWR_GPIO)
+#define INTERNAL_MODULE_OFF()           gpio_clear(INTMODULE_PWR_GPIO);
+#define EXTERNAL_MODULE_ON()            gpio_set(EXTMODULE_PWR_GPIO)
+#define EXTERNAL_MODULE_OFF()           gpio_clear(EXTMODULE_PWR_GPIO)
 #define EXTERNAL_MODULE_PWR_OFF         EXTERNAL_MODULE_OFF
-#define BLUETOOTH_MODULE_ON()           GPIO_ResetBits(BT_EN_GPIO, BT_EN_GPIO_PIN)
-#define BLUETOOTH_MODULE_OFF()          GPIO_SetBits(BT_EN_GPIO, BT_EN_GPIO_PIN)
+#define BLUETOOTH_MODULE_ON()           gpio_clear(BLUETOOTH_ON_GPIO)
+#define BLUETOOTH_MODULE_OFF()          gpio_set(BLUETOOTH_ON_GPIO)
 #define IS_INTERNAL_MODULE_ON()         (false)
-#define IS_EXTERNAL_MODULE_ON()         (GPIO_ReadInputDataBit(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN) == Bit_SET)
+#define IS_EXTERNAL_MODULE_ON()         (gpio_read(EXTMODULE_PWR_GPIO) ? 1 : 0)
 
 #else
 
@@ -222,7 +224,6 @@ void hapticOff();
 void hapticOn(uint32_t pwmPercent);
 
 // Second serial port driver
-//#define AUX_SERIAL
 #define DEBUG_BAUDRATE                  115200
 #define LUA_DEFAULT_BAUDRATE            115200
 

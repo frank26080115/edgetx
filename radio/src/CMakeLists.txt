@@ -2,8 +2,8 @@ include(CMakeForceCompiler)
 include(Bitmaps)
 
 set(PCB_TYPES X9LITE X9LITES X7 XLITE XLITES X9D X9D+ X9E X10 X12S NV14 PL18)
-set(RADIO_LANGUAGES CN CZ DA DE EN ES FI FR HE IT JP PT RU SK SE PL HU NL TW)
-set(TTS_LANGUAGES CN CZ DA DE EN ES FR HE IT JP PT RU SK SE PL HU NL)
+set(RADIO_LANGUAGES CN CZ DA DE EN ES FI FR HE HU IT JP NL PL PT RU SE SK TW UA)
+set(TTS_LANGUAGES CN CZ DA DE EN ES FR HE HU IT JP NL PL PT RU SE SK UA)
 
 set(PCB "X9D+" CACHE STRING "Radio type, one of: ${PCB_TYPES}")
 set_property(CACHE PCB PROPERTY STRINGS ${PCB_TYPES})
@@ -55,6 +55,8 @@ option(IMRC_RELEASE "Used to build IMRC released firmware" OFF)
 option(HARDWARE_TRAINER_MULTI "Allow multi trainer" OFF)
 option(BOOTLOADER "Include Bootloader" ON)
 option(FWDRIVE "Attach also firmware drive with USB" OFF)
+option(DISABLE_MCUCHECK "Disable MCU check at start" OFF)
+option(LUA_MIXER "Enable LUA mixer/model scripts support" ON)
 
 if(PCB STREQUAL X9D+ AND PCBREV STREQUAL 2019)
   option(USBJ_EX "Enable USB Joystick Extension" OFF)
@@ -103,6 +105,10 @@ include(hal/CMakeLists.txt)
 
 add_subdirectory(bitmaps)
 add_subdirectory(fonts)
+
+if(CPU_TYPE STREQUAL STM32H7)
+  include(targets/common/arm/stm32/h7/CMakeLists.txt)
+endif()
 
 if(CPU_TYPE STREQUAL STM32F4)
   include(targets/common/arm/stm32/f4/CMakeLists.txt)
@@ -171,8 +177,6 @@ if(RTC_BACKUP_RAM)
   # Add custom target for debugging
   add_custom_target(datacopy DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/datacopy.inc)
 endif()
-
-option(LUA_MIXER "Enable LUA mixer/model scripts support" OFF)
 
 if (LUA_MIXER AND NOT LUA)
   message(FATAL_ERROR "LUA_MIXER requires LUA!!")
@@ -249,6 +253,11 @@ if(SDCARD)
   set(FIRMWARE_SRC ${FIRMWARE_SRC})
 endif()
 
+if(BLUETOOTH)
+  add_definitions(-DBLUETOOTH)
+  set(SRC ${SRC} bluetooth.cpp)
+endif()
+
 if(SHUTDOWN_CONFIRMATION)
   add_definitions(-DSHUTDOWN_CONFIRMATION)
 endif()
@@ -287,9 +296,17 @@ if(TRACE_AUDIO)
   set(DEBUG_TRACE_BUFFER ON)
 endif()
 
-if(DEBUG_SEGGER_RTT)
-    add_definitions(-DDEBUG_SEGGER_RTT)
-    set(SRC ${SRC} ${THIRDPARTY_DIR}/Segger_RTT/RTT/SEGGER_RTT.c)
+if(DEBUG STREQUAL RTT)
+  set(DEBUG_SEGGER_RTT ON)
+  add_definitions(-DDEBUG_SEGGER_RTT)
+  set(SRC ${SRC} ${THIRDPARTY_DIR}/Segger_RTT/RTT/SEGGER_RTT.c)
+endif()
+
+if(DEBUG STREQUAL RTT_NO_USB)
+  set(DEBUG_SEGGER_RTT ON)
+  add_definitions(-DDEBUG_SEGGER_RTT)
+  add_definitions(-DDEBUG_DISABLE_USB)
+  set(SRC ${SRC} ${THIRDPARTY_DIR}/Segger_RTT/RTT/SEGGER_RTT.c)
 endif()
 
 if(DEBUG_WINDOWS)
@@ -374,6 +391,10 @@ if(FWDRIVE)
   add_definitions(-DFWDRIVE)
 endif()
 
+if(DISABLE_MCUCHECK)
+  add_definitions(-DDISABLE_MCUCHECK)
+endif()
+
 set(SRC
   ${SRC}
   opentx.cpp
@@ -414,11 +435,11 @@ endif()
 
 if(USBJ_EX)
   add_definitions(-DUSBJ_EX)
-  set(SRC
-    ${SRC}
+  set(SRC ${SRC}
     usb_joystick.cpp
-    )
+  )
 endif()
+
 foreach(FILE ${TARGET_SRC})
   set(SRC targets/${TARGET_DIR}/${FILE} ${SRC})
 endforeach()
@@ -446,7 +467,6 @@ else()
 endif()
 
 if(NATIVE_BUILD)
-
   set(RADIOLIB_NATIVE_SRC ${SRC})
   if(SIMU_DISKIO)
     set(RADIOLIB_NATIVE_SRC ${RADIOLIB_NATIVE_SRC}
@@ -455,7 +475,8 @@ if(NATIVE_BUILD)
 
   # Pack all radio sources into an object lib
   add_library(radiolib_native OBJECT EXCLUDE_FROM_ALL
-    ${RADIOLIB_NATIVE_SRC})
+    ${RADIOLIB_NATIVE_SRC}
+  )
 
   # Add -DSIMU here PUBLIC, so it can be imported by other targets
   # via INTERFACE_COMPILE_OPTIONS
@@ -523,6 +544,11 @@ add_executable(firmware ${SRC})
 link_libraries(firmware -lstdc++)
 add_dependencies(firmware ${RADIO_DEPENDENCIES})
 set_target_properties(firmware PROPERTIES EXCLUDE_FROM_ALL TRUE)
+
+if(DEBUG)
+  target_compile_definitions(firmware PRIVATE -DDEBUG)
+  target_compile_definitions(stm32_drivers_w_dbg_fw PRIVATE -DDEBUG)
+endif()
 
 target_link_options(firmware PRIVATE
   -lm -T${LINKER_DIR}/firmware.ld

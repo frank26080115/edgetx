@@ -128,7 +128,6 @@ void menuModelLimits(event_t event)
         s_editMode = 0;
         if (event==EVT_KEY_LONG(KEY_ENTER)) {
           START_NO_HIGHLIGHT();
-          killEvents(event);
           moveTrimsToOffsets(); // if highlighted and menu pressed - move trims to offsets
         }
       }
@@ -146,13 +145,8 @@ void menuModelLimits(event_t event)
     int limit = (g_model.extendedLimits ? LIMIT_EXT_MAX : 1000);
 
     putsChn(0, y, k+1, (sub==k && menuHorizontalPosition < 0) ? INVERS : 0);
-    if (sub==k && menuHorizontalPosition < 0 && event==EVT_KEY_LONG(KEY_ENTER) && !READ_ONLY()) {
-      killEvents(event);
-      POPUP_MENU_ADD_ITEM(STR_RESET);
-      POPUP_MENU_ADD_ITEM(STR_COPY_TRIMS_TO_OFS);
-      POPUP_MENU_ADD_ITEM(STR_COPY_STICKS_TO_OFS);
-      POPUP_MENU_ADD_ITEM(STR_COPY_MIN_MAX_TO_OUTPUTS);
-      POPUP_MENU_START(onLimitsMenu);
+    if (sub==k && menuHorizontalPosition < 0 && event==EVT_KEY_LONG(KEY_ENTER)) {
+      POPUP_MENU_START(onLimitsMenu, 4, STR_RESET, STR_COPY_TRIMS_TO_OFS, STR_COPY_STICKS_TO_OFS, STR_COPY_MIN_MAX_TO_OUTPUTS);
     }
 
     for (int j=0; j<ITEM_LIMITS_COUNT; j++) {

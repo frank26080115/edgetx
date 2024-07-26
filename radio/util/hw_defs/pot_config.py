@@ -54,9 +54,25 @@ POT_CONFIG = {
         "SL3": {"default": "SLIDER"},
         "SL4": {"default": "SLIDER"},
     },
+    "t20v2": {
+        "P1":  {"default": "POT_CENTER"},
+        "P2":  {"default": "POT_CENTER"},
+        "SL1": {"default": "SLIDER"},
+        "SL2": {"default": "SLIDER"},
+        "SL3": {"default": "SLIDER"},
+        "SL4": {"default": "SLIDER"},
+    },
     "t12": {
         "P1": {"default": "POT"},
         "P2": {"default": "POT"}
+    },
+    "t12max": {
+        "P1": {"default": "POT_CENTER"},
+        "P2": {"default": "POT_CENTER"}
+    },
+    "t14": {
+        "P1": {"default": "POT_CENTER"},
+        "P2": {"default": "POT_CENTER"}
     },
     "tx12": {
         "P1": {"default": "POT_CENTER"},
@@ -65,6 +81,10 @@ POT_CONFIG = {
     "tx12mk2": {
         "P1": {"default": "POT_CENTER"},
         "P2": {"default": "POT_CENTER"}
+    },
+    "t15": {
+        "P1": {"default": "POT_CENTER"},
+        "P2": {"default": "POT_CENTER"},
     },
     "t16": {
         "P1": {"default": "POT_CENTER"},
@@ -81,6 +101,13 @@ POT_CONFIG = {
         "SL2": {"default": "SLIDER"}
     },
     "tx16s": {
+        "P1": {"default": "POT_CENTER"},
+        "P2": {"default": "MULTIPOS"},
+        "P3": {"default": "POT_CENTER"},
+        "SL1": {"default": "SLIDER"},
+        "SL2": {"default": "SLIDER"}
+    },
+    "f16": {
         "P1": {"default": "POT_CENTER"},
         "P2": {"default": "MULTIPOS"},
         "P3": {"default": "POT_CENTER"},
@@ -116,6 +143,8 @@ POT_CONFIG = {
     "x9e": {
         "P1": {"default": "POT_CENTER"},
         "P2": {"default": "POT_CENTER"},
+        "P3": {"default": "NONE"},
+        "P4": {"default": "NONE"},
         "SL1": {"default": "SLIDER"},
         "SL2": {"default": "SLIDER"},
         "SL3": {"default": "SLIDER"},

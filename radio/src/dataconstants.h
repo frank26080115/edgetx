@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _DATACONSTANTS_H_
-#define _DATACONSTANTS_H_
+#pragma once
 
 #include "board.h"
 #include "storage/yaml/yaml_defs.h"
@@ -39,7 +38,7 @@
 #define LABELS_LENGTH 100 // Maximum length of the label string
 #define LABEL_LENGTH 16
 
-#if defined(PCBHORUS) || defined(PCBNV14) || defined(PCBPL18)
+#if defined(COLORLCD) || defined(STM32H747xx)
   #define MAX_MODELS                   60
   #define MAX_OUTPUT_CHANNELS          32 // number of real output channels CH1-CH32
   #define MAX_FLIGHT_MODES             9
@@ -98,7 +97,7 @@ enum CurveType {
 #define MIN_POINTS_PER_CURVE           3
 #define MAX_POINTS_PER_CURVE           17
 
-#if defined(PCBHORUS) || defined(PCBNV14) || defined(PCBPL18)
+#if defined(COLORLCD)
   #define LEN_MODEL_NAME               15
   #define LEN_TIMER_NAME               8
   #define LEN_FLIGHT_MODE_NAME         10
@@ -107,7 +106,7 @@ enum CurveType {
   #define LEN_CHANNEL_NAME             6
   #define LEN_INPUT_NAME               4
   #define LEN_CURVE_NAME               3
-  #define LEN_FUNCTION_NAME            6
+  #define LEN_FUNCTION_NAME            8
   #define MAX_CURVES                   32
   #define MAX_CURVE_POINTS             512
 #elif LCD_W == 212
@@ -126,11 +125,12 @@ enum CurveType {
   #define LEN_MODEL_NAME               10
   #define LEN_TIMER_NAME               3
   #define LEN_FLIGHT_MODE_NAME         6
+  #define LEN_BITMAP_NAME              0
   #define LEN_EXPOMIX_NAME             6
   #define LEN_CHANNEL_NAME             4
   #define LEN_INPUT_NAME               3
   #define LEN_CURVE_NAME               3
-  #define LEN_FUNCTION_NAME            6
+  #define LEN_FUNCTION_NAME            8
   #define MAX_CURVES                   32
   #define MAX_CURVE_POINTS             512
 #endif
@@ -428,13 +428,6 @@ enum SwitchSources {
   SWSRC_FIRST_TRIM SKIP,
   SWSRC_LAST_TRIM SKIP = SWSRC_FIRST_TRIM + 2 * MAX_TRIMS - 1,
 
-#if NUM_TRIMS > 6
-  SWSRC_TrimT7Down,
-  SWSRC_TrimT7Up,
-  SWSRC_TrimT8Down,
-  SWSRC_TrimT8Up,
-#endif
-
   SWSRC_FIRST_LOGICAL_SWITCH SKIP,
   SWSRC_LAST_LOGICAL_SWITCH SKIP = SWSRC_FIRST_LOGICAL_SWITCH + MAX_LOGICAL_SWITCHES - 1,
 
@@ -482,7 +475,8 @@ enum MixSources {
 
 #if defined(LUA_INPUTS)
   MIXSRC_FIRST_LUA SKIP,
-  MIXSRC_LAST_LUA SKIP = MIXSRC_FIRST_LUA + (MAX_SCRIPTS * MAX_SCRIPT_OUTPUTS) - 1,
+  MIXSRC_LAST_LUA SKIP =
+      MIXSRC_FIRST_LUA + (MAX_SCRIPTS * MAX_SCRIPT_OUTPUTS) - 1,
 #endif
 
   // Semantic sticks
@@ -515,23 +509,15 @@ enum MixSources {
   MIXSRC_LAST_HELI SKIP = MIXSRC_FIRST_HELI + 2,
 
   MIXSRC_FIRST_TRIM SKIP,
-  MIXSRC_TrimRud = MIXSRC_FIRST_TRIM,
-  MIXSRC_TrimEle,
-  MIXSRC_TrimThr,
-  MIXSRC_TrimAil,
-  //#if defined(PCBHORUS)
-  MIXSRC_TrimT5,
-  MIXSRC_TrimT6,
-  MIXSRC_TrimT7,
-  MIXSRC_TrimT8,
-  MIXSRC_LAST_TRIM SKIP = MIXSRC_TrimT8,
-  //#else
-  //MIXSRC_LAST_TRIM SKIP = MIXSRC_TrimAil,
-  //#endif
+  MIXSRC_LAST_TRIM SKIP = MIXSRC_FIRST_TRIM + MAX_TRIMS - 1,
 
   MIXSRC_FIRST_SWITCH SKIP,
   MIXSRC_LAST_SWITCH SKIP = MIXSRC_FIRST_SWITCH + MAX_SWITCHES - 1,
 
+#if defined(FUNCTION_SWITCHES)
+  MIXSRC_FIRST_CUSTOMSWITCH_GROUP SKIP,
+  MIXSRC_LAST_CUSTOMSWITCH_GROUP SKIP = MIXSRC_FIRST_CUSTOMSWITCH_GROUP + NUM_FUNCTIONS_GROUPS - 1,
+#endif
   MIXSRC_FIRST_LOGICAL_SWITCH SKIP,
   MIXSRC_LAST_LOGICAL_SWITCH SKIP = MIXSRC_FIRST_LOGICAL_SWITCH + MAX_LOGICAL_SWITCHES - 1,
 
@@ -553,15 +539,14 @@ enum MixSources {
 
   MIXSRC_FIRST_TELEM SKIP,
   MIXSRC_LAST_TELEM SKIP = MIXSRC_FIRST_TELEM + 3 * MAX_TELEMETRY_SENSORS - 1,
+
+  MIXSRC_INVERT SKIP,
 };
 
 
 #define MIXSRC_LAST                 MIXSRC_LAST_CH
 #define INPUTSRC_FIRST              MIXSRC_FIRST_STICK
 #define INPUTSRC_LAST               MIXSRC_LAST_TELEM
-
-// TODO: this won't work forever (what about ground radios?)
-#define MIXSRC_Thr                  (MIXSRC_FIRST_STICK + 2)
 
 #if defined(FUNCTION_SWITCHES)
 #define MIXSRC_LAST_REGULAR_SWITCH  (MIXSRC_FIRST_SWITCH + switchGetMaxSwitches() - 1)
@@ -577,7 +562,6 @@ enum BacklightMode {
 };
 
 enum Functions {
-  // first the functions which need a checkbox
   FUNC_OVERRIDE_CHANNEL,
   FUNC_TRAINER,
   FUNC_INSTANT_TRIM,
@@ -588,9 +572,7 @@ enum Functions {
   FUNC_SET_FAILSAFE,
   FUNC_RANGECHECK,
   FUNC_BIND,
-  // then the other functions
-  FUNC_FIRST_WITHOUT_ENABLE SKIP,
-  FUNC_PLAY_SOUND = FUNC_FIRST_WITHOUT_ENABLE,
+  FUNC_PLAY_SOUND,
   FUNC_PLAY_TRACK,
   FUNC_PLAY_VALUE,
   FUNC_PLAY_SCRIPT,
@@ -608,6 +590,7 @@ enum Functions {
 #endif
   FUNC_DISABLE_AUDIO_AMP,
   FUNC_RGB_LED,
+  FUNC_LCD_TO_VIDEO,
   FUNC_TEST, // MUST remain last
 #if defined(DEBUG)
   FUNC_MAX SKIP
@@ -704,5 +687,3 @@ enum PPMUnit {
     PPM_PERCENT_PREC1,
     PPM_US
 };
-
-#endif // _DATACONSTANTS_H_

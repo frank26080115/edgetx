@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _GUI_COMMON_H_
-#define _GUI_COMMON_H_
+#pragma once
 
 #include <functional>
 #include "lcd.h"
@@ -39,18 +38,7 @@
 #endif
 
 #if defined(NAVIGATION_X7) || defined(NAVIGATION_X9D)
-inline uint8_t MENU_FIRST_LINE_EDIT(const uint8_t * horTab, uint8_t horTabMax)
-{
-  if (horTab) {
-    uint8_t result = 0;
-    while (result < horTabMax && horTab[result] >= HIDDEN_ROW)
-      ++result;
-    return result;
-  }
-  else {
-    return 0;
-  }
-}
+extern uint8_t MENU_FIRST_LINE_EDIT(const uint8_t * horTab, uint8_t horTabMax);
 #endif
 
 #if defined(LIBOPENUI)
@@ -94,7 +82,7 @@ bool isInternalModuleAvailable(int moduleType);
 bool isInternalModuleSupported(int moduleType);
 bool isRfProtocolAvailable(int protocol);
 bool isTrainerModeAvailable(int mode);
-bool isAssignableFunctionAvailable(int function, CustomFunctionData * functions);
+bool isAssignableFunctionAvailable(int function, bool modelFunctions);
 bool isPotTypeAvailable(uint8_t type);
 bool isFlexSwitchSourceValid(int source);
 bool getPotInversion(int index);
@@ -113,6 +101,7 @@ uint8_t getTelemetrySensorsCount();
 bool isTelemetryFieldComparisonAvailable(int index);
 bool isSensorAvailable(int sensor);
 bool isRssiSensorAvailable(int sensor);
+bool isVarioSensorAvailable(int sensor);
 bool hasSportPower();
 
 bool modelHasNotes();
@@ -140,59 +129,15 @@ void drawTelemScreenDate(coord_t x, coord_t y, source_t sensor, LcdFlags flags=0
 void drawGPSPosition(coord_t x, coord_t y, int32_t longitude, int32_t latitude, LcdFlags flags=0);
 void drawGPSSensorValue(coord_t x, coord_t y, TelemetryItem & telemetryItem, LcdFlags flags=0);
 void drawSensorCustomValue(coord_t x, coord_t y, uint8_t sensor, int32_t value, LcdFlags flags=0);
-void drawSourceCustomValue(coord_t x, coord_t y, source_t channel, int32_t val, LcdFlags flags=0);
+void drawSourceCustomValue(coord_t x, coord_t y, mixsrc_t channel, int32_t val, LcdFlags flags=0);
 void drawSourceValue(coord_t x, coord_t y, source_t channel, LcdFlags flags=0);
 
 // model_setup Defines that are used in all uis in the same way
 #define IF_INTERNAL_MODULE_ON(x)                  (IS_INTERNAL_MODULE_ENABLED() ? (uint8_t)(x) : HIDDEN_ROW)
 #define IF_MODULE_ON(moduleIndex, x)              (IS_MODULE_ENABLED(moduleIndex) ? (uint8_t)(x) : HIDDEN_ROW)
 
-inline uint8_t MODULE_BIND_ROWS(int moduleIdx)
-{
-  if (isModuleCrossfire(moduleIdx))
-    return 0;
-
-  if (isModuleMultimodule(moduleIdx)) {
-    if (IS_RX_MULTI(moduleIdx))
-      return 1;
-    else
-      return 2;
-  }
-  else if (isModuleXJTD8(moduleIdx) || isModuleSBUS(moduleIdx) || isModuleAFHDS3(moduleIdx) || isModuleDSMP(moduleIdx)) {
-    return 1;
-  }
-  else if (isModulePPM(moduleIdx) || isModulePXX1(moduleIdx) || isModulePXX2(moduleIdx) || isModuleDSM2(moduleIdx)) {
-    return 2;
-  }
-  else {
-    return HIDDEN_ROW;
-  }
-}
-
-inline uint8_t MODULE_CHANNELS_ROWS(int moduleIdx)
-{
-  if (!IS_MODULE_ENABLED(moduleIdx)) {
-    return HIDDEN_ROW;
-  }
-#if defined(MULTIMODULE)
-  else if (isModuleMultimodule(moduleIdx)) {
-    if (IS_RX_MULTI(moduleIdx))
-      return HIDDEN_ROW;
-    else if (g_model.moduleData[moduleIdx].multi.rfProtocol == MODULE_SUBTYPE_MULTI_DSM2)
-      return 1;
-    else
-      return 0;
-  }
-#endif
-  else if (isModuleDSM2(moduleIdx) || isModuleCrossfire(moduleIdx) ||
-             isModuleGhost(moduleIdx) || isModuleSBUS(moduleIdx) ||
-             isModuleDSMP(moduleIdx)) {
-    // fixed number of channels
-    return 0;
-  } else {
-    return 1;
-  }
-}
+extern uint8_t MODULE_BIND_ROWS(int moduleIdx);
+extern uint8_t MODULE_CHANNELS_ROWS(int moduleIdx);
 
 #if defined(EXTERNAL_ANTENNA) && defined(INTERNAL_MODULE_PXX1)
 void onAntennaSwitchConfirm(const char * result);
@@ -229,101 +174,13 @@ inline uint8_t IF_ALLOW_RACING_MODE(int)
 #endif
 
 #if defined(MULTIMODULE)
-inline uint8_t MULTI_DISABLE_CHAN_MAP_ROW_STATIC(uint8_t moduleIdx)
-{
-  if (!isModuleMultimodule(moduleIdx))
-    return HIDDEN_ROW;
+extern uint8_t MULTI_DISABLE_CHAN_MAP_ROW_STATIC(uint8_t moduleIdx);
+extern uint8_t MULTI_DISABLE_CHAN_MAP_ROW(uint8_t moduleIdx);
+extern bool MULTIMODULE_PROTOCOL_KNOWN(uint8_t moduleIdx);
+extern bool MULTIMODULE_HAS_SUBTYPE(uint8_t moduleIdx);
+extern uint8_t MULTIMODULE_RFPROTO_COLUMNS(uint8_t moduleIdx);
+extern uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx);
 
-  uint8_t protocol = g_model.moduleData[moduleIdx].multi.rfProtocol;
-  if (protocol < MODULE_SUBTYPE_MULTI_LAST) {
-    const mm_protocol_definition * pdef = getMultiProtocolDefinition(protocol);
-    if (pdef->disable_ch_mapping)
-      return 0;
-  }
-
-  return HIDDEN_ROW;
-}
-
-inline uint8_t MULTI_DISABLE_CHAN_MAP_ROW(uint8_t moduleIdx)
-{
-  if (!isModuleMultimodule(moduleIdx))
-    return HIDDEN_ROW;
-
-  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
-  if (status.isValid()) {
-    return status.supportsDisableMapping() == true ? 0 : HIDDEN_ROW;
-  }
-
-  return MULTI_DISABLE_CHAN_MAP_ROW_STATIC(moduleIdx);
-}
-
-inline bool MULTIMODULE_PROTOCOL_KNOWN(uint8_t moduleIdx)
-{
-  if (!isModuleMultimodule(moduleIdx)) {
-    return false;
-  }
-
-  if (g_model.moduleData[moduleIdx].multi.rfProtocol < MODULE_SUBTYPE_MULTI_LAST) {
-    return true;
-  }
-
-  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
-  if (status.isValid()) {
-    return status.protocolValid();
-  }
-
-  return false;
-}
-
-inline bool MULTIMODULE_HAS_SUBTYPE(uint8_t moduleIdx)
-{
-  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
-  int proto = g_model.moduleData[moduleIdx].multi.rfProtocol;
-
-  if (status.isValid()) {
-    TRACE("(%d) status.protocolSubNbr = %d", proto, status.protocolSubNbr);
-    return status.protocolSubNbr > 0;
-  }
-  else
-  {
-    if (proto > MODULE_SUBTYPE_MULTI_LAST) {
-      return true;
-    }
-    else {
-      auto subProto = getMultiProtocolDefinition(proto);
-      return subProto->subTypeString != nullptr;
-    }
-  }
-}
-
-inline uint8_t MULTIMODULE_RFPROTO_COLUMNS(uint8_t moduleIdx)
-{
-#if LCD_W < 212
-  if (g_model.moduleData[moduleIdx].multi.rfProtocol == MODULE_SUBTYPE_MULTI_DSM2)
-    return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 1 : HIDDEN_ROW);
-  else
-    return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 0 : HIDDEN_ROW);
-#else
-  return (MULTIMODULE_HAS_SUBTYPE(moduleIdx) ? (uint8_t) 1 : 0);
-#endif
-}
-
-inline uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx)
-{
-  if (!isModuleMultimodule(moduleIdx))
-    return false;
-
-  uint8_t protocol = g_model.moduleData[moduleIdx].multi.rfProtocol;
-  MultiModuleStatus &status = getMultiModuleStatus(moduleIdx);
-
-  if (status.isValid())
-    return status.optionDisp;
-
-  if (protocol < MODULE_SUBTYPE_MULTI_LAST)
-    return getMultiProtocolDefinition(protocol)->optionsstr != nullptr;
-
-  return false;
-}
 #if defined(MANUFACTURER_FRSKY)
   #define MULTIMODULE_MODULE_ROWS(moduleIdx)      (MULTIMODULE_PROTOCOL_KNOWN(moduleIdx) && !IS_RX_MULTI(moduleIdx)) ? (uint8_t) 0 : HIDDEN_ROW, (MULTIMODULE_PROTOCOL_KNOWN(moduleIdx) && !IS_RX_MULTI(moduleIdx)) ? (uint8_t) 0 : HIDDEN_ROW, MULTI_DISABLE_CHAN_MAP_ROW(moduleIdx), // AUTOBIND, DISABLE TELEM, DISABLE CN.MAP
 #else
@@ -363,15 +220,7 @@ inline uint8_t MULTIMODULE_HASOPTIONS(uint8_t moduleIdx)
 
 #define FAILSAFE_ROW(moduleIdx)               isModuleFailsafeAvailable(moduleIdx) ? (g_model.moduleData[moduleIdx].failsafeMode==FAILSAFE_CUSTOM ? (uint8_t)1 : (uint8_t)0) : HIDDEN_ROW
 
-inline uint8_t MODULE_OPTION_ROW(uint8_t moduleIdx) {
-  if(isModuleR9MNonAccess(moduleIdx) || isModuleSBUS(moduleIdx))
-    return TITLE_ROW;
-  if(isModuleAFHDS3(moduleIdx))
-    return HIDDEN_ROW;
-  if(isModuleGhost(moduleIdx))
-    return 0;
-  return MULTIMODULE_OPTIONS_ROW(moduleIdx);
-}
+extern uint8_t MODULE_OPTION_ROW(uint8_t moduleIdx);
 
 void editStickHardwareSettings(coord_t x, coord_t y, int idx, event_t event,
                                LcdFlags flags, uint8_t old_editMode);
@@ -382,5 +231,3 @@ const char *getMultiOptionTitle(uint8_t moduleIdx);
 const char * writeScreenshot();
 
 uint8_t expandableSection(coord_t y, const char* title, uint8_t value, uint8_t attr, event_t event);
-
-#endif // _GUI_COMMON_H_

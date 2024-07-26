@@ -124,7 +124,7 @@ void menuModelSelect(event_t event)
 
   int8_t oldSub = menuVerticalPosition;
 
-  check_submenu_simple(_event_, MAX_MODELS - HEADER_LINE);
+  check_submenu_simple(_event_, MAX_MODELS);
 
   if (s_editMode > 0) s_editMode = 0;
 
@@ -141,7 +141,6 @@ void menuModelSelect(event_t event)
       break;
 
     case EVT_KEY_LONG(KEY_EXIT):
-      killEvents(event);
       if (s_copyMode && s_copyTgtOfs == 0 && g_eeGeneral.currModel != sub && modelExists(sub)) {
         POPUP_CONFIRMATION(STR_DELETEMODEL, nullptr);
         SET_WARNING_INFO(modelHeaders[sub].name, sizeof(g_model.header.name), 0);
@@ -168,12 +167,7 @@ void menuModelSelect(event_t event)
     case EVT_KEY_LONG(KEY_ENTER):
     case EVT_KEY_BREAK(KEY_ENTER):
       s_editMode = 0;
-      if (READ_ONLY()) {
-        if (g_eeGeneral.currModel != sub && modelExists(sub)) {
-          selectModel(sub);
-        }
-      }
-      else if (s_copyMode && (s_copyTgtOfs || s_copySrcRow>=0)) {
+      if (s_copyMode && (s_copyTgtOfs || s_copySrcRow>=0)) {
         showMessageBox(s_copyMode==COPY_MODE ? STR_COPYINGMODEL : STR_MOVINGMODEL);
         storageCheck(true); // force writing of current model data before this is changed
 
@@ -208,7 +202,6 @@ void menuModelSelect(event_t event)
                event == EVT_KEY_LONG(KEY_ENTER)) {
 
         s_copyMode = 0;
-        killEvents(event);
         if (g_eeGeneral.currModel != sub) {
           if (modelExists(sub)) {
             POPUP_MENU_ADD_ITEM(STR_SELECT_MODEL);
@@ -240,36 +233,27 @@ void menuModelSelect(event_t event)
       }
       break;
 
-#if defined(KEYS_GPIO_REG_PAGEDN)
-    case EVT_KEY_FIRST(KEY_PAGEUP):
-      chainMenu(menuTabModel[DIM(menuTabModel)-1].menuFunc);
-      killEvents(event);
-      break;
-
-    case EVT_KEY_FIRST(KEY_PAGEDN):
-      chainMenu(menuModelSetup);
-      break;
-#elif defined(KEYS_GPIO_REG_PAGE)
-    case EVT_KEY_LONG(KEY_PAGE):
-      chainMenu(menuTabModel[DIM(menuTabModel)-1].menuFunc);
-      killEvents(event);
-      break;
-
-    case EVT_KEY_BREAK(KEY_PAGE):
-      chainMenu(menuModelSetup);
-      break;
-#else
     case EVT_KEY_FIRST(KEY_LEFT):
-    case EVT_KEY_FIRST(KEY_RIGHT):
-      if (sub == g_eeGeneral.currModel) {
-        bool forward = (event == EVT_KEY_FIRST(KEY_RIGHT));
-        chainMenu(forward ? menuModelSetup
-                          : menuTabModel[DIM(menuTabModel) - 1].menuFunc);
-      } else {
+      // Page navigation only allowed if cursor on first line (for consistency)
+      if (sub != g_eeGeneral.currModel) {
         AUDIO_WARNING2();
+        break;
       }
+      // Fallthrough
+    case EVT_KEY_BREAK(KEY_PAGEUP):
+      chainMenu(menuTabModel[DIM(menuTabModel)-1].menuFunc);
       break;
-#endif
+
+    case EVT_KEY_FIRST(KEY_RIGHT):
+      // Page navigation only allowed if cursor on first line (for consistency)
+      if (sub != g_eeGeneral.currModel) {
+        AUDIO_WARNING2();
+        break;
+      }
+      // Fallthrough
+    case EVT_KEY_BREAK(KEY_PAGEDN):
+      chainMenu(menuModelSetup);
+      break;
   }
 
   if (s_copyMode) {

@@ -23,6 +23,7 @@
 #include "compounditemmodels.h"
 #include "filtereditemmodels.h"
 #include "autocombobox.h"
+#include "namevalidator.h"
 
 GeneralSetupPanel::GeneralSetupPanel(QWidget * parent, GeneralSettings & generalSettings, Firmware * firmware):
 GeneralPanel(parent, generalSettings, firmware),
@@ -270,6 +271,7 @@ ui(new Ui::GeneralSetup)
   ui->alarmwarnChkB->setChecked(!generalSettings.disableAlarmWarning); // Default is zero=checked
 
   ui->rssiPowerOffWarnChkB->setChecked(!generalSettings.disableRssiPoweroffAlarm); // Default is zero=checked
+  ui->trainerPowerOffWarnChkB->setChecked(!generalSettings.disableTrainerPoweroffAlarm); // Default is zero=checked
 
   ui->splashScreenDuration->setCurrentIndex(3-generalSettings.splashMode);
   if (IS_FAMILY_HORUS_OR_T16(firmware->getBoard())) {
@@ -287,8 +289,9 @@ ui(new Ui::GeneralSetup)
     ui->pwrOnDelay->hide();
   }
 
-  QRegExp rx(CHAR_FOR_NAMES_REGEX);
-  ui->registrationId->setValidator(new QRegExpValidator(rx, this));
+  ui->pwrOnOffHaptic_CB->setChecked(!generalSettings.disablePwrOnOffHaptic); // Default is zero=checked
+
+  ui->registrationId->setValidator(new NameValidator(board, this));
   ui->registrationId->setMaxLength(REGISTRATION_ID_LEN);
 
   setValues();
@@ -328,7 +331,7 @@ ui(new Ui::GeneralSetup)
   }
 
   ui->switchesDelay->setValue(10*(generalSettings.switchesDelay+15));
-  ui->blAlarm_ChkB->setChecked(generalSettings.flashBeep);
+  ui->blAlarm_ChkB->setChecked(generalSettings.alarmsFlash);
 
   if (!firmware->getCapability(HasBatMeterRange)) {
     ui->batMeterRangeLabel->hide();
@@ -374,19 +377,32 @@ void GeneralSetupPanel::populateBacklightCB()
 void GeneralSetupPanel::populateVoiceLangCB()
 {
   QComboBox * b = ui->voiceLang_CB;
-  QString strings[] = { tr("English"), tr("Danish"), tr("Dutch"), tr("French"), tr("Italian"), tr("German"),
-                        tr("Czech"), tr("Slovak"), tr("Spanish"), tr("Polish"), tr("Portuguese"), tr("Russian"),
-                        tr("Swedish"), tr("Hungarian"), tr("Chinese"), tr("Japanese"), tr("Hebrew"), NULL};
-
   //  Note: these align with the radio NOT computer locales - TODO harmonise with ISO and one list!!!
-  QString langcode[] = { "en", "da", "nl","fr", "it", "de",
-                         "cz", "sk", "es", "pl", "pt", "ru",
-                         "se", "hu", "cn", "jp", "he", NULL};
+  static QString strings[][2] = {
+    { tr("Chinese"), "cn" },
+    { tr("Czech"), "cz" },
+    { tr("Danish"), "da" },
+    { tr("Dutch"), "nl" },
+    { tr("English"), "en" },
+    { tr("French"), "fr" },
+    { tr("German"), "de" },
+    { tr("Hebrew"), "he" },
+    { tr("Hungarian"), "hu" },
+    { tr("Italian"), "it" },
+    { tr("Japanese"), "jp" },
+    { tr("Polish"), "pl" },
+    { tr("Portuguese"), "pt" },
+    { tr("Russian"), "ru" },
+    { tr("Slovak"), "sk" },
+    { tr("Spanish"), "es" },
+    { tr("Swedish"), "se" },
+    { tr("Ukrainian"), "ua" },
+    { NULL, NULL }};
 
   b->clear();
-  for (int i=0; strings[i]!=NULL; i++) {
-    b->addItem(strings[i],langcode[i]);
-    if (generalSettings.ttsLanguage == langcode[i]) {
+  for (int i=0; strings[i][0]!=NULL; i++) {
+    b->addItem(strings[i][0],strings[i][1]);
+    if (generalSettings.ttsLanguage == strings[i][1]) {
       b->setCurrentIndex(b->count()-1);
     }
   }
@@ -462,6 +478,18 @@ void GeneralSetupPanel::populateRotEncCB(int reCount)
   b->setCurrentIndex(generalSettings.reNavigation);
 }
 
+int pwrDelayFromYaml(int delay)
+{
+  static int8_t vals[] = { 1, 4, 3, 2, 0 };
+  return vals[delay + 2];
+}
+
+int pwrDelayToYaml(int delay)
+{
+  static int8_t vals[] = { 2, -2, 1, 0, -1 };
+  return vals[delay];
+}
+
 void GeneralSetupPanel::setValues()
 {
   ui->beeperCB->setCurrentIndex(generalSettings.beeperMode+2);
@@ -493,8 +521,8 @@ void GeneralSetupPanel::setValues()
     ui->vBatMaxDSB->setValue((double)(generalSettings.vBatMax + 120) / 10);
   }
 
-  ui->pwrOnDelay->setValue(2 - generalSettings.pwrOnSpeed);
-  ui->pwrOffDelay->setValue(2 - generalSettings.pwrOffSpeed);
+  ui->pwrOnDelay->setCurrentIndex(pwrDelayFromYaml(generalSettings.pwrOnSpeed));
+  ui->pwrOffDelay->setCurrentIndex(pwrDelayFromYaml(generalSettings.pwrOffSpeed));
 
   ui->registrationId->setText(generalSettings.registrationId);
 
@@ -502,9 +530,49 @@ void GeneralSetupPanel::setValues()
 
   if (Boards::getCapability(firmware->getBoard(), Board::HasColorLcd)) {
     ui->modelQuickSelect_CB->setChecked(generalSettings.modelQuickSelect);
+    ui->modelSelectLayout_CB->setCurrentIndex(generalSettings.modelSelectLayout);
+    ui->labelSingleSelect_CB->setCurrentIndex(generalSettings.labelSingleSelect);
+    ui->labelMultiMode_CB->setCurrentIndex(generalSettings.labelMultiMode);
+    ui->favMultiMode_CB->setCurrentIndex(generalSettings.favMultiMode);
+    showLabelSelectOptions();
   } else {
     ui->label_modelQuickSelect->hide();
     ui->modelQuickSelect_CB->hide();
+    ui->label_modelSelectLayout->hide();
+    ui->modelSelectLayout_CB->hide();
+    ui->label_labelSingleSelect->hide();
+    ui->labelSingleSelect_CB->hide();
+    ui->label_labelMultiMode->hide();
+    ui->labelMultiMode_CB->hide();
+    ui->label_favMultiMode->hide();
+    ui->favMultiMode_CB->hide();
+  }
+
+  if (firmware->getCapability(LcdWidth) == 128) {
+    ui->invertLCD_CB->setChecked(generalSettings.invertLCD);
+  } else {
+    ui->invertLCD_label->hide();
+    ui->invertLCD_CB->hide();
+  }
+}
+
+void GeneralSetupPanel::showLabelSelectOptions()
+{
+  if (generalSettings.labelSingleSelect == 0) {
+    ui->label_labelMultiMode->show();
+    ui->labelMultiMode_CB->show();
+    if (generalSettings.labelMultiMode == 1) {
+      ui->label_favMultiMode->show();
+      ui->favMultiMode_CB->show();
+    } else {
+      ui->label_favMultiMode->hide();
+      ui->favMultiMode_CB->hide();
+    }
+  } else {
+    ui->label_labelMultiMode->hide();
+    ui->labelMultiMode_CB->hide();
+    ui->label_favMultiMode->hide();
+    ui->favMultiMode_CB->hide();
   }
 }
 
@@ -576,15 +644,21 @@ void GeneralSetupPanel::on_splashScreenDuration_currentIndexChanged(int index)
   emit modified();
 }
 
-void GeneralSetupPanel::on_pwrOnDelay_valueChanged(int)
+void GeneralSetupPanel::on_pwrOnDelay_currentIndexChanged(int index)
 {
-  generalSettings.pwrOnSpeed = 2 - ui->pwrOnDelay->value();
+  generalSettings.pwrOnSpeed = pwrDelayToYaml(index);
   emit modified();
 }
 
-void GeneralSetupPanel::on_pwrOffDelay_valueChanged(int)
+void GeneralSetupPanel::on_pwrOffDelay_currentIndexChanged(int index)
 {
-  generalSettings.pwrOffSpeed = 2 - ui->pwrOffDelay->value();
+  generalSettings.pwrOffSpeed = pwrDelayToYaml(index);
+  emit modified();
+}
+
+void GeneralSetupPanel::on_pwrOnOffHaptic_CB_stateChanged(int)
+{
+  generalSettings.disablePwrOnOffHaptic = ui->pwrOnOffHaptic_CB->isChecked() ? 0 : 1;
   emit modified();
 }
 
@@ -774,6 +848,12 @@ void GeneralSetupPanel::on_rssiPowerOffWarnChkB_stateChanged(int)
   emit modified();
 }
 
+void GeneralSetupPanel::on_trainerPowerOffWarnChkB_stateChanged(int)
+{
+  generalSettings.disableTrainerPoweroffAlarm = ui->trainerPowerOffWarnChkB->isChecked() ? 0 : 1;
+  emit modified();
+}
+
 void GeneralSetupPanel::on_beeperCB_currentIndexChanged(int index)
 {
   generalSettings.beeperMode = (GeneralSettings::BeeperMode)(index-2);
@@ -822,7 +902,7 @@ void GeneralSetupPanel::unlockSwitchEdited()
 
 void GeneralSetupPanel::on_blAlarm_ChkB_stateChanged()
 {
-  generalSettings.flashBeep = ui->blAlarm_ChkB->isChecked();
+  generalSettings.alarmsFlash = ui->blAlarm_ChkB->isChecked();
   emit modified();
 }
 
@@ -844,8 +924,40 @@ void GeneralSetupPanel::on_modelQuickSelect_CB_stateChanged(int)
   emit modified();
 }
 
+void GeneralSetupPanel::on_modelSelectLayout_CB_currentIndexChanged(int index)
+{
+  generalSettings.modelSelectLayout = index;
+  emit modified();
+}
+
+void GeneralSetupPanel::on_labelSingleSelect_CB_currentIndexChanged(int index)
+{
+  generalSettings.labelSingleSelect = index;
+  showLabelSelectOptions();
+  emit modified();
+}
+
+void GeneralSetupPanel::on_labelMultiMode_CB_currentIndexChanged(int index)
+{
+  generalSettings.labelMultiMode = index;
+  showLabelSelectOptions();
+  emit modified();
+}
+
+void GeneralSetupPanel::on_favMultiMode_CB_currentIndexChanged(int index)
+{
+  generalSettings.favMultiMode = index;
+  emit modified();
+}
+
 void GeneralSetupPanel::on_startSoundCB_stateChanged(int)
 {
   generalSettings.dontPlayHello = !ui->startSoundCB->isChecked();
+  emit modified();
+}
+
+void GeneralSetupPanel::on_invertLCD_CB_stateChanged(int)
+{
+  generalSettings.invertLCD = ui->invertLCD_CB->isChecked();
   emit modified();
 }

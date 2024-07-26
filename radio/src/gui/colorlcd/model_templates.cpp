@@ -22,32 +22,37 @@
 #include "model_templates.h"
 
 #include "standalone_lua.h"
+#include "themes/etx_lv_theme.h"
+
+#define ETX_STATE_NO_INFO_COLOR LV_STATE_USER_1
 
 static const lv_coord_t col_dsc[] = {LV_GRID_FR(1), LV_GRID_FR(1),
                                      LV_GRID_TEMPLATE_LAST};
 static const lv_coord_t row_dsc[] = {LV_GRID_CONTENT, LV_GRID_TEMPLATE_LAST};
 
-TemplatePage::TemplatePage() : Page(ICON_MODEL_SELECT)
+TemplatePage::TemplatePage() : Page(ICON_MODEL_SELECT, PAD_ZERO)
 {
-  auto form = new FormWindow(&body, rect_t{});
-  form->setFlexLayout();
-  form->padAll(4);
+  body->setFlexLayout();
 
-  FlexGridLayout grid(col_dsc, row_dsc, 4);
+  FlexGridLayout grid(col_dsc, row_dsc, PAD_SMALL);
 
-  auto line = form->newLine(&grid);
+  auto line = body->newLine(grid);
 
-  listWindow = new FormWindow(line, rect_t{});
-  listWindow->setFlexLayout(LV_FLEX_FLOW_COLUMN, 8);
-  listWindow->setHeight(body.height() - 16);
+  listWindow = new Window(line, rect_t{});
+  etx_scrollbar(listWindow->getLvObj());
+  listWindow->padAll(PAD_TINY);
+  listWindow->padRight(PAD_SMALL);
+  listWindow->setFlexLayout(LV_FLEX_FLOW_COLUMN, PAD_SMALL, LV_PCT(100), body->height() - PAD_SMALL * 2);
   lv_obj_set_flex_align(listWindow->getLvObj(), LV_FLEX_ALIGN_START,
                         LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_SPACE_BETWEEN);
   lv_obj_set_grid_cell(listWindow->getLvObj(), LV_GRID_ALIGN_STRETCH, 0, 1,
                        LV_GRID_ALIGN_START, 0, 1);
 
   infoLabel = lv_label_create(line->getLvObj());
-  lv_obj_set_height(infoLabel, body.height() - 16);
-  lv_obj_set_style_text_align(infoLabel, LV_TEXT_ALIGN_LEFT, 0);
+  lv_obj_set_height(infoLabel, body->height() - PAD_SMALL * 2);
+  etx_obj_add_style(infoLabel, styles->text_align_left, LV_PART_MAIN);
+  etx_txt_color(infoLabel, COLOR_THEME_PRIMARY1_INDEX);
+  etx_txt_color(infoLabel, COLOR_THEME_DISABLED_INDEX, ETX_STATE_NO_INFO_COLOR);
   lv_obj_set_grid_cell(infoLabel, LV_GRID_ALIGN_STRETCH, 1, 1,
                        LV_GRID_ALIGN_CENTER, 0, 1);
 }
@@ -67,12 +72,10 @@ void TemplatePage::updateInfo()
 
   if (infoText[0] == 0) {
     lv_label_set_text(infoLabel, STR_NO_INFORMATION);
-    lv_obj_set_style_text_color(infoLabel, makeLvColor(COLOR_THEME_DISABLED),
-                                0);
+    lv_obj_add_state(infoLabel, ETX_STATE_NO_INFO_COLOR);
   } else {
     lv_label_set_text(infoLabel, infoText);
-    lv_obj_set_style_text_color(infoLabel, makeLvColor(COLOR_THEME_PRIMARY1),
-                                0);
+    lv_obj_clear_state(infoLabel, ETX_STATE_NO_INFO_COLOR);
   }
 }
 
@@ -80,7 +83,6 @@ void TemplatePage::updateInfo()
 void TemplatePage::onEvent(event_t event)
 {
   if (event == EVT_KEY_LONG(KEY_EXIT) || event == EVT_KEY_BREAK(KEY_EXIT)) {
-    killEvents(event);
     deleteLater();
   } else {
     Page::onEvent(event);
@@ -91,10 +93,11 @@ void TemplatePage::onEvent(event_t event)
 class SelectTemplate : public TemplatePage
 {
  public:
-  SelectTemplate(SelectTemplateFolder* tp, std::string folder) : templateFolderPage(tp)
+  SelectTemplate(SelectTemplateFolder* tp, std::string folder) :
+      templateFolderPage(tp)
   {
-    header.setTitle(STR_MANAGE_MODELS);
-    header.setTitle2(STR_NEW_MODEL);
+    header->setTitle(STR_MANAGE_MODELS);
+    header->setTitle2(STR_NEW_MODEL);
 
     char path[LEN_PATH + 1];
     snprintf(path, LEN_PATH, "%s/%s", TEMPLATES_PATH, folder.c_str());
@@ -104,7 +107,7 @@ class SelectTemplate : public TemplatePage
     DIR dir;
     FRESULT res = f_opendir(&dir, path);
 
-    Button* firstButton = nullptr;
+    ButtonBase* firstButton = nullptr;
 
     if (res == FR_OK) {
       // read all entries
@@ -132,7 +135,7 @@ class SelectTemplate : public TemplatePage
 
       for (auto name : files) {
         auto tb = new TextButton(
-            listWindow, rect_t{0, 0, lv_pct(100), PAGE_LINE_HEIGHT * 2}, name,
+            listWindow, rect_t{0, 0, lv_pct(100), EdgeTxStyles::PAGE_LINE_HEIGHT * 2}, name,
             [=]() -> uint8_t {
               deleteLater();
               templateFolderPage->doUpdate(folder, name);
@@ -154,7 +157,7 @@ class SelectTemplate : public TemplatePage
 
     if (files.size() == 0) {
       new StaticText(listWindow, rect_t{0, 0, lv_pct(100), lv_pct(50)},
-                     STR_NO_TEMPLATES, 0, COLOR_THEME_PRIMARY1);
+                     STR_NO_TEMPLATES);
     } else {
       lv_group_focus_obj(firstButton->getLvObj());
     }
@@ -164,15 +167,16 @@ class SelectTemplate : public TemplatePage
   SelectTemplateFolder* templateFolderPage;
 };
 
-SelectTemplateFolder::SelectTemplateFolder(std::function<void(std::string folder, std::string)> update)
+SelectTemplateFolder::SelectTemplateFolder(
+    std::function<void(std::string folder, std::string)> update)
 {
   this->update = update;
 
-  header.setTitle(STR_MANAGE_MODELS);
-  header.setTitle2(STR_NEW_MODEL);
+  header->setTitle(STR_MANAGE_MODELS);
+  header->setTitle2(STR_NEW_MODEL);
 
   auto tfb = new TextButton(listWindow,
-                            rect_t{0, 0, lv_pct(100), PAGE_LINE_HEIGHT * 2},
+                            rect_t{0, 0, lv_pct(100), EdgeTxStyles::PAGE_LINE_HEIGHT * 2},
                             STR_BLANK_MODEL, [=]() -> uint8_t {
                               doUpdate("", "");
                               return 0;
@@ -211,7 +215,7 @@ SelectTemplateFolder::SelectTemplateFolder(std::function<void(std::string folder
       if (!strcasecmp(name.c_str(), "WIZARD") == 0) {
 #endif
         auto tfb = new TextButton(
-            listWindow, rect_t{0, 0, lv_pct(100), PAGE_LINE_HEIGHT * 2}, name,
+            listWindow, rect_t{0, 0, lv_pct(100), EdgeTxStyles::PAGE_LINE_HEIGHT * 2}, name,
             [=]() -> uint8_t {
               new SelectTemplate(this, name);
               return 0;
@@ -233,7 +237,7 @@ SelectTemplateFolder::SelectTemplateFolder(std::function<void(std::string folder
 
   if (directories.size() == 0) {
     new StaticText(listWindow, rect_t{0, 0, lv_pct(100), lv_pct(50)},
-                   STR_NO_TEMPLATES, 0, COLOR_THEME_PRIMARY1);
+                   STR_NO_TEMPLATES);
   }
 
   lv_group_focus_obj(tfb->getLvObj());

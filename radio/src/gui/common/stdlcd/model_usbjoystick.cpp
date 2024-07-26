@@ -50,20 +50,14 @@ enum USBJFields {
 
 void menuModelUSBJoystickOne(event_t event)
 {
-#if defined(KEYS_GPIO_REG_MDL)
-  if (event == EVT_KEY_FIRST(KEY_MODEL)) {
-    pushMenu(menuChannelsView);
-    killEvents(event);
-  }
-#elif defined(NAVIGATION_X7)
-  if (event == EVT_KEY_FIRST(KEY_MENU)) {
-    pushMenu(menuChannelsView);
-    killEvents(event);
-  }
-#elif defined(NAVIGATION_XLITE)
+#if defined(NAVIGATION_XLITE)
   if (event == EVT_KEY_FIRST(KEY_ENTER) && keysGetState(KEY_SHIFT)) {
     pushMenu(menuChannelsView);
     killEvents(event);
+  }
+#else
+  if (event == EVT_KEY_BREAK(KEY_MODEL) || event == EVT_KEY_BREAK(KEY_MENU)) {
+    pushMenu(menuChannelsView);
   }
 #endif
   USBJoystickChData * cch = usbJChAddress(s_currIdx);
@@ -105,25 +99,27 @@ void menuModelUSBJoystickOne(event_t event)
         break;
 
       case USBJ_FIELD_SUBMODE:
-        if(cch->mode == USBJOYS_CH_BUTTON) {
+        if (cch->mode == USBJOYS_CH_BUTTON) {
+          if (cch->param > USBJOYS_BTN_MODE_LAST) cch->param = 0;
           cch->param = editChoice(USBJ_ONE_2ND_COLUMN, y, STR_USBJOYSTICK_CH_BTNMODE, STR_VUSBJOYSTICK_CH_BTNMODE, cch->param, 0, USBJOYS_BTN_MODE_LAST, attr, event);
-          if(cch->param == USBJOYS_BTN_MODE_SW_EMU) cch->switch_npos = 0;
-          else if(cch->param == USBJOYS_BTN_MODE_DELTA) cch->switch_npos = 1;
+          if (cch->param == USBJOYS_BTN_MODE_SW_EMU) cch->switch_npos = 0;
+          else if (cch->param == USBJOYS_BTN_MODE_DELTA) cch->switch_npos = 1;
         }
-        else if(cch->mode == USBJOYS_CH_AXIS) {
+        else if (cch->mode == USBJOYS_CH_AXIS) {
           cch->param = editChoice(USBJ_ONE_2ND_COLUMN, y, STR_USBJOYSTICK_CH_AXIS, STR_VUSBJOYSTICK_CH_AXIS, cch->param, 0, USBJOYS_AXIS_LAST, attr, event);
         }
-        else if(cch->mode == USBJOYS_CH_SIM) {
+        else if (cch->mode == USBJOYS_CH_SIM) {
+          if (cch->param > USBJOYS_SIM_LAST) cch->param = 0;
           cch->param = editChoice(USBJ_ONE_2ND_COLUMN, y, STR_USBJOYSTICK_CH_SIM, STR_VUSBJOYSTICK_CH_SIM, cch->param, 0, USBJOYS_SIM_LAST, attr, event);
         }
         break;
 
       case USBJ_FIELD_BTNPOS:
-        if(cch->param == USBJOYS_BTN_MODE_SW_EMU) {
+        if (cch->param == USBJOYS_BTN_MODE_SW_EMU) {
           lcdDrawTextAlignedLeft(y, STR_USBJOYSTICK_CH_SWPOS);
           lcdDrawText(USBJ_ONE_2ND_COLUMN, y, STR_VUSBJOYSTICK_CH_SWPOS[0], attr);
         }
-        else if(cch->param == USBJOYS_BTN_MODE_DELTA) {
+        else if (cch->param == USBJOYS_BTN_MODE_DELTA) {
           lcdDrawTextAlignedLeft(y, STR_USBJOYSTICK_CH_SWPOS);
           lcdDrawText(USBJ_ONE_2ND_COLUMN, y, STR_VUSBJOYSTICK_CH_SWPOS[1], attr);
         }
@@ -171,7 +167,7 @@ void menuModelUSBJoystickOne(event_t event)
 
 void onUSBJoystickMenu(const char *result)
 {
-  int8_t sub = menuVerticalPosition - HEADER_LINE;
+  int8_t sub = menuVerticalPosition;
   USBJoystickChData * cs = usbJChAddress(sub);
 
   if (result == STR_EDIT) {
@@ -186,18 +182,17 @@ void onUSBJoystickMenu(const char *result)
 
 void menuModelUSBJoystick(event_t event)
 {
-  check_submenu_simple(event, USBJ_MAX_JOYSTICK_CHANNELS - HEADER_LINE);
+  check_submenu_simple(event, USBJ_MAX_JOYSTICK_CHANNELS);
   title(STR_USBJOYSTICK_LABEL);
 
   if (s_editMode > 0) s_editMode = 0;
 
-  int8_t sub = menuVerticalPosition - HEADER_LINE;
+  int8_t sub = menuVerticalPosition;
 
   coord_t y = 0;
   uint8_t k = 0;
 
-  if (event == EVT_KEY_FIRST(KEY_ENTER)) {
-    killEvents(event);
+  if (event == EVT_KEY_BREAK(KEY_ENTER)) {
     USBJoystickChData * cch = usbJChAddress(sub);
     s_currIdx = sub;
     if (sub >= 0)

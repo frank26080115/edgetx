@@ -33,7 +33,7 @@
   #define MSVC_BUILD    0
 #endif
 
-// NOTE: the #include order is important here, sensitive on different platoforms.
+// NOTE: the #include order is important here, sensitive on different platforms.
 #include <errno.h>
 #include <fcntl.h>
 #include <stdarg.h>
@@ -489,17 +489,21 @@ FRESULT f_mkfs (const TCHAR* path, BYTE opt, DWORD au, void* work, UINT len)
 FRESULT f_mkdir (const TCHAR * name)
 {
   std::string path = convertToSimuPath(name);
+  if (f_stat(name, nullptr) != FR_OK) {
 #if defined(WIN32) && defined(__GNUC__)
-  if (mkdir(path.c_str())) {
+    if (mkdir(path.c_str())) {
 #else
-  if (mkdir(path.c_str(), 0777)) {
+    if (mkdir(path.c_str(), 0777)) {
 #endif
-    TRACE_SIMPGMSPACE("mkdir(%s) = error %d (%s)", path.c_str(), errno, strerror(errno));
-    return FR_INVALID_NAME;
-  }
-  else {
-    TRACE_SIMPGMSPACE("mkdir(%s) = OK", path.c_str());
-    return FR_OK;
+      TRACE_SIMPGMSPACE("mkdir(%s) = error %d (%s)", path.c_str(), errno, strerror(errno));
+      return FR_INVALID_NAME;
+    }
+    else {
+      TRACE_SIMPGMSPACE("mkdir(%s) = OK", path.c_str());
+      return FR_OK;
+    }
+  } else {
+    return FR_EXIST;
   }
   return FR_OK;
 }
@@ -507,13 +511,24 @@ FRESULT f_mkdir (const TCHAR * name)
 FRESULT f_unlink (const TCHAR * name)
 {
   std::string path = convertToSimuPath(name);
-  if (unlink(path.c_str())) {
-    TRACE_SIMPGMSPACE("f_unlink(%s) = error %d (%s)", path.c_str(), errno, strerror(errno));
-    return FR_INVALID_NAME;
-  }
-  else {
-    TRACE_SIMPGMSPACE("f_unlink(%s) = OK", path.c_str());
-    return FR_OK;
+  if (isFile(path)) {
+    if (unlink(path.c_str())) {
+      TRACE_SIMPGMSPACE("f_unlink(%s) = error %d (%s)", path.c_str(), errno, strerror(errno));
+      return FR_INVALID_NAME;
+    }
+    else {
+      TRACE_SIMPGMSPACE("f_unlink(%s) = OK", path.c_str());
+      return FR_OK;
+    }
+  } else {
+    if (rmdir(path.c_str())) {
+      TRACE_SIMPGMSPACE("f_unlink(%s) = error %d (%s)", path.c_str(), errno, strerror(errno));
+      return FR_INVALID_NAME;
+    }
+    else {
+      TRACE_SIMPGMSPACE("f_unlink(%s) = OK", path.c_str());
+      return FR_OK;
+    }
   }
 }
 

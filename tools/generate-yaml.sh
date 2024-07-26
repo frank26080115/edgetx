@@ -8,7 +8,7 @@ if [[ -n ${GCC_ARM} ]] ; then
   export PATH=${GCC_ARM}:$PATH
 fi
 
-: ${FLAVOR:="tx16s;x12s;nv14;pl18;x9d;x9dp;x9e;x9lite;xlites;x7;tpro;t20"}
+: ${FLAVOR:="t15;tx16s;x12s;nv14;pl18;x9d;x9dp;x9e;xlites;x7;tpro;t20"}
 : ${SRCDIR:=$(dirname "$(pwd)/$0")/..}
 
 : ${COMMON_OPTIONS:="-DCMAKE_BUILD_TYPE=$BUILD_TYPE -DCMAKE_RULE_MESSAGES=OFF -Wno-dev -DDISABLE_COMPANION=YES -DCMAKE_MESSAGE_LOG_LEVEL=WARNING"}
@@ -35,7 +35,7 @@ do
         x7)
             BUILD_OPTIONS+="-DPCB=X7"
             ;;
-        x7-access)
+        x7access)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=ACCESS -DPXX1=YES"
             ;;
         t12)
@@ -56,6 +56,9 @@ do
         pocket)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=POCKET"
             ;;
+        mt12)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=MT12"
+            ;;
         lr3pro)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=LR3PRO"
             ;;
@@ -70,6 +73,15 @@ do
             ;;
         t20)
             BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T20"
+            ;;
+        t20v2)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T20V2"
+            ;;
+        t12max)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T12MAX"
+            ;;
+        t14)
+            BUILD_OPTIONS+="-DPCB=X7 -DPCBREV=T14"
             ;;
         xlite)
             BUILD_OPTIONS+="-DPCB=XLITE"
@@ -92,11 +104,14 @@ do
         x10)
             BUILD_OPTIONS+="-DPCB=X10"
             ;;
-        x10-access)
+        x10express)
             BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=EXPRESS -DPXX1=YES"
             ;;
         x12s)
             BUILD_OPTIONS+="-DPCB=X12S"
+            ;;
+        t15)
+            BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=T15 -DINTERNAL_MODULE_CRSF=ON"
             ;;
         t16)
             BUILD_OPTIONS+="-DPCB=X10 -DPCBREV=T16 -DINTERNAL_MODULE_MULTI=ON"

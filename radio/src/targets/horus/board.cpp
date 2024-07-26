@@ -19,11 +19,16 @@
  * GNU General Public License for more details.
  */
 
+#include "stm32_hal.h"
+#include "stm32_hal_ll.h"
+#include "stm32_gpio.h"
+
 #include "hal/adc_driver.h"
 #include "hal/trainer_driver.h"
 #include "hal/switch_driver.h"
 #include "hal/rotary_encoder.h"
 #include "hal/usb_driver.h"
+#include "hal/gpio.h"
 
 #include "board.h"
 #include "boards/generic_stm32/module_ports.h"
@@ -46,49 +51,72 @@
 HardwareOptions hardwareOptions;
 bool boardBacklightOn = false;
 
+#if defined(VIDEO_SWITCH)
+#include "videoswitch_driver.h"
+
+void boardBLInit()
+{
+  videoSwitchInit();
+}
+#endif
+
 #if !defined(BOOT)
 #include "opentx.h"
 
 void boardInit()
 {
-  RCC_AHB1PeriphClockCmd(PWR_RCC_AHB1Periph |
-                         PCBREV_RCC_AHB1Periph |
-                         LED_RCC_AHB1Periph |
-                         LCD_RCC_AHB1Periph |
-                         BACKLIGHT_RCC_AHB1Periph |
-                         KEYS_BACKLIGHT_RCC_AHB1Periph |
-                         SD_RCC_AHB1Periph |
-                         AUDIO_RCC_AHB1Periph |
-                         TELEMETRY_RCC_AHB1Periph |
-                         BT_RCC_AHB1Periph |
-                         AUDIO_RCC_AHB1Periph |
-                         HAPTIC_RCC_AHB1Periph |
-                         INTMODULE_RCC_AHB1Periph |
-                         EXTMODULE_RCC_AHB1Periph |
-                         SPORT_UPDATE_RCC_AHB1Periph,
-                         ENABLE);
-
-  RCC_APB1PeriphClockCmd(ROTARY_ENCODER_RCC_APB1Periph |
-                         AUDIO_RCC_APB1Periph |
-                         TELEMETRY_RCC_APB1Periph |
-                         AUDIO_RCC_APB1Periph |
-                         BACKLIGHT_RCC_APB1Periph,
-                         ENABLE);
-
-  RCC_APB2PeriphClockCmd(RCC_APB2Periph_SYSCFG |
-                         LCD_RCC_APB2Periph |
-                         HAPTIC_RCC_APB2Periph |
-                         TELEMETRY_RCC_APB2Periph |
-                         BT_RCC_APB2Periph |
-                         BACKLIGHT_RCC_APB2Periph,
-                         ENABLE);
-
 #if defined(RADIO_FAMILY_T16)
   void board_set_bor_level();
   board_set_bor_level();
 #endif
 
   pwrInit();
+
+#if defined(FUNCTION_SWITCHES) && !defined(DEBUG_SEGGER_RTT)
+#if defined(RADIO_T15)
+#define LEDCHARGEON(x)   fsLedOff(x)
+#define LEDCHARGEOFF(x)  fsLedOn(x)
+#else
+#define LEDCHARGEON(x)   fsLedOn(x)
+#define LEDCHARGEOFF(x)  fsLedOff(x)
+#endif
+  // This is needed to prevent radio from starting when usb is plugged to charge
+  usbInit();
+  ledInit();
+  // prime debounce state...
+   usbPlugged();
+   if (usbPlugged()) {
+     delaysInit();
+     adcInit(&_adc_driver);
+     getADC();
+     pwrOn(); // required to get bat adc reads
+     INTERNAL_MODULE_OFF();
+     EXTERNAL_MODULE_OFF();
+     for (uint8_t i=0; i < NUM_FUNCTIONS_SWITCHES; i++)
+       LEDCHARGEOFF(i);
+     while (usbPlugged()) {
+       // Let it charge ...
+       getADC(); // Warning: the value read does not include VBAT calibration
+                 // Also, MCU is running which create a drop vs off
+       if (getBatteryVoltage() >= 660)
+         LEDCHARGEON(0);
+       if (getBatteryVoltage() >= 700)
+         LEDCHARGEON(1);
+       if (getBatteryVoltage() >= 740)
+         LEDCHARGEON(2);
+       if (getBatteryVoltage() >= 780)
+         LEDCHARGEON(3);
+       if (getBatteryVoltage() >= 810)
+         LEDCHARGEON(4);
+       if (getBatteryVoltage() >= 820)
+         LEDCHARGEON(5);
+       delay_ms(1000);
+     }
+     while(1) // Wait power to drain
+       pwrOff();
+   }
+#endif
+
   boardInitModulePorts();
 
 #if defined(INTMODULE_HEARTBEAT) &&                                     \
@@ -104,7 +132,7 @@ void boardInit()
 
   __enable_irq();
 
-#if defined(DEBUG)
+#if defined(DEBUG) && defined(AUX_SERIAL)
   serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
   serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
 #endif
@@ -117,6 +145,10 @@ void boardInit()
   keysInit();
   switchInit();
   rotaryEncoderInit();
+
+#if defined(HARDWARE_TOUCH)
+  touchPanelInit();
+#endif
 
 #if defined(PWM_STICKS)
   sticksPwmDetect();
@@ -138,9 +170,12 @@ void boardInit()
   bluetoothInit(BLUETOOTH_DEFAULT_BAUDRATE, true);
 #endif
 
+#if defined(VIDEO_SWITCH)
+  videoSwitchInit();
+#endif
 
 #if defined(DEBUG)
-  DBGMCU_APB1PeriphConfig(DBGMCU_IWDG_STOP|DBGMCU_TIM1_STOP|DBGMCU_TIM2_STOP|DBGMCU_TIM3_STOP|DBGMCU_TIM4_STOP|DBGMCU_TIM5_STOP|DBGMCU_TIM6_STOP|DBGMCU_TIM7_STOP|DBGMCU_TIM8_STOP|DBGMCU_TIM9_STOP|DBGMCU_TIM10_STOP|DBGMCU_TIM11_STOP|DBGMCU_TIM12_STOP|DBGMCU_TIM13_STOP|DBGMCU_TIM14_STOP, ENABLE);
+  // DBGMCU_APB1PeriphConfig(DBGMCU_IWDG_STOP|DBGMCU_TIM1_STOP|DBGMCU_TIM2_STOP|DBGMCU_TIM3_STOP|DBGMCU_TIM4_STOP|DBGMCU_TIM5_STOP|DBGMCU_TIM6_STOP|DBGMCU_TIM7_STOP|DBGMCU_TIM8_STOP|DBGMCU_TIM9_STOP|DBGMCU_TIM10_STOP|DBGMCU_TIM11_STOP|DBGMCU_TIM12_STOP|DBGMCU_TIM13_STOP|DBGMCU_TIM14_STOP, ENABLE);
 #endif
 
   ledInit();
@@ -157,6 +192,10 @@ void boardInit()
   ledBlue();
 #if !defined(LCD_VERTICAL_INVERT)
   lcdSetInitalFrameBuffer(lcdFront->getData());
+#elif defined(RADIO_F16)
+  if(hardwareOptions.pcbrev > 0) {
+    lcdSetInitalFrameBuffer(lcdFront->getData());
+  }
 #endif
 }
 #endif
@@ -176,14 +215,8 @@ void boardOff()
 
 #if defined(PCBX12S)
   // Shutdown the Audio amp
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Pin = AUDIO_SHUTDOWN_GPIO_PIN;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_25MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_UP;
-  GPIO_Init(AUDIO_SHUTDOWN_GPIO, &GPIO_InitStructure);
-  GPIO_ResetBits(AUDIO_SHUTDOWN_GPIO, AUDIO_SHUTDOWN_GPIO_PIN);
+  gpio_init(AUDIO_SHUTDOWN_GPIO, GPIO_OUT, GPIO_PIN_SPEED_LOW);
+  gpio_clear(AUDIO_SHUTDOWN_GPIO);
 #endif
 
   // Shutdown the Haptic

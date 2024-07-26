@@ -19,28 +19,27 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _PAGE_H_
-#define _PAGE_H_
+#pragma once
 
-#include "window.h"
+#include "bitmaps.h"
 #include "button.h"
 #include "static.h"
 
 class Page;
 
-class PageHeader : public FormWindow
+class PageHeader : public Window
 {
  public:
-  PageHeader(Page* parent, uint8_t icon);
+  PageHeader(Window* parent, EdgeTxIcon icon);
+  PageHeader(Window* parent, const char* iconFile);
 
-  uint8_t getIcon() const { return icon; }
   void setTitle(std::string txt) { title->setText(std::move(txt)); }
   StaticText* setTitle2(std::string txt);
 
-  void paint(BitmapBuffer* dc) override;
+  static LAYOUT_VAL(PAGE_TITLE_LEFT, 50, 50)
+  static constexpr coord_t PAGE_TITLE_TOP = 2;
 
  protected:
-  uint8_t icon;
   StaticText* title;
   StaticText* title2 = nullptr;
 };
@@ -48,7 +47,7 @@ class PageHeader : public FormWindow
 class Page : public NavWindow
 {
  public:
-  explicit Page(unsigned icon);
+  explicit Page(EdgeTxIcon icon, PaddingSize padding = PAD_MEDIUM, bool pauseRefresh = false);
 
 #if defined(DEBUG_WINDOWS)
   std::string getName() const override { return "Page"; }
@@ -59,11 +58,26 @@ class Page : public NavWindow
 
   void deleteLater(bool detach = true, bool trash = true) override;
 
- protected:
-  PageHeader header;
-  FormWindow body;
+  void enableRefresh();
 
+ protected:
+  PageHeader* header = nullptr;
+  Window* body = nullptr;
+
+  void checkEvents() override;
   bool bubbleEvents() override { return false; }
 };
 
-#endif // _PAGE_H_
+class SubPage : public Page
+{
+ public:
+  SubPage(EdgeTxIcon icon, const char* title, const char* subtitle, bool pauseRefresh = false);
+  SubPage(EdgeTxIcon icon, const char* title, const char* subtitle, SetupLineDef* setupLines, int lineCount);
+
+  Window* setupLine(const char* title, std::function<void(Window*, coord_t, coord_t)> createEdit, coord_t lblYOffset = 0);
+
+  static LAYOUT_VAL(EDT_X, 220, 144)
+
+ protected:
+  coord_t y = 0;
+};

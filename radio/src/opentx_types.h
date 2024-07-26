@@ -77,15 +77,13 @@ struct rect_t
   }
 };
 
-static const rect_t nullRect = {0, 0, 0, 0};
-
 typedef uint32_t LcdFlags;
 typedef uint16_t event_t;
 
 typedef uint32_t tmr10ms_t;
 typedef int32_t rotenc_t;
 typedef int32_t getvalue_t;
-typedef uint32_t mixsrc_t;
+typedef int32_t mixsrc_t;
 typedef int32_t swsrc_t;
 typedef int16_t safetych_t;
 typedef int16_t gvar_t;

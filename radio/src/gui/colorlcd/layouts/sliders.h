@@ -22,47 +22,71 @@
 #pragma once
 
 #include "libopenui.h"
-#include "trims.h"
 
-#if LCD_H > LCD_W
-constexpr uint8_t SLIDER_TICKS_COUNT = 30;
-#else
-constexpr uint8_t SLIDER_TICKS_COUNT = 40;
-#endif
-constexpr coord_t SLIDER_TICK_SPACING = 4;
-constexpr coord_t HORIZONTAL_SLIDERS_WIDTH = SLIDER_TICKS_COUNT * SLIDER_TICK_SPACING + TRIM_SQUARE_SIZE;
-constexpr coord_t VERTICAL_SLIDERS_HEIGHT = SLIDER_TICKS_COUNT * SLIDER_TICK_SPACING + TRIM_SQUARE_SIZE;
+class SliderIcon : public Window
+{
+ public:
+  SliderIcon(Window* parent);
+
+ protected:
+  lv_obj_t* fill = nullptr;
+};
 
 class MainViewSlider : public Window
 {
  public:
-  MainViewSlider(Window* parent, const rect_t& rect, uint8_t idx);
+  MainViewSlider(Window* parent, const rect_t& rect, uint8_t idx,
+                 bool isVertical);
   void checkEvents() override;
+
+  static LAYOUT_VAL(SLIDER_TICKS_COUNT, 40, 30)
+  static LAYOUT_VAL(SLIDER_TICK_SPACING, 4, 4)
+  static constexpr coord_t HORIZONTAL_SLIDERS_WIDTH =
+      SLIDER_TICKS_COUNT * SLIDER_TICK_SPACING + LayoutFactory::TRIM_SQUARE_SIZE;
+  static constexpr coord_t VERTICAL_SLIDERS_HEIGHT =
+      SLIDER_TICKS_COUNT * SLIDER_TICK_SPACING + LayoutFactory::TRIM_SQUARE_SIZE;
+
+  static LAYOUT_VAL(SL_SZ, 15, 15)
+  static LAYOUT_VAL(SL_TK, 2, 2)
 
  protected:
   uint8_t idx;
-  int16_t value = 0;
+  int16_t value = -10000;
+  bool isVertical;
+  SliderIcon* sliderIcon = nullptr;
+  lv_point_t* tickPoints = nullptr;
+
+  void deleteLater(bool detach = true, bool trash = true) override;
 };
 
 class MainViewHorizontalSlider : public MainViewSlider
 {
  public:
-  using MainViewSlider::MainViewSlider;
   MainViewHorizontalSlider(Window* parent, uint8_t idx);
-  void paint(BitmapBuffer* dc) override;
-};
-
-class MainView6POS : public MainViewSlider
-{
-  public:
-    MainView6POS(Window* parent, uint8_t idx);
-    void paint(BitmapBuffer * dc) override;
-    void checkEvents() override;
 };
 
 class MainViewVerticalSlider : public MainViewSlider
 {
-  public:
-    MainViewVerticalSlider(Window* parent, const rect_t & rect, uint8_t idx);
-    void paint(BitmapBuffer * dc) override;
+ public:
+  MainViewVerticalSlider(Window* parent, const rect_t& rect, uint8_t idx);
+};
+
+class MainView6POS : public Window
+{
+ public:
+  MainView6POS(Window* parent, uint8_t idx);
+
+  void checkEvents() override;
+
+  static LAYOUT_VAL(MULTIPOS_H, 18, 18)
+  static LAYOUT_VAL(MULTIPOS_W_SPACING, 12, 12)
+  static LAYOUT_VAL(MULTIPOS_SZ, 12, 12)
+  static LAYOUT_VAL(MULTIPOS_XO, 3, 3)
+  static constexpr coord_t MULTIPOS_W = (6 + 1) * MULTIPOS_W_SPACING;
+
+ protected:
+  uint8_t idx;
+  int16_t value = -10000;
+  SliderIcon* posIcon = nullptr;
+  lv_obj_t* posVal = nullptr;
 };

@@ -51,7 +51,7 @@
 
 #define TR_AUX_SERIAL_MODES             "禁用","回傳鏡像","回傳輸入","SBUS教練","LUA腳本","CLI","GPS","調試","SpaceMouse","外置發射"
 #define TR_SWTYPES                      "無","回彈","2段","3段"
-#define TR_POTTYPES                     "無","無中點旋鈕","有中點旋鈕","側滑塊","多段旋鈕"
+#define TR_POTTYPES                     "無","無中點旋鈕",TR("中點旋鈕","有中點旋鈕"),"側滑塊",TR("多段","多段按鍵"),"X 軸","Y 軸","開關"
 #define TR_VPERSISTENT                  "禁用","隨飛行記錄重啟","隨手動重啟"
 #define TR_COUNTRY_CODES                "美國","日本","歐洲"
 #define TR_USBMODES                     "詢問","遊戲柄","U盤","串行"
@@ -94,7 +94,7 @@
 #define TR_SF_FAILSAFE                 "設置失控保護"
 #define TR_SF_RANGE_CHECK              "測距模式"
 #define TR_SF_MOD_BIND                 "模塊對頻"
-#define TR_SF_RGBLEDS                  "RGB leds"
+#define TR_SF_RGBLEDS                  "RGB led燈"
  
 #define TR_SOUND                       "播放聲音"
 #define TR_PLAY_TRACK                  TR("Ply Trk", "播放音頻文件")
@@ -115,6 +115,7 @@
 #define TR_SF_DISABLE_TOUCH            "禁用觸摸"
 #define TR_SF_DISABLE_AUDIO_AMP        "關閉音頻功放"
 #define TR_SF_SET_SCREEN               "選擇主屏"
+#define TR_SF_LCD_TO_VIDEO             "屏幕顯示圖傳"
 
 #define TR_FSW_RESET_TELEM             "回傳參數"
 
@@ -166,16 +167,16 @@
 #define TR_HATSOPT                     "微調","導航鍵","可切換","全局"
 #define TR_HATSMODE_TRIMS              "按鍵帽: 微調"
 #define TR_HATSMODE_KEYS               "按鍵帽: 導航鍵"
-#define TR_HATSMODE_KEYS_HELP          "Left side:\n"\
-                                       "   Right = MDL\n"\
-                                       "   Up = SYS\n"\
-                                       "   Down = TELE\n"\
+#define TR_HATSMODE_KEYS_HELP          "左側按鍵帽:\n"\
+                                       "   右 = MDL\n"\
+                                       "   上 = SYS\n"\
+                                       "   下 = TELE\n"\
                                        "\n"\
-                                       "Right side:\n"\
-                                       "   Left = PAGE<\n"\
-                                       "   Right = PAGE>\n"\
-                                       "   Up = PREV/INC\n"\
-                                       "   Down = NEXT/DEC"
+                                       "右側按鍵帽:\n"\
+                                       "   左 = PAGE<\n"\
+                                       "   右 = PAGE>\n"\
+                                       "   上 = PREV/INC\n"\
+                                       "   下 = NEXT/DEC"
 #endif
 
 #if defined(COLORLCD)
@@ -273,18 +274,29 @@
 #define TR_ETRIMS                      TR("擴展微調", "擴展微調量")
 #define TR_TRIMINC                     "微調步幅"
 #define TR_DISPLAY_TRIMS               TR("微調顯示", "微調顯示")
-#define TR_TTRACE                      TR("輸入源", INDENT "輸入源")
-#define TR_TTRIM                       TR("油門微調僅怠速", INDENT "油門微調只調整怠速")
-#define TR_TTRIM_SW                    TR("微調選擇", INDENT "微調選擇")
-#define TR_BEEPCTR                     TR("中點蜂鳴", "中點蜂鳴")
+#define TR_TTRACE                      TR("輸入源", "輸入源")
+#define TR_TTRIM                       TR("油門微調僅怠速", "油門微調只調整怠速")
+#define TR_TTRIM_SW                    TR("微調選擇", "微調選擇")
+#define TR_BEEPCTR                     TR("中點提示音", "中點蜂鳴提示音")
 #define TR_USE_GLOBAL_FUNCS            TR("全局功能", "全局功能可介入")
-#define TR_PPMFRAME INDENT             "PPM幀"
-#define TR_REFRESHRATE                 TR(INDENT "刷新率", INDENT "刷新速率")
-#define STR_WARN_BATTVOLTAGE           TR(INDENT "輸出為電池電壓: ", INDENT "注意輸出電平為電池電壓")
+#define TR_PPMFRAME                    "PPM幀"
+#define TR_REFRESHRATE                 TR("刷新率", "刷新速率")
+#define STR_WARN_BATTVOLTAGE           TR("輸出為電池電壓: ", "注意輸出電平為電池電壓")
 #define TR_WARN_5VOLTS                 "注意輸出電平是5V"
 #define TR_MS                          "ms"
 #define TR_SWITCH                      "開關"
 #define TR_FUNCTION_SWITCHES           "可自定義開關"
+#define TR_GROUP                       "Group"
+#define TR_GROUP_ALWAYS_ON             "Always on"
+#define TR_GROUP                       "Group"
+#define TR_GROUP_ALWAYS_ON             "Always on"
+#define TR_GROUPS                      "Always on groups"
+#define TR_LAST                        "Last"
+#define TR_MORE_INFO                   "More info"
+#define TR_SWITCH_TYPE                 "Type"
+#define TR_SWITCH_STARTUP              "Startup"
+#define TR_SWITCH_GROUP                "Group"
+#define TR_FUNCTION_SWITCH_GROUPS      "---", TR_SWITCH_GROUP" 1", TR_SWITCH_GROUP" 2", TR_SWITCH_GROUP" 3"
 #define TR_SF_SWITCH                   "Trigger"
 #define TR_TRIMS                       "微調"
 #define TR_FADEIN                      "漸入"
@@ -295,19 +307,18 @@
 #else
   #define TR_CHECKTRIMS                "\006檢查\012微調"
 #endif
-#define OFS_CHECKTRIMS                 CENTER_OFS+(9*FW)
 #define TR_SWASHTYPE                   "斜盤類型"
 #define TR_COLLECTIVE                  TR("螺距源", "螺距混控源")
 #define TR_AILERON                     TR("橫滾源", "橫滾混控源")
 #define TR_ELEVATOR                    TR("俯仰源", "俯仰混控源")
 #define TR_SWASHRING                   "斜盤行程"
 #define TR_MODE                        "模式"
-#if LCD_W > LCD_H
+#if !PORTRAIT_LCD
   #define TR_LEFT_STICK                "左搖桿"
 #else
   #define TR_LEFT_STICK                "左搖桿"
 #endif
-#define TR_SUBTYPE INDENT              "子類型"
+#define TR_SUBTYPE                     "子類型"
 #define TR_NOFREEEXPO                  "指數曲線已滿!"
 #define TR_NOFREEMIXER                 "混控數量已滿!"
 #define TR_SOURCE                      "輸入源"
@@ -335,8 +346,8 @@
 #else
   #define TR_GV                        TR("G", "GV")
 #endif
-#define TR_RANGE INDENT                "範圍"
-#define TR_CENTER INDENT               "中點"
+#define TR_RANGE                       "範圍"
+#define TR_CENTER                      "中點"
 #define TR_ALARM                       "報警"
 #define TR_BLADES                      "Blades/Poles"
 #define TR_SCREEN                      "屏幕\001"
@@ -360,6 +371,7 @@
 #define TR_MEMORYWARNING               "內存不足"
 #define TR_ALARMWARNING                "靜音"
 #define TR_RSSI_SHUTDOWN_ALARM         TR("關機檢查RSSI", "關機時檢查RSSI")
+#define TR_TRAINER_SHUTDOWN_ALARM      TR("關機檢查教練", "關機時檢查教練信號")
 #define TR_MODEL_STILL_POWERED         "模型未斷電"
 #define TR_TRAINER_STILL_CONNECTED     "教練信號未斷開"
 #define TR_USB_STILL_CONNECTED         "USB未斷開"
@@ -367,14 +379,13 @@
 #define TR_PRESS_ENTER_TO_CONFIRM      "按ENTER鍵確認"
 #define TR_THROTTLE_LABEL              "油門"
 #define TR_THROTTLE_START              "油門開始"
-#define TR_THROTTLEREVERSE             TR("油門反向", INDENT "油門反向")
+#define TR_THROTTLEREVERSE             TR("油門反向", "油門反向")
 #define TR_MINUTEBEEP                  TR("分", "分鐘播報")
-#define TR_BEEPCOUNTDOWN               INDENT "倒數"
-#define TR_PERSISTENT                  TR(INDENT "關機保持", INDENT "關機保持")
+#define TR_BEEPCOUNTDOWN               "倒數"
+#define TR_PERSISTENT                  TR("關機保持", "關機保持")
 #define TR_BACKLIGHT_LABEL             "背光"
 #define TR_GHOST_MENU_LABEL            "GHOST MENU"
 #define TR_STATUS                      "狀態"
-#define TR_BLDELAY                     INDENT "保持時間"
 #define TR_BLONBRIGHTNESS              "背光開"
 #define TR_BLOFFBRIGHTNESS             "背光關"
 #define TR_KEYS_BACKLIGHT              "按鍵背光"
@@ -383,22 +394,22 @@
 #define TR_PLAY_HELLO                  "開機語音"
 #define TR_PWR_ON_DELAY                "開機延遲"
 #define TR_PWR_OFF_DELAY               "關機延遲"
-#define TR_THROTTLE_WARNING            TR(INDENT "油門狀態", INDENT "油門狀態")
-#define TR_CUSTOM_THROTTLE_WARNING     TR(INDENT INDENT INDENT INDENT "自定位置", INDENT INDENT INDENT INDENT "自定油門位置?")
+#define TR_PWR_ON_OFF_HAPTIC           TR("開關機震動","開關機震動提示")
+#define TR_THROTTLE_WARNING            TR("油門狀態", "油門狀態")
+#define TR_CUSTOM_THROTTLE_WARNING     TR("自定位置", "自定油門位置?")
 #define TR_CUSTOM_THROTTLE_WARNING_VAL TR("位置 %", "油門位置 %")
-#define TR_SWITCHWARNING               TR(INDENT "開關位置", INDENT "開關位置")
-#define TR_POTWARNINGSTATE             TR(INDENT "旋鈕滑塊", INDENT "旋鈕和滑塊")
-#define TR_SLIDERWARNING               TR(INDENT "滑塊位置", INDENT "滑塊位置")
-#define TR_POTWARNING                  TR(INDENT "旋鈕位置", INDENT "旋鈕位置")
+#define TR_SWITCHWARNING               TR("開關位置", "開關位置")
+#define TR_POTWARNINGSTATE             "旋鈕和滑塊"
+#define TR_POTWARNING                  TR("旋鈕位置", "旋鈕位置")
 #define TR_TIMEZONE                    "時區"
 #define TR_ADJUST_RTC                  "時鐘設置"
 #define TR_GPS                         "GPS"
 #define TR_DEF_CHAN_ORD                TR("通道順序", "默認通道順序")
-#define TR_STICKS                      "搖桿"
+#define TR_STICKS                      "搖桿(軸)"
 #define TR_POTS                        "電位器"
 #define TR_SWITCHES                    "開關"
 #define TR_SWITCHES_DELAY              TR("開關經過延時", "延時播放(開關經過)")
-#define TR_SLAVE CENTER                "從機"
+#define TR_SLAVE                       "從機"
 #define TR_MODESRC                     "Mode\006% Source"
 #define TR_MULTIPLIER                  "倍率"
 #define TR_CAL                         "校準"
@@ -406,22 +417,27 @@
 #define TR_VTRIM                       "微調-+"
 #define TR_CALIB_DONE                  "校準完成"
 #if defined(PCBHORUS)
-  #define TR_MENUTOSTART               "按 [Enter] 鍵開始"
-  #define TR_SETMIDPOINT               "將搖桿、旋鈕、滑塊居中後按[Enter]開始"
-  #define TR_MOVESTICKSPOTS            "轉動搖桿、旋鈕、滑塊到最大邊界後按[Enter]結束"
+  #define TR_MENUTOSTART               "按[Enter]鍵開始校準"
+  #define TR_SETMIDPOINT               "校準中點：搖桿(軸)、旋鈕、滑塊，按[Enter]保存"
+  #define TR_MOVESTICKSPOTS            "校準邊界：搖桿(軸)、旋鈕、滑塊，按[Enter]保存並完成"
 #elif defined(COLORLCD)
-  #define TR_MENUTOSTART               "按 [Enter] 鍵開始"
-  #define TR_SETMIDPOINT               "將搖桿、旋鈕、滑塊居中後按[Enter]開始"
-  #define TR_MOVESTICKSPOTS            "轉動搖桿、旋鈕、滑塊到最大邊界後按[Enter]結束"
+  #define TR_MENUTOSTART               "按[Enter]鍵開始"
+  #define TR_SETMIDPOINT               "校準中點，按[Enter]保存"
+  #define TR_MOVESTICKSPOTS            "校準邊界，按[Enter]保存並完成"
 #else
-  #define TR_MENUTOSTART               CENTER "\010按[Enter]键開始"
-  #define TR_SETMIDPOINT               TR(CENTER "\004搖杆、旋鈕和滑塊居中", CENTER "\004摇杆、旋钮和滑块居中")
-  #define TR_MOVESTICKSPOTS            CENTER "\006搖杆、旋钮和滑塊最大邊界"
-  #define TR_MENUWHENDONE              CENTER "\006按[Enter]键完成"
+  #define TR_MENUTOSTART               "按" TR_ENTER " 開始"
+#if defined(SURFACE_RADIO)
+  #define TR_SETMIDPOINT               "校準中點"
+  #define TR_MOVESTICKSPOTS            "校準邊界"
+#else
+  #define TR_SETMIDPOINT               TR("校準中點", "校準中點")
+  #define TR_MOVESTICKSPOTS            "校準邊界"
+#endif
+  #define TR_MENUWHENDONE              TR_ENTER " 完成"
 #endif
 #define TR_TXnRX                       "Tx:\0Rx:"
 #define OFS_RX                         4
-#define TR_NODATA                      CENTER "NO DATA"
+#define TR_NODATA                      "NO DATA"
 #define TR_US                          "us"
 #define TR_HZ                          "Hz"
 #define TR_TMIXMAXMS                   "Tmix max"
@@ -486,8 +502,13 @@
 #define TR_CHANNEL2FAILSAFE            "導入當前通道值"
 #define TR_MENUMODELSEL                TR("模型選擇", "模型選擇")
 #define TR_MENU_MODEL_SETUP            TR("模型設置", "模型設置")
-#define TR_MENUFLIGHTMODES             "飛行模式設置"
-#define TR_MENUFLIGHTMODE              "飛行模式"
+#if defined(SURFACE_RADIO)
+  #define TR_MENUFLIGHTMODES           "駕駛模式"
+  #define TR_MENUFLIGHTMODE            "駕駛模式"
+#else
+  #define TR_MENUFLIGHTMODES           "飛行模式設置"
+  #define TR_MENUFLIGHTMODE            "飛行模式"
+#endif
 #define TR_MENUHELISETUP               "直升機設置"
 
 #define TR_MENUINPUTS                  "輸入設置"
@@ -518,13 +539,12 @@
 #define TR_RF_POWER                    "發射功率"
 #define TR_MULTI_FIXEDID               TR("固定ID", "固定ID")
 #define TR_MULTI_OPTION                TR("選項值", "選項值")
-#define TR_MULTI_AUTOBIND              TR(INDENT "對頻通道", INDENT "通道控制對頻")
+#define TR_MULTI_AUTOBIND              TR("對頻通道", "通道控制對頻")
 #define TR_DISABLE_CH_MAP              TR("禁用通道映射", "禁用通道重映射")
 #define TR_DISABLE_TELEM               TR("禁用回傳", "禁用回傳")
-#define TR_MULTI_DSM_AUTODTECT         TR(INDENT "自動格式", INDENT "自動識別格式")
-#define TR_MULTI_LOWPOWER              TR(INDENT "低功率", INDENT "低功率模式")
-#define TR_MULTI_LNA_DISABLE           INDENT "禁用接收放大器"
-#define TR_MODULE_TELEMETRY            TR(INDENT "S.Port", INDENT "S.Port link")
+#define TR_MULTI_LOWPOWER              TR("低功率", "低功率模式")
+#define TR_MULTI_LNA_DISABLE           "禁用接收放大器"
+#define TR_MODULE_TELEMETRY            TR("S.Port", "S.Port link")
 #define TR_MODULE_TELEM_ON             TR("開", "啟用")
 #define TR_DISABLE_INTERNAL            TR("禁用內置發射", "禁用內置發射")
 #define TR_MODULE_NO_SERIAL_MODE       TR("非端口模式", "未開啟端口模式")
@@ -542,8 +562,8 @@
 #define TR_BINDING_CH9_16_TELEM_ON     "Ch9-16 開啟回傳"
 #define TR_BINDING_CH9_16_TELEM_OFF    "Ch9-16 關閉回傳"
 #define TR_PROTOCOL_INVALID            TR("無效協議", "無效協議")
-#define TR_MODULE_STATUS               TR(INDENT "狀態", INDENT "多協議狀態")
-#define TR_MODULE_SYNC                 TR(INDENT "同步", INDENT "協議同步狀態")
+#define TR_MODULE_STATUS               TR("狀態", "多協議狀態")
+#define TR_MODULE_SYNC                 TR("同步", "協議同步狀態")
 #define TR_MULTI_SERVOFREQ             TR("舵機頻率", "舵機更新頻率")
 #define TR_MULTI_MAX_THROW             TR("Max. Throw", "Enable max. throw")
 #define TR_MULTI_RFCHAN                TR("頻道", "選擇發射頻道")
@@ -560,7 +580,7 @@
 #define TR_REPEAT_AT_ZERO              "無變化報警"
 #define TR_BATT_CALIB                  TR("電池校準", "電池電壓校準")
 #define TR_CURRENT_CALIB               "電流校準"
-#define TR_VOLTAGE                     TR(INDENT "電壓源", INDENT "電壓來源")
+#define TR_VOLTAGE                     TR("電壓源", "電壓來源")
 #define TR_SELECT_MODEL                "選擇模型"
 #define TR_MANAGE_MODELS               "模型管理"
 #define TR_MODELS                      "個模型"
@@ -616,8 +636,8 @@
 #define TR_MENU_MODULES_RX_VERSION     "模塊/接收機版本"
 #define TR_MENU_FIRM_OPTIONS           "韌體選項"
 #define TR_IMU                         "陀螺儀"
-#define TR_STICKS_POTS_SLIDERS         "搖桿/旋鈕/滑塊"
-#define TR_PWM_STICKS_POTS_SLIDERS     "PWM 搖桿/旋鈕/滑塊"
+#define TR_STICKS_POTS_SLIDERS         "搖桿(軸)/旋鈕/滑塊"
+#define TR_PWM_STICKS_POTS_SLIDERS     "PWM搖桿(軸)/旋鈕/滑塊"
 #define TR_RF_PROTOCOL                 "發射協議"
 #define TR_MODULE_OPTIONS              "選項"
 #define TR_POWER                       "功率"
@@ -631,7 +651,7 @@
 #if defined(COLORLCD)
 #define TR_SDCARD_FULL_EXT             TR_SDCARD_FULL "\n日誌和截屏功能將被禁用"
 #else
-#define TR_SDCARD_FULL_EXT             TR_SDCARD_FULL "\036日誌和 " LCDW_128_480_LINEBREAK "截屏功能將被禁用"
+#define TR_SDCARD_FULL_EXT             TR_SDCARD_FULL "\036日誌和 " LCDW_128_LINEBREAK "截屏功能將被禁用"
 #endif
 #define TR_NEEDS_FILE                  "需要文件名包含"
 #define TR_EXT_MULTI_SPEC              "opentx-inv"
@@ -663,8 +683,7 @@
 #define TR_CPU_TEMP                    "CPU 溫度"
 #define TR_COPROC                      "CoProc."
 #define TR_COPROC_TEMP                 "主板溫度"
-#define TR_TEMPWARNING                 INDENT "過熱"
-#define TR_TTL_WARNING                 "注意串口使用逻辑电平3.3V"
+#define TR_TTL_WARNING                 "警告: TX和RX引腳電平不能超過3.3V !"
 #define TR_FUNC                        "功能"
 #define TR_V1                          "V1"
 #define TR_V2                          "V2"
@@ -707,6 +726,12 @@
 
 #if defined(COLORLCD)
   #define TR_MODEL_QUICK_SELECT        "快速選擇模型"
+  #define TR_LABELS_SELECT             "標籤類型選擇"
+  #define TR_LABELS_MATCH              "標籤匹配類型"
+  #define TR_FAV_MATCH                 "收藏夾匹配類型"
+  #define TR_LABELS_SELECT_MODE        "復選項","單選項"
+  #define TR_LABELS_MATCH_MODE         "全部匹配","任意匹配"
+  #define TR_FAV_MATCH_MODE            "必須匹配","可選匹配"
 #endif
 
 #define TR_SELECT_TEMPLATE_FOLDER      "選擇一個樣板檔案夾:"
@@ -734,11 +759,10 @@
 #endif
 
 #define TR_SD_INFO_TITLE               "存儲卡詳情"
-#define TR_SD_TYPE                     "類型:"
 #define TR_SD_SPEED                    "速度:"
 #define TR_SD_SECTORS                  "扇區:"
 #define TR_SD_SIZE                     "容量:"
-#define TR_TYPE                        INDENT "類型"
+#define TR_TYPE                        "類型"
 #define TR_GLOBAL_VARS                 "全局變量"
 #define TR_GVARS                       "全局變量"
 #define TR_GLOBAL_VAR                  "全局變量"
@@ -786,7 +810,7 @@
 #define TR_MORE_OPTIONS_AVAILABLE      "更多可用選項"
 #define TR_NO_MODULE_INFORMATION       "無模塊信息"
 #define TR_EXTERNALRF                  "外置發射"
-#define TR_FAILSAFE                    TR(INDENT "失控保護", INDENT "失控保護模式")
+#define TR_FAILSAFE                    TR("失控保護", "失控保護模式")
 #define TR_FAILSAFESET                 "失控保護設置"
 #define TR_REG_ID                      "Reg. ID"
 #define TR_OWNER_ID                    "所有者ID"
@@ -810,7 +834,7 @@
 #define TR_JACK_MODE                   "教練插口模式"
 #define TR_VOICE_LANGUAGE              "播報語言"
 #define TR_UNITS_SYSTEM                "單位"
-#define TR_UNITS_PPM                   "PPM Units"
+#define TR_UNITS_PPM                   "PPM 單位"
 #define TR_EDIT                        "編輯"
 #define TR_INSERT_BEFORE               "在本條前插入"
 #define TR_INSERT_AFTER                "在本條後插入"
@@ -821,7 +845,7 @@
 #define TR_PASTE_BEFORE                "貼上到本條之前"
 #define TR_DELETE                      "刪除"
 #define TR_INSERT                      "插入"
-#define TR_RESET_FLIGHT                "重啟飛行記錄"
+#define TR_RESET_FLIGHT                "復位飛行數據"
 #define TR_RESET_TIMER1                "重啟計時器1"
 #define TR_RESET_TIMER2                "重啟計時器2"
 #define TR_RESET_TIMER3                "重啟計時器3"
@@ -841,11 +865,12 @@
 #define TR_ANADIAGS_UNFILTRAW          "未經過濾的原始類比量"
 #define TR_ANADIAGS_MINMAX             "最低值、最高值、行程量"
 #define TR_ANADIAGS_MOVE               "移動類比量全行程以查看結果"
-#define TR_SPEAKER INDENT              "揚聲器"
-#define TR_BUZZER INDENT               "蜂鳴器"
+#define TR_SPEAKER                     "揚聲器"
+#define TR_BUZZER                      "蜂鳴器"
 #define TR_BYTES                       "bytes"
 #define TR_MODULE_BIND                 BUTTON(TR("對頻", "對頻"))
-#define TR_POWERMETER_ATTN_NEEDED      "需要串聯衰減器"
+#define TR_MODULE_UNBIND               BUTTON("解綁")
+#define TR_POWERMETER_ATTN_NEEDED     "需要串聯衰減器"
 #define TR_PXX2_SELECT_RX              "Select RX"
 #define TR_PXX2_DEFAULT                "<default>"
 #define TR_BT_SELECT_DEVICE            "選擇設備"
@@ -870,7 +895,7 @@
 #define TR_SET                         BUTTON("設置")
 #define TR_TRAINER                     "教練"
 #define TR_CHANS                       "通道"
-#define TR_ANTENNAPROBLEM               CENTER "發射機天線故障!"
+#define TR_ANTENNAPROBLEM               "發射機天線故障!"
 #define TR_MODELIDUSED                 "ID已使用:"
 #define TR_MODELIDUNIQUE               "ID is unique"
 #define TR_MODULE                      "模塊"
@@ -882,11 +907,11 @@
 #define TR_INTERVAL                    "間隔"
 #define TR_REPEAT                      "循環"
 #define TR_ENABLE                      "啟用"
-#define TR_DISABLE                     "Disable"
+#define TR_DISABLE                     "禁用"
 #define TR_TOPLCDTIMER                 "Top LCD Timer"
 #define TR_UNIT                        "單位"
-#define TR_TELEMETRY_NEWSENSOR         INDENT "添加新傳感器..."
-#define TR_CHANNELRANGE                TR(INDENT "通道範圍", INDENT "通道範圍")
+#define TR_TELEMETRY_NEWSENSOR         "添加新傳感器..."
+#define TR_CHANNELRANGE                TR("通道範圍", "通道範圍")
 #define TR_ANTENNACONFIRM1             "外置天線"
 #if defined(PCBX12S)
   #define TR_ANTENNA_MODES             "內置天線","詢問","基於模型","外置天線"
@@ -900,9 +925,9 @@
 #define TR_MODULE_PROTOCOL_FCC_WARN_LINE1    "請使用FCC版本"
 #define TR_MODULE_PROTOCOL_EU_WARN_LINE1     "請使用EU版本"
 #define TR_MODULE_PROTOCOL_WARN_LINE2        "經認證的韌體"
-#define TR_LOWALARM                    INDENT "信號弱警告"
-#define TR_CRITICALALARM               INDENT "信號極弱警告"
-#define TR_DISABLE_ALARM               TR(INDENT "禁止回傳警告", INDENT "禁止回傳警告")
+#define TR_LOWALARM                    "信號弱警告"
+#define TR_CRITICALALARM               "信號極弱警告"
+#define TR_DISABLE_ALARM               TR("禁止回傳警告", "禁止回傳警告")
 #define TR_POPUP                       "彈窗提示"
 #define TR_MIN                         "最小"
 #define TR_MAX                         "最大"
@@ -916,7 +941,7 @@
 #define TR_PT                          "點"
 #define TR_PTS                         "點"
 #define TR_SMOOTH                      "平滑"
-#define TR_COPY_STICKS_TO_OFS          TR("搖杆位置存為中點", "當前搖杆位置保存為中點")
+#define TR_COPY_STICKS_TO_OFS          TR("搖桿位置存為中點", "當前搖桿位置保存為中點")
 #define TR_COPY_MIN_MAX_TO_OUTPUTS     TR("通道行程存為輸出", "當前所有通道中點/低位/高位保存為所有輸出值")
 #define TR_COPY_TRIMS_TO_OFS           TR("微調存為中點", "當前微調按鈕值保存到中點")
 #define TR_INCDEC                      "增減"
@@ -924,9 +949,9 @@
 #define TR_MIXSOURCE                   "混控源"
 #define TR_CONSTANT                    "固定值"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "關閉","開啟","自動"
-#define TR_PREFLIGHT                   "初始位置檢查"
-#define TR_CHECKLIST                   TR(INDENT "顯示列表", INDENT "顯示列表")
-#define TR_CHECKLIST_INTERACTIVE       TR3(INDENT "C-Interact", INDENT "Interact. checklist", INDENT "Interactive checklist")
+#define TR_PREFLIGHT                   "初始檢查"
+#define TR_CHECKLIST                   TR("顯示列表", "顯示列表")
+#define TR_CHECKLIST_INTERACTIVE       TR3("檢查列表", "自定義檢查列表", "自定義檢查列表")
 #define TR_AUX_SERIAL_MODE             "端口"
 #define TR_AUX2_SERIAL_MODE            "端口 2"
 #define TR_AUX_SERIAL_PORT_POWER       "端口供電"
@@ -999,7 +1024,7 @@
   #define TR_WIDGET_VALUE              "數值"
 #endif
 
-// Bootloader common
+// Bootloader common - ASCII characters only
 #define TR_BL_USB_CONNECTED           "USB Connected"
 #define TR_BL_USB_PLUGIN              "Or plug in a USB cable"
 #define TR_BL_USB_MASS_STORE          "for mass storage"
@@ -1029,26 +1054,32 @@
 #endif
 
 #if defined(PCBTARANIS)
-   // Bootloader Taranis specific
+   // Bootloader Taranis specific - ASCII characters only
   #define TR_BL_RESTORE_EEPROM        "Restore EEPROM"
   #if defined(RADIO_COMMANDO8)
     #define TR_BL_POWER_KEY           "Press the power button."
     #define TR_BL_FLASH_EXIT          "Exit the flashing mode."
   #endif
 #elif defined(PCBHORUS)
-   // Bootloader Horus specific
+   // Bootloader Horus specific - ASCII characters only
+  #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
+  #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
+  #define TR_BL_ERASE_FLASH_MSG       "This may take up to 200s"
   #define TR_BL_SELECT_KEY            "[ENT] to select file"
   #define TR_BL_FLASH_KEY             "Hold [ENT] long to flash"
+  #define TR_BL_ERASE_KEY             "Hold [ENT] long to erase"
   #define TR_BL_EXIT_KEY              "[RTN] to exit"
 #elif defined(PCBNV14)
-   // Bootloader NV14 specific
+   // Bootloader NV14 specific - ASCII characters only
   #define TR_BL_RF_USB_ACCESS         "RF USB access"
   #define TR_BL_CURRENT_FW            "Current Firmware:"
   #define TR_BL_SELECT_KEY            "[R TRIM] to select file"
   #define TR_BL_FLASH_KEY             "Hold [R TRIM] long to flash"
   #define TR_BL_EXIT_KEY              " [L TRIM] to exit"
+  #define TR_BL_ENABLE                "Enable"
+  #define TR_BL_DISABLE               "Disable"
 #elif defined(PCBPL18)
-   // Bootloader PL18 specific - Ascii only
+   // Bootloader PL18 specific - ASCII characters only
   #define TR_BL_RF_USB_ACCESS         "RF USB access"
   #define TR_BL_ERASE_INT_FLASH       "Erase Internal Flash Storage"
   #define TR_BL_ERASE_FLASH           "Erase Flash Storage"
@@ -1078,7 +1109,7 @@
 #define TR_UNSUPPORTED_RX              "不支持此接收機"
 #define TR_OTA_UPDATE_ERROR            "OTA 更新失敗"
 #define TR_DEVICE_RESET                "正在重啟設備..."
-#define TR_ALTITUDE INDENT             "高度"
+#define TR_ALTITUDE                    "高度"
 #define TR_SCALE                       "比例"
 #define TR_VIEW_CHANNELS               "查看通道"
 #define TR_VIEW_NOTES                  "View Notes"
@@ -1098,15 +1129,14 @@
 #define TR_CURRENTSENSOR               "傳感器"
 #define TR_AUTOOFFSET                  "自動偏移值"
 #define TR_ONLYPOSITIVE                "正向"
-#define TR_FILTER                      "濾波"
+#define TR_FILTER                      "濾波器"
 #define TR_TELEMETRYFULL               TR("項目已滿!", "回傳項目已滿!")
-#define TR_INVERTED_SERIAL             INDENT "反向"
-#define TR_IGNORE_INSTANCE             TR(INDENT "忽略ID", INDENT "忽略ID鑑別")
+#define TR_IGNORE_INSTANCE             TR("忽略ID", "忽略ID鑑別")
 #define TR_SHOW_INSTANCE_ID            "顯示實例ID"
 #define TR_DISCOVER_SENSORS            "掃描新的回傳項目"
 #define TR_STOP_DISCOVER_SENSORS       "停止掃描"
 #define TR_DELETE_ALL_SENSORS          "刪除所有回傳項目"
-#define TR_CONFIRMDELETE               "真的 " LCDW_128_480_LINEBREAK "要刪除全部嗎 ?"
+#define TR_CONFIRMDELETE               "真的 " LCDW_128_LINEBREAK "要刪除全部嗎 ?"
 #define TR_SELECT_WIDGET               "選擇小部件"
 #define TR_WIDGET_FULLSCREEN           "全屏"
 #define TR_REMOVE_WIDGET               "移除小部件"
@@ -1118,15 +1148,10 @@
 #define TR_SETUP                       "設置"
 #define TR_LAYOUT                      "佈局"
 #define TR_ADD_MAIN_VIEW               "添加主視圖"
-#define TR_BACKGROUND_COLOR            "背景顏色"
-#define TR_MAIN_COLOR                  "主顏色"
-#define TR_BAR2_COLOR                  "二級條形圖顏色"
-#define TR_BAR1_COLOR                  "主條形圖顏色"
 #define TR_TEXT_COLOR                  "文本顏色"
-#define TR_TEXT_VIEWER                 "文本視圖"
 #define TR_MENU_INPUTS                  STR_CHAR_INPUT "輸入"
 #define TR_MENU_LUA                     STR_CHAR_LUA "LUA腳本"
-#define TR_MENU_STICKS                  STR_CHAR_STICK "搖桿"
+#define TR_MENU_STICKS                  STR_CHAR_STICK "搖桿(軸)"
 #define TR_MENU_POTS                    STR_CHAR_POT "旋鈕"
 #define TR_MENU_MIN                     STR_CHAR_FUNCTION "最小"
 #define TR_MENU_MAX                     STR_CHAR_FUNCTION "最大"
@@ -1142,7 +1167,7 @@
 #define TR_MENU_OTHER                  "其它"
 #define TR_MENU_INVERT                 "反向"
 #define TR_AUDIO_MUTE                  TR("自動靜音","音頻停播時自動靜音")
-#define TR_JITTER_FILTER               "類比輸入濾波"
+#define TR_JITTER_FILTER               "ADC濾波器"
 #define TR_DEAD_ZONE                   "死區"
 #define TR_RTC_CHECK                   TR("檢查時間電池", "檢查時間驅動電池電壓")
 #define TR_AUTH_FAILURE                "驗證失敗"
@@ -1151,7 +1176,7 @@
 #define TR_USE_THEME_COLOR            "使用主題顏色"
 
 #define TR_ADD_ALL_TRIMS_TO_SUBTRIMS  "將所有微調導入中點偏移值"
-#if LCD_W > LCD_H
+#if !PORTRAIT_LCD
   #define TR_OPEN_CHANNEL_MONITORS    "打開通道監視器"
 #else
   #define TR_OPEN_CHANNEL_MONITORS    "通道監視"
@@ -1193,7 +1218,7 @@
 
 // Main menu
 #define TR_MAIN_MENU_SELECT_MODEL     "模型選擇"
-#define TR_MAIN_MENU_MANAGE_MODELS    "模型\n管理"
+#define TR_MAIN_MENU_MANAGE_MODELS    "模型管理"
 #define TR_MAIN_MENU_MODEL_NOTES      "模型說明"
 #define TR_MAIN_MENU_CHANNEL_MONITOR  "通道查看"
 #define TR_MAIN_MENU_MODEL_SETTINGS   "模型設置"
@@ -1225,6 +1250,7 @@
 #define TR_VOICE_TAIWANESE            "中文-台灣國語"
 #define TR_VOICE_JAPANESE             "日文"
 #define TR_VOICE_HEBREW               "希伯來語"
+#define TR_VOICE_UKRAINIAN            "烏克蘭語"
 
 #define TR_USBJOYSTICK_LABEL           "USB 遊戲柄"
 #define TR_USBJOYSTICK_EXTMODE         "模式"
@@ -1243,13 +1269,13 @@
 #define TR_USBJOYSTICK_CH_AXIS         "轴"
 #define TR_VUSBJOYSTICK_CH_AXIS        "X","Y","Z","旋轉X","旋轉Y","旋轉Z","推桿","撥輪","方向盤"
 #define TR_USBJOYSTICK_CH_SIM          "模擬軸"
-#define TR_VUSBJOYSTICK_CH_SIM         "橫滾Ail","俯仰Ele","方向Rud","油門Thr"
+#define TR_VUSBJOYSTICK_CH_SIM         "橫滾","俯仰","航向","油門","加速","剎車","轉盤","方向"
 #define TR_USBJOYSTICK_CH_INVERSION    "反轉"
 #define TR_USBJOYSTICK_CH_BTNNUM       "按鈕編號."
 #define TR_USBJOYSTICK_BTN_COLLISION   "!按鈕編號衝突!"
 #define TR_USBJOYSTICK_AXIS_COLLISION  "!軸衝突!"
 #define TR_USBJOYSTICK_CIRC_COUTOUT    TR("圓口行程", "圓口行程")
-#define TR_VUSBJOYSTICK_CIRC_COUTOUT   "禁用","X-Y, Z-旋轉X","X-Y, 旋轉X-旋轉Y"
+#define TR_VUSBJOYSTICK_CIRC_COUTOUT   "無","X-Y, Z-rX","X-Y, rX-rY","X-Y, Z-rZ"
 #define TR_USBJOYSTICK_APPLY_CHANGES   "應用更改"
 
 #define TR_DIGITAL_SERVO          "數字舵機333HZ"
@@ -1262,10 +1288,22 @@
 #define TR_RADIO_MENU_TABS        "系統功能選項卡"
 #define TR_MODEL_MENU_TABS        "模型功能選項卡"
 
-#define TR_SELECT_MENU_ALL        "All"
-#define TR_SELECT_MENU_CLR        "Clear"
-#define TR_SELECT_MENU_INV        "Invert"
+#define TR_SELECT_MENU_ALL        "全部"
+#define TR_SELECT_MENU_CLR        "清除"
+#define TR_SELECT_MENU_INV        "反向"
 
 #define TR_SORT_ORDERS            "名稱 A-Z","名稱 Z-A","不常用","常用"
 #define TR_SORT_MODELS_BY         "排序"
 #define TR_CREATE_NEW             "新建"
+
+#define TR_MIX_SLOW_PREC          TR("慢放精度", "慢放精度 上行/下行")
+
+#define TR_THEME_EXISTS           "已存在同名主題目錄 !"
+
+#define ROTORFLIGHT_LUA_CH        "按敗板半保備閉標表並波補不菜參叉差償超車持池出存打大帶待怠單到等低地點電調定動度舵二翻方放飛副復負高跟關管航號何合后護環緩回混火或機積集幾計加間減件降交角教接階截進救距開控寬饋拉來累類連練量零靈率濾螺落門面敏模目逆爬盤偏頻平其啟器前曲取確然入剎上設身升失時使式釋試數衰水瞬順速縮他態體停通退陀微尾位文穩誤息熄下陷限線相響向消小校斜新心信型行懸旋循壓頁一移儀益翼因應用油右預援源載增針正直值止置制中重軸主轉准子自蹤總最左耦"
+
+#define TR_DATE_TIME_WIDGET       "日期和時間"
+#define TR_RADIO_INFO_WIDGET      "遙控器信息"
+#define TR_LOW_BATT_COLOR         "低電量"
+#define TR_MID_BATT_COLOR         "中電量"
+#define TR_HIGH_BATT_COLOR        "高電量"

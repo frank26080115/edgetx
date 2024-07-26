@@ -35,6 +35,7 @@ enum MixFields {
   MIX_FIELD_MLTPX,
   MIX_FIELD_DELAY_UP,
   MIX_FIELD_DELAY_DOWN,
+  MIX_FIELD_SLOW_PREC,
   MIX_FIELD_SLOW_UP,
   MIX_FIELD_SLOW_DOWN,
   MIX_FIELD_COUNT
@@ -91,7 +92,6 @@ void menuModelMixOne(event_t event)
 {
   if (event == EVT_KEY_LONG(KEY_MENU)) {
     pushMenu(menuChannelsView);
-    killEvents(event);
   }
 
   MixData * md2 = mixAddress(s_currIdx) ;
@@ -125,7 +125,8 @@ void menuModelMixOne(event_t event)
       case MIX_FIELD_SOURCE:
         lcdDrawTextAlignedLeft(y, STR_SOURCE);
         drawSource(MIXES_2ND_COLUMN, y, md2->srcRaw, STREXPANDED|attr);
-        if (attr) CHECK_INCDEC_MODELSOURCE(event, md2->srcRaw, 1, MIXSRC_LAST);
+        if (attr)
+          md2->srcRaw = checkIncDec(event, md2->srcRaw, 1, MIXSRC_LAST, EE_MODEL|INCDEC_SOURCE|INCDEC_SOURCE_INVERT|NO_INCDEC_MARKS, isSourceAvailable);
         break;
 
       case MIX_FIELD_WEIGHT:
@@ -161,7 +162,7 @@ void menuModelMixOne(event_t event)
 
 #if defined(FLIGHT_MODES)
       case MIX_FIELD_FLIGHT_MODE:
-        drawFieldLabel(MIXES_2ND_COLUMN, y, STR_FLMODE);
+        lcdDrawTextAlignedLeft(y, STR_FLMODE);
         md2->flightModes = editFlightModes(MIXES_2ND_COLUMN, y, event, md2->flightModes, attr);
         break;
 #endif
@@ -171,7 +172,7 @@ void menuModelMixOne(event_t event)
         break;
 
       case MIX_FIELD_WARNING:
-        drawFieldLabel(MIXES_2ND_COLUMN, y, STR_MIXWARNING);
+        lcdDrawTextAlignedLeft(y, STR_MIXWARNING);
         if (md2->mixWarn)
           lcdDrawNumber(MIXES_2ND_COLUMN, y, md2->mixWarn, attr|LEFT);
         else
@@ -184,19 +185,23 @@ void menuModelMixOne(event_t event)
         break;
 
       case MIX_FIELD_DELAY_UP:
-        md2->delayUp = EDIT_DELAY(y, event, attr, STR_DELAYUP, md2->delayUp);
+        md2->delayUp = EDIT_DELAY(y, event, attr, STR_DELAYUP, md2->delayUp, PREC1);
         break;
 
       case MIX_FIELD_DELAY_DOWN:
-        md2->delayDown = EDIT_DELAY(y, event, attr, STR_DELAYDOWN, md2->delayDown);
+        md2->delayDown = EDIT_DELAY(y, event, attr, STR_DELAYDOWN, md2->delayDown, PREC1);
+        break;
+
+      case MIX_FIELD_SLOW_PREC:
+        md2->speedPrec = editChoice(MIXES_2ND_COLUMN, y, STR_MIX_SLOW_PREC, &STR_VPREC[1], md2->speedPrec, 0, 1, attr, event);
         break;
 
       case MIX_FIELD_SLOW_UP:
-        md2->speedUp = EDIT_DELAY(y, event, attr, STR_SLOWUP, md2->speedUp);
+        md2->speedUp = EDIT_DELAY(y, event, attr, STR_SLOWUP, md2->speedUp, (md2->speedPrec ? PREC2 : PREC1));
         break;
 
       case MIX_FIELD_SLOW_DOWN:
-        md2->speedDown = EDIT_DELAY(y, event, attr, STR_SLOWDOWN, md2->speedDown);
+        md2->speedDown = EDIT_DELAY(y, event, attr, STR_SLOWDOWN, md2->speedDown, (md2->speedPrec ? PREC2 : PREC1));
         break;
     }
     y += FH;

@@ -368,11 +368,6 @@ struct LuaSingleField {
 };
 
 const LuaSingleField luaSingleFields[] = {
-    {MIXSRC_FIRST_STICK,     "rud", "Rudder"},
-    {MIXSRC_FIRST_STICK + 1, "ele", "Elevator"},
-    {MIXSRC_FIRST_STICK + 2, "thr", "Throttle"},
-    {MIXSRC_FIRST_STICK + 3, "ail", "Aileron"},
-
 #if defined(IMU)
     {MIXSRC_TILT_X, "tiltx", "Tilt X"},
     {MIXSRC_TILT_Y, "tilty", "Tilt Y"},
@@ -387,18 +382,8 @@ const LuaSingleField luaSingleFields[] = {
     {MIXSRC_SPACEMOUSE_F, "smf", "SpaceMouse F"},
 #endif
 
-    {MIXSRC_MAX, "min", "MIN"},
+    {MIXSRC_MIN, "min", "MIN"},
     {MIXSRC_MAX, "max", "MAX"},
-
-    {MIXSRC_TrimRud, "trim-rud", "Rudder trim"},
-    {MIXSRC_TrimEle, "trim-ele", "Elevator trim"},
-    {MIXSRC_TrimThr, "trim-thr", "Throttle trim"},
-    {MIXSRC_TrimAil, "trim-ail", "Aileron trim"},
-
-#if MAX_TRIMS > 4
-    {MIXSRC_TrimT5, "trim-t5", "Aux trim T5"},
-    {MIXSRC_TrimT6, "trim-t6", "Aux trim T6"},
-#endif
 
     {MIXSRC_TX_VOLTAGE, "tx-voltage", "Transmitter battery voltage [volts]"},
     {MIXSRC_TX_TIME, "clock", "RTC clock [minutes from midnight]"},
@@ -428,7 +413,7 @@ const LuaMultipleField luaMultipleFields[] = {
     {MIXSRC_FIRST_HELI, "cyc", "Cyclic %d", 3},
 };
 
-static bool _searchSingleFields(const char* name, LuaField& field,
+static bool _searchSingleFieldsByName(const char* name, LuaField& field,
                                 unsigned int flags,
                                 const LuaSingleField* fields, size_t n_fields)
 {
@@ -458,11 +443,11 @@ bool luaFindFieldByName(const char * name, LuaField & field, unsigned int flags)
   field.name[sizeof(field.name) - 1] = '\0';
 
   // hardware specific inputs
-  if (_searchSingleFields(name, field, flags, _lua_inputs, DIM(_lua_inputs)))
+  if (_searchSingleFieldsByName(name, field, flags, _lua_inputs, DIM(_lua_inputs)))
     return true;
   
   // well known single fields
-  if (_searchSingleFields(name, field, flags, luaSingleFields, DIM(luaSingleFields)))
+  if (_searchSingleFieldsByName(name, field, flags, luaSingleFields, DIM(luaSingleFields)))
     return true;
 
   // check switches from 'sa' to 'sz'
@@ -546,6 +531,24 @@ bool luaFindFieldByName(const char * name, LuaField & field, unsigned int flags)
   return false;  // not found
 }
 
+static bool _searchSingleFieldsById(int id, LuaField& field,
+                                unsigned int flags,
+                                const LuaSingleField* fields, size_t n_fields)
+{
+  for (unsigned int n = 0; n < n_fields; ++n) {
+    if (id == fields[n].id) {
+      strncpy(field.name, fields[n].name, sizeof(field.name) - 1);
+      if (flags & FIND_FIELD_DESC) {
+        strncpy(field.desc, fields[n].desc, sizeof(field.desc) - 1);
+        field.desc[sizeof(field.desc) - 1] = '\0';
+      }
+      return true;
+    }
+  }
+
+  return false;
+}
+
 // Return field data for a given field id
 bool luaFindFieldById(int id, LuaField & field, unsigned int flags)
 {
@@ -553,17 +556,13 @@ bool luaFindFieldById(int id, LuaField & field, unsigned int flags)
   field.name[sizeof(field.name) - 1] = '\0';
   field.desc[0] = '\0';
 
-  // TODO better search method (binary lookup)
-  for (unsigned int n = 0; n < DIM(luaSingleFields); ++n) {
-    if (id == luaSingleFields[n].id) {
-      strncpy(field.name, luaSingleFields[n].name, sizeof(field.name) - 1);
-      if (flags & FIND_FIELD_DESC) {
-        strncpy(field.desc, luaSingleFields[n].desc, sizeof(field.desc) - 1);
-        field.desc[sizeof(field.desc) - 1] = '\0';
-      }
-      return true;
-    }
-  }
+  // hardware specific inputs
+  if (_searchSingleFieldsById(id, field, flags, _lua_inputs, DIM(_lua_inputs)))
+    return true;
+  
+  // well known single fields
+  if (_searchSingleFieldsById(id, field, flags, luaSingleFields, DIM(luaSingleFields)))
+    return true;
 
   // search in multiples
   for (unsigned int n = 0; n < DIM(luaMultipleFields); ++n) {
@@ -1188,10 +1187,12 @@ When called without parameters, it will only return the status of the output buf
 
 @status current Introduced in 2.2.0, retval nil added in 2.3.4
 */
-static int luaCrossfireTelemetryPush(lua_State * L)
+static int luaCrossfireTelemetryPush(lua_State* L)
 {
-  bool external = (moduleState[EXTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
-  bool internal = (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
+  bool external =
+      (moduleState[EXTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
+  bool internal =
+      (moduleState[INTERNAL_MODULE].protocol == PROTOCOL_CHANNELS_CROSSFIRE);
 
   if (!internal && !external) {
     lua_pushnil(L);
@@ -1200,27 +1201,51 @@ static int luaCrossfireTelemetryPush(lua_State * L)
 
   if (lua_gettop(L) == 0) {
     lua_pushboolean(L, outputTelemetryBuffer.isAvailable());
-  }
-  else if (lua_gettop(L) > TELEMETRY_OUTPUT_BUFFER_SIZE ) {
+  } else if (lua_gettop(L) > TELEMETRY_OUTPUT_BUFFER_SIZE) {
     lua_pushboolean(L, false);
     return 1;
-  }
-  else if (outputTelemetryBuffer.isAvailable()) {
+  } else if (outputTelemetryBuffer.isAvailable()) {
     uint8_t command = luaL_checkunsigned(L, 1);
     luaL_checktype(L, 2, LUA_TTABLE);
     uint8_t length = luaL_len(L, 2);
+
     outputTelemetryBuffer.pushByte(MODULE_ADDRESS);
-    outputTelemetryBuffer.pushByte(2 + length); // 1(COMMAND) + data length + 1(CRC)
-    outputTelemetryBuffer.pushByte(command); // COMMAND
-    for (int i=0; i<length; i++) {
-      lua_rawgeti(L, 2, i+1);
+
+    // LENGTH
+    if (command == COMMAND_ID) {
+      // 1(COMMAND) + length(data) + 1(CRC_BA) + 1(CRC_D5)
+      outputTelemetryBuffer.pushByte(3 + length);
+    } else {
+      // 1(COMMAND) + length(data) + 1(CRC_D5)
+      outputTelemetryBuffer.pushByte(2 + length);
+    }
+
+    // COMMAND
+    outputTelemetryBuffer.pushByte(command);
+
+    // PAYLOAD
+    for (int i = 0; i < length; i++) {
+      lua_rawgeti(L, 2, i + 1);
       outputTelemetryBuffer.pushByte(luaL_checkunsigned(L, -1));
     }
-    outputTelemetryBuffer.pushByte(crc8(outputTelemetryBuffer.data + 2, 1 + length));
+
+    // CRC
+    if (command == COMMAND_ID) {
+      // 1 byte CRC8_BA (counted from COMMAND byte)
+      outputTelemetryBuffer.pushByte(
+          crc8_BA(outputTelemetryBuffer.data + 2, 1 + length));
+      // 1 byte CRC8_D5 (counted from COMMAND byte including CRC8_BA byte)
+      outputTelemetryBuffer.pushByte(
+          crc8(outputTelemetryBuffer.data + 2, 2 + length));
+    } else {
+      // 1 byte CRC8_D5 (counted from COMMAND byte)
+      outputTelemetryBuffer.pushByte(
+          crc8(outputTelemetryBuffer.data + 2, 1 + length));
+    }
+
     outputTelemetryBuffer.setDestination(internal ? 0 : TELEMETRY_ENDPOINT_SPORT);
     lua_pushboolean(L, true);
-  }
-  else {
+  } else {
     lua_pushboolean(L, false);
   }
   return 1;
@@ -1646,11 +1671,11 @@ Stops key state machine. See [Key Events](../key_events.md) for the detailed des
 */
 static int luaKillEvents(lua_State * L)
 {
-#if defined(KEYS_GPIO_REG_PAGE)
+#if defined(KEYS_GPIO_REG_MENU)
   #define IS_MASKABLE(key)                                      \
     ((key) != KEY_EXIT && (key) != KEY_ENTER &&                 \
      ((scriptInternalData[0].reference == SCRIPT_STANDALONE) || \
-      (key) != KEY_PAGE))
+      (key) != KEY_PAGEDN))
 #else
   #define IS_MASKABLE(key) ((key) != KEY_EXIT && (key) != KEY_ENTER)
 #endif
@@ -1976,6 +2001,9 @@ static int luaSetTelemetryValue(lua_State * L)
       telemetrySensor.subId = subId;
       telemetrySensor.instance = instance;
       telemetrySensor.init(name ? name: name_buf, unit, prec);
+      
+      storageDirty(EE_MODEL);
+      
       lua_pushboolean(L, true);
     } else {
       lua_pushboolean(L, false);
@@ -2048,24 +2076,6 @@ static int luaGetRSSI(lua_State * L)
   lua_pushunsigned(L, g_model.rfAlarms.warning);
   lua_pushunsigned(L, g_model.rfAlarms.critical);
   return 3;
-}
-
-/*luadoc
-@function chdir(directory)
-
- Change the working directory
-
-@param directory (string) New working directory
-
-@status current Introduced in 2.3.0
-
-*/
-
-static int luaChdir(lua_State * L)
-{
-  const char * directory = luaL_optstring(L, 1, nullptr);
-  f_chdir(directory);
-  return 0;
 }
 
 /*luadoc
@@ -2158,7 +2168,15 @@ Get percent of already used Lua instructions in current script execution cycle.
 */
 static int luaGetUsage(lua_State * L)
 {
+#if defined(COLORLCD)
+  if (luaLvglManager && luaLvglManager->useLvglLayout()) {
+    lua_pushinteger(L, luaLvglManager->refreshInstructionsPercent);
+  } else {
+    lua_pushinteger(L, instructionsPercent);
+  }
+#else
   lua_pushinteger(L, instructionsPercent);
+#endif
   return 1;
 }
 
@@ -2310,7 +2328,6 @@ Reads characters from the serial port. The string is allowed to contain any char
 */
 static int luaSerialRead(lua_State * L)
 {
-#if defined(LUA) && !defined(CLI)
   int num = luaL_optunsigned(L, 1, 0);
 
   uint8_t str[LUA_FIFO_SIZE];
@@ -2339,9 +2356,6 @@ static int luaSerialRead(lua_State * L)
     }
   }
   lua_pushlstring(L, (const char*)str, p - str);
-#else
-  lua_pushlstring(L, "", 0);
-#endif
 
   return 1;
 }
@@ -2925,7 +2939,6 @@ LROT_BEGIN(etxlib, NULL, 0)
   LROT_FUNCENTRY( defaultChannel, luaDefaultChannel )
   LROT_FUNCENTRY( getRSSI, luaGetRSSI )
   LROT_FUNCENTRY( killEvents, luaKillEvents )
-  LROT_FUNCENTRY( chdir, luaChdir )
   LROT_FUNCENTRY( loadScript, luaLoadScript )
   LROT_FUNCENTRY( getUsage, luaGetUsage )
   LROT_FUNCENTRY( getAvailableMemory, luaGetAvailableMemory )
@@ -3075,7 +3088,7 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( TEXT_SIZE, ZoneOption::TextSize )
   LROT_NUMENTRY( ALIGNMENT, ZoneOption::Align )
   LROT_NUMENTRY( SWITCH, ZoneOption::Switch )
-  LROT_NUMENTRY( MENU_HEADER_HEIGHT, COLOR2FLAGS(MENU_HEADER_HEIGHT) )
+  LROT_NUMENTRY( MENU_HEADER_HEIGHT, COLOR2FLAGS(EdgeTxStyles::MENU_HEADER_HEIGHT) )
 
   // Colors gui/colorlcd/colors.h
   LROT_NUMENTRY( COLOR_THEME_PRIMARY1, COLOR2FLAGS(COLOR_THEME_PRIMARY1_INDEX) )
@@ -3122,8 +3135,8 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( WARNING_COLOR, COLOR2FLAGS(COLOR_THEME_WARNING_INDEX) )
 
   // Literal colors
-  LROT_NUMENTRY( BLACK, RGB2FLAGS(0x00, 0x00, 0x00) )
-  LROT_NUMENTRY( WHITE, RGB2FLAGS(0xFF, 0xFF, 0xFF) )
+  LROT_NUMENTRY( BLACK, COLOR2FLAGS(COLOR_BLACK_INDEX) )
+  LROT_NUMENTRY( WHITE, COLOR2FLAGS(COLOR_WHITE_INDEX) )
   LROT_NUMENTRY( LIGHTWHITE, RGB2FLAGS(0xEA, 0xEA, 0xEA) )
   LROT_NUMENTRY( YELLOW, RGB2FLAGS(0xFF, 0xFF, 0x00) )
   LROT_NUMENTRY( BLUE, RGB2FLAGS(0x00, 0x00, 0xFF) )

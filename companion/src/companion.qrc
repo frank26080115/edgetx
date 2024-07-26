@@ -257,6 +257,29 @@
     <file>images/simulator/T8/right-dn.png</file>
     <file>images/simulator/T8/bottom.png</file>
     <file>images/simulator/T8/top.png</file>
+    <file>images/simulator/Fatfish/F16/left.png</file>
+    <file>images/simulator/Fatfish/F16/right.png</file>
+    <file>images/simulator/Fatfish/F16/top.png</file>
+    <file>images/simulator/Fatfish/F16/bottom.png</file>
+    <file>images/simulator/JumperT12max/bottom.png</file>
+    <file>images/simulator/JumperT12max/left.png</file>
+    <file>images/simulator/JumperT12max/right.png</file>
+    <file>images/simulator/JumperT12max/right-ent.png</file>
+    <file>images/simulator/JumperT12max/top.png</file>
+    <file>images/simulator/JumperT12max/exit.png</file>
+    <file>images/simulator/JumperT12max/menu.png</file>
+    <file>images/simulator/JumperT12max/page.png</file>
+    <file>images/simulator/JumperT14/bottom.png</file>
+    <file>images/simulator/JumperT14/left.png</file>
+    <file>images/simulator/JumperT14/right.png</file>
+    <file>images/simulator/JumperT14/top.png</file>
+    <file>images/simulator/JumperT15/left.png</file>
+    <file>images/simulator/JumperT15/right.png</file>
+    <file>images/simulator/JumperT15/top.png</file>
+    <file>images/simulator/JumperT15/bottom.png</file>
+    <file>images/simulator/JumperT15/model.png</file>
+    <file>images/simulator/JumperT15/exit.png</file>
+    <file>images/simulator/JumperT15/page.png</file>
     <file>images/simulator/JumperT16/left.png</file>
     <file>images/simulator/JumperT16/right.png</file>
     <file>images/simulator/JumperT16/top.png</file>
@@ -278,6 +301,10 @@
     <file>images/simulator/JumperT18/left_tele.png</file>
     <file>images/simulator/JumperT18/right_ent.png</file>
     <file>images/simulator/JumperT18/right_rtn.png</file>
+    <file>images/simulator/JumperT20/left.png</file>
+    <file>images/simulator/JumperT20/right.png</file>
+    <file>images/simulator/JumperT20/top.png</file>
+    <file>images/simulator/JumperT20/bottom.png</file>
     <file>images/simulator/TX16S/left.png</file>
     <file>images/simulator/TX16S/right.png</file>
     <file>images/simulator/TX16S/top.png</file>
@@ -297,6 +324,10 @@
     <file>images/simulator/PL18/right.png</file>
     <file>images/simulator/PL18/top.png</file>
     <file>images/simulator/PL18/bottom.png</file>
+    <file>images/simulator/Pocket/left.png</file>
+    <file>images/simulator/Pocket/right.png</file>
+    <file>images/simulator/Pocket/top.png</file>
+    <file>images/simulator/Pocket/bottom.png</file>
     <file>images/wizard/ailerons.png</file>
     <file>images/wizard/airbrakes.png</file>
     <file>images/wizard/elevons.png</file>
@@ -1297,7 +1328,9 @@
   <qresource prefix="/layouts/">
     <file alias="mask_layout1p2.png">images/layouts/mask_layout1+2.png</file>
     <file alias="mask_layout1p3.png">images/layouts/mask_layout1+3.png</file>
+    <file alias="mask_layout1p4.png">images/layouts/mask_layout1+4.png</file>
     <file alias="mask_layout1x1.png">images/layouts/mask_layout1x1.png</file>
+    <file alias="mask_layout1x1am.png">images/layouts/mask_layout1x1.png</file>
     <file alias="mask_layout1x2.png">images/layouts/mask_layout1x2.png</file>
     <file alias="mask_layout1x3.png">images/layouts/mask_layout1x3.png</file>
     <file alias="mask_layout1x4.png">images/layouts/mask_layout1x4.png</file>

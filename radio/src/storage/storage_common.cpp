@@ -23,6 +23,11 @@
 #include "timers_driver.h"
 #include "tasks/mixer_task.h"
 #include "mixes.h"
+#include "switches.h"
+
+#if defined(COLORLCD)
+#include "view_main.h"
+#endif
 
 #if defined(USBJ_EX)
 #include "usb_joystick.h"
@@ -70,7 +75,7 @@ void preModelLoad()
 
   stopTrainer();
 #if defined(COLORLCD)
-  deleteCustomScreens();
+  LayoutFactory::deleteCustomScreens();
 #endif
 
   if (needDelay)
@@ -79,6 +84,12 @@ void preModelLoad()
 
 void postRadioSettingsLoad()
 {
+#if LCD_W == 128
+  // Prevent GVARS to be off when imported or manually modified yaml
+  // Since there is no way to have those back
+  g_eeGeneral.modelGVDisabled = false;
+#endif
+
 #if defined(PXX2)
   if (is_memclear(g_eeGeneral.ownerRegistrationID, PXX2_LEN_REGISTRATION_ID)) {
     setDefaultOwnerId();
@@ -153,8 +164,6 @@ void postModelLoad(bool alarms)
   // Load 'date time' widget if slot is empty
   if (g_model.topbarData.zones[MAX_TOPBAR_ZONES-1].widgetName[0] == 0) {
     strAppend(g_model.topbarData.zones[MAX_TOPBAR_ZONES-1].widgetName, "Date Time", WIDGET_NAME_LEN);
-    g_model.topbarData.zones[MAX_TOPBAR_ZONES-1].widgetData.options[0].type = ZOV_Color;
-    g_model.topbarData.zones[MAX_TOPBAR_ZONES-1].widgetData.options[0].value.unsignedValue = 0xFFFFFF;
     storageDirty(EE_MODEL);
   }
   // Load 'radio info' widget if slot is empty
@@ -169,6 +178,14 @@ void postModelLoad(bool alarms)
     storageDirty(EE_MODEL);
   }
 #endif
+#elif LCD_W == 128
+  // Prevent GVARS to be off when imported or manually modified yaml
+  // Since there is no way to have those back
+  g_model.modelGVDisabled = false;
+#endif
+
+#if defined(FUNCTION_SWITCHES)
+  setFSStartupPosition();
 #endif
 
   // Convert 'noGlobalFunctions' to 'radioGFDisabled'
@@ -187,30 +204,38 @@ if(g_model.rssiSource) {
 }
 
 #if defined(PXX2)
+  bool changed = false;
+
   if (is_memclear(g_model.modelRegistrationID, PXX2_LEN_REGISTRATION_ID)) {
-    memcpy(g_model.modelRegistrationID, g_eeGeneral.ownerRegistrationID, PXX2_LEN_REGISTRATION_ID);
+    if (!is_memclear(g_eeGeneral.ownerRegistrationID, PXX2_LEN_REGISTRATION_ID)) {
+      memcpy(g_model.modelRegistrationID, g_eeGeneral.ownerRegistrationID, PXX2_LEN_REGISTRATION_ID);
+      changed = true;
+    }
   }
 
   // fix colorLCD radios not writing yaml tag receivers
   if(isModulePXX2(INTERNAL_MODULE)) {
     ModuleData *intModule = &g_model.moduleData[INTERNAL_MODULE];
-
+    unsigned int oldVal = intModule->pxx2.receivers;
     for(uint8_t receiverIdx = 0; receiverIdx < 3; receiverIdx++) {
       if(intModule->pxx2.receiverName[receiverIdx][0])
         intModule->pxx2.receivers |= (1 << receiverIdx);
     }
+    if (oldVal != intModule->pxx2.receivers) changed = true;
   }
 
   if(isModulePXX2(EXTERNAL_MODULE)) {
     ModuleData *extModule = &g_model.moduleData[EXTERNAL_MODULE];
-
+    unsigned int oldVal = extModule->pxx2.receivers;
     for(uint8_t receiverIdx = 0; receiverIdx < 3; receiverIdx++) {
       if(extModule->pxx2.receiverName[receiverIdx][0])
         extModule->pxx2.receivers |= (1 << receiverIdx);
     }
+    if (oldVal != extModule->pxx2.receivers) changed = true;
   }
 
-  storageDirty(EE_MODEL);
+  if (changed)
+    storageDirty(EE_MODEL);
 #endif
 
 #if defined(MULTIMODULE) && defined(MULTI_PROTOLIST)
@@ -221,6 +246,8 @@ if(g_model.rssiSource) {
   flightReset(false);
 
   customFunctionsReset();
+
+  logicalSwitchesInit(false);
 
   restoreTimers();
 
@@ -257,10 +284,12 @@ if(g_model.rssiSource) {
 #endif
 
 #if defined(COLORLCD)
-  loadCustomScreens();
+  LayoutFactory::loadCustomScreens();
+  ViewMain::instance()->show(true);
+#else
+  LOAD_MODEL_BITMAP();
 #endif
 
-  LOAD_MODEL_BITMAP();
   LUA_LOAD_MODEL_SCRIPTS();
 
   SEND_FAILSAFE_1S();

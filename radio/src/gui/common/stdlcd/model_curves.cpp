@@ -53,7 +53,7 @@ void menuModelCurvesAll(event_t event)
   int8_t sub = menuVerticalPosition - HEADER_LINE;
 
   if (event == EVT_KEY_BREAK(KEY_ENTER) &&
-      CURVE_SELECTED() && !READ_ONLY()) {
+      CURVE_SELECTED()) {
 
     s_currIdxSubMenu = sub;
     s_currSrcRaw = MIXSRC_NONE;
@@ -156,6 +156,8 @@ void drawFunction(FnFuncP fn, uint8_t offset)
 
   for (int xv = -CURVE_SIDE_WIDTH; xv <= CURVE_SIDE_WIDTH; xv++) {
     coord_t yv = -(fn((xv * RESX) / CURVE_SIDE_WIDTH) * (CURVE_SIDE_WIDTH*2+1) / (RESX*2));
+    if (yv < -CURVE_SIDE_WIDTH) yv = -CURVE_SIDE_WIDTH;
+    if (yv > CURVE_SIDE_WIDTH) yv = CURVE_SIDE_WIDTH;
     if ((xv > -CURVE_SIDE_WIDTH) && (abs((int8_t)yv-prev_yv) > 1)) {
       int len = 0;
       if (yv > prev_yv) {
@@ -173,11 +175,13 @@ void drawFunction(FnFuncP fn, uint8_t offset)
 
 void drawCursor(FnFuncP fn, uint8_t offset)
 {
+  int16_t src = abs(s_currSrcRaw);
+
   int x512 = getValue(s_currSrcRaw);
-  if (s_currSrcRaw >= MIXSRC_FIRST_TELEM) {
+  if (src >= MIXSRC_FIRST_TELEM) {
     if (s_currScale > 0)
-      x512 = (x512 * 1024) / convertTelemValue(s_currSrcRaw - MIXSRC_FIRST_TELEM + 1, s_currScale);
-    drawSensorCustomValue(LCD_W - FW - offset, 6 * FH, (s_currSrcRaw - MIXSRC_FIRST_TELEM) / 3, x512, 0);
+      x512 = (x512 * 1024) / convertTelemValue(src - MIXSRC_FIRST_TELEM + 1, s_currScale);
+    drawSensorCustomValue(LCD_W - FW - offset, 6 * FH, (src - MIXSRC_FIRST_TELEM) / 3, x512, 0);
   }
   else {
     lcdDrawNumber(LCD_W - FW - offset, 6*FH, calcRESXto1000(x512), RIGHT | PREC1);

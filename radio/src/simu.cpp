@@ -389,9 +389,7 @@ void OpenTxSim::updateKeysAndSwitches(bool start)
     KEY_Down,      KEY_MINUS,
 #elif defined(PCBTARANIS)
     KEY_Page_Up,   KEY_MENU,
-  #if defined(KEYS_GPIO_REG_PAGE)
-    KEY_Page_Down, KEY_PAGE,
-  #endif
+    KEY_Page_Down, KEY_PAGEDN,
     KEY_Return,    KEY_ENTER,
     KEY_BackSpace, KEY_EXIT,
     KEY_Up,        KEY_PLUS,
@@ -411,15 +409,12 @@ void OpenTxSim::updateKeysAndSwitches(bool start)
   }
 
 #ifdef __APPLE__
-  // gruvin: Can't use Function keys on the Mac -- too many other app conflicts.
-  //         The ordering of these keys, Q/W,E/R,T/Y,U/I matches the on screen
-  //         order of trim sliders
   static FXuint trimKeys[] = { KEY_1, KEY_2, KEY_3, KEY_4, KEY_5, KEY_6, KEY_7, KEY_8, KEY_9, KEY_0 };
 #else
   static FXuint trimKeys[] = { KEY_F1, KEY_F2, KEY_F3, KEY_F4, KEY_F5, KEY_F6, KEY_F7, KEY_F8, KEY_F9, KEY_F10, KEY_F11, KEY_F12 };
 #endif
 
-  for (unsigned i=0; i<sizeof(trimKeys)/(2*sizeof(FXuint)); i++) {
+  for (unsigned i = 0; i < sizeof(trimKeys) / sizeof(FXuint); i++) {
     simuSetTrim(i, getApp()->getKeyState(trimKeys[i]));
   }
 

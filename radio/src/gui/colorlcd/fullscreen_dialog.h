@@ -19,18 +19,9 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _FULLSCREEN_DIALOG_H_
-#define _FULLSCREEN_DIALOG_H_
+#pragma once
 
 #include "dialog.h"
-
-enum DialogType {
-  WARNING_TYPE_ALERT,
-  WARNING_TYPE_ASTERISK,
-  WARNING_TYPE_CONFIRM,
-  WARNING_TYPE_INPUT,
-  WARNING_TYPE_INFO
-};
 
 class StaticText;
 
@@ -50,10 +41,9 @@ class FullScreenDialog : public Window
 
     void setMessage(std::string text);
 
-    void paint(BitmapBuffer * dc) override;
-
     void onEvent(event_t event) override;
     void onCancel() override;
+    bool onLongPress() override;
 
     void deleteLater(bool detach = true, bool trash = true) override;
 
@@ -67,6 +57,15 @@ class FullScreenDialog : public Window
     void runForever(bool checkPwr = true);
 
     void closeDialog();
+
+    static LAYOUT_VAL(ALERT_FRAME_TOP, 50, 70)
+    static LAYOUT_VAL(ALERT_FRAME_HEIGHT, LCD_H - 120, LCD_H - 2 * ALERT_FRAME_TOP)
+    static LAYOUT_VAL(ALERT_BITMAP_TOP, ALERT_FRAME_TOP + 25, ALERT_FRAME_TOP + 15)
+    static LAYOUT_VAL(ALERT_BITMAP_LEFT, 20, 15)
+    static LAYOUT_VAL(ALERT_TITLE_TOP, ALERT_FRAME_TOP + 5, ALERT_FRAME_TOP + 10)
+    static LAYOUT_VAL(ALERT_TITLE_LEFT, 146, 140)
+    static LAYOUT_VAL(ALERT_MESSAGE_TOP, ALERT_TITLE_TOP + 85, ALERT_TITLE_TOP + 130)
+    static LAYOUT_VAL(ALERT_MESSAGE_LEFT, ALERT_TITLE_LEFT, 15)
 
   protected:
     uint8_t type;
@@ -82,8 +81,5 @@ class FullScreenDialog : public Window
     virtual void delayedInit() {}
     void build();
 
-    static void long_pressed(lv_event_t* e);
     static void on_draw(lv_event_t* e);
 };
-
-#endif // _FULLSCREEN_DIALOG_H_

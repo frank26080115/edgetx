@@ -21,7 +21,7 @@
 
 #pragma once
 
-#include "form.h"
+#include "window.h"
 
 class ViewMainMenu : public Window
 {
@@ -31,6 +31,9 @@ class ViewMainMenu : public Window
   void onCancel() override;
   void onClicked() override;
   void deleteLater(bool detach = true, bool trash = true) override;
+
+  static LAYOUT_VAL(QM_COLS, 4, 3)
+  static LAYOUT_VAL(QM_ROWS, 2, 3)
 
  protected:
   std::function<void()> closeHandler = nullptr;

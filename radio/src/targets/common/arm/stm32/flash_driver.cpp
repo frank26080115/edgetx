@@ -19,20 +19,34 @@
  * GNU General Public License for more details.
  */
 
+#include "stm32_cmsis.h"
+#include "stm32_hal.h"
+
 #include "board.h"
 #include "hal/watchdog_driver.h"
 
-#if defined(STM32F4)
-#include "stm32f4xx_flash.h"
-#elif defined(STM32F2)
-#include "stm32f2xx_flash.h"
+
+#if defined(STM32H7)
+  #define FLASH_CR FLASH->CR1
+  #define FLASH_SR FLASH->SR1
+#else
+  #define FLASH_CR FLASH->CR
+  #define FLASH_SR FLASH->SR
+#endif
+
+#if !defined(FLASH_CR_START)
+#  define FLASH_CR_START FLASH_CR_STRT
+#endif
+
+#if !defined(FLASH_SR_BUSY)
+#  define FLASH_SR_BUSY FLASH_SR_BSY
 #endif
 
 void waitFlashIdle()
 {
   do {
     WDG_RESET();
-  } while (FLASH->SR & FLASH_FLAG_BSY);
+  } while (FLASH_SR & FLASH_SR_BUSY);
 }
 
 //After reset, write is not allowed in the Flash control register (FLASH_CR) to protect the
@@ -46,38 +60,41 @@ void waitFlashIdle()
 //FLASH_CR register.
 void unlockFlash()
 {
-  FLASH->KEYR = 0x45670123;
-  FLASH->KEYR = 0xCDEF89AB;
+#if defined(STM32H7)
+  FLASH->KEYR1 = FLASH_KEY1;
+  FLASH->KEYR1 = FLASH_KEY2;
+#else
+  FLASH->KEYR = FLASH_KEY1;
+  FLASH->KEYR = FLASH_KEY2;
+#endif
 }
 
 void lockFlash()
 {
   waitFlashIdle();
-  FLASH->CR |= FLASH_CR_LOCK;
+  FLASH_CR |= FLASH_CR_LOCK;
 }
 
-#define SECTOR_MASK               ((uint32_t)0xFFFFFF07)
+#define SECTOR_MASK ((uint32_t)0xFFFFFF07)
 
 void eraseSector(uint32_t sector)
 {
-  WDG_ENABLE(3000); // some sectors may take > 1s to erase
-
   waitFlashIdle();
 
-  FLASH->CR &= CR_PSIZE_MASK;
-  FLASH->CR |= FLASH_PSIZE_WORD;
-  FLASH->CR &= SECTOR_MASK;
-  FLASH->CR |= FLASH_CR_SER | (sector << 3);
-  FLASH->CR |= FLASH_CR_STRT;
+#if defined(FLASH_CR_PSIZE)
+  FLASH_CR &= ~FLASH_CR_PSIZE;
+  FLASH_CR |= FLASH_CR_PSIZE_1;
+#endif
+  FLASH_CR &= SECTOR_MASK;
+  FLASH_CR |= FLASH_CR_SER | (sector << 3);
+  FLASH_CR |= FLASH_CR_START;
 
   /* Wait for operation to be completed */
   waitFlashIdle();
 
   /* if the erase operation is completed, disable the SER Bit */
-  FLASH->CR &= (~FLASH_CR_SER);
-  FLASH->CR &= SECTOR_MASK;
-
-  WDG_ENABLE(WDG_DURATION);
+  FLASH_CR &= (~FLASH_CR_SER);
+  FLASH_CR &= SECTOR_MASK;
 }
 
 void flashWrite(uint32_t * address, const uint32_t * buffer) // page size is 256 bytes
@@ -136,7 +153,7 @@ void flashWrite(uint32_t * address, const uint32_t * buffer) // page size is 256
 
 #undef SECTOR_ADDRESS
 #undef FLASH_BANK
-    
+
   for (uint32_t i=0; i<FLASH_PAGESIZE/4; i++) {
     /* Device voltage range supposed to be [2.7V to 3.6V], the operation will
      be done by word */
@@ -144,15 +161,17 @@ void flashWrite(uint32_t * address, const uint32_t * buffer) // page size is 256
     // Wait for last operation to be completed
     waitFlashIdle();
 
-    FLASH->CR &= CR_PSIZE_MASK;
-    FLASH->CR |= FLASH_PSIZE_WORD;
-    FLASH->CR |= FLASH_CR_PG;
+#if defined(FLASH_CR_PSIZE)
+    FLASH_CR &= ~FLASH_CR_PSIZE;
+    FLASH_CR |= FLASH_CR_PSIZE_1;
+#endif
+    FLASH_CR |= FLASH_CR_PG;
 
     *address = *buffer;
 
     /* Wait for operation to be completed */
     waitFlashIdle();
-    FLASH->CR &= ~FLASH_CR_PG;
+    FLASH_CR &= ~FLASH_CR_PG;
 
     /* Check the written value */
     if (*address != *buffer) {

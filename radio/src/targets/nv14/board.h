@@ -39,13 +39,11 @@
 #define LUA_MEM_EXTRA_MAX               (2 MB)    // max allowed memory usage for Lua bitmaps (in bytes)
 #define LUA_MEM_MAX                     (6 MB)    // max allowed memory usage for complete Lua  (in bytes), 0 means unlimited
 
+#define BOOTLOADER_KEYS 0x42
+
 extern uint16_t sessionTimer;
 
 #define SLAVE_MODE()                    (g_model.trainerData.mode == TRAINER_MODE_SLAVE)
-
-// initilizes the board for the bootloader
-#define HAVE_BOARD_BOOTLOADER_INIT 1
-void boardBootloaderInit();
 
 // Board driver
 void boardInit();
@@ -63,9 +61,6 @@ void flashWrite(uint32_t * address, const uint32_t * buffer);
 uint32_t isFirmwareStart(const uint8_t * buffer);
 uint32_t isBootloaderStart(const uint8_t * buffer);
 
-// SDRAM driver
-void SDRAM_Init();
-
 enum {
   PCBREV_NV14 = 0,
   PCBREV_EL18 = 1,
@@ -82,24 +77,24 @@ extern HardwareOptions hardwareOptions;
 #define INTERNAL_MODULE_OFF()                                     \
   do {                                                            \
     if (hardwareOptions.pcbrev == PCBREV_NV14)                    \
-      GPIO_SetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN);   \
+      gpio_set(INTMODULE_PWR_GPIO);				  \
     else                                                          \
-      GPIO_ResetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN); \
+      gpio_clear(INTMODULE_PWR_GPIO);				  \
   } while (0)
 
 #define INTERNAL_MODULE_ON()                                      \
   do {                                                            \
     if (hardwareOptions.pcbrev == PCBREV_NV14)                    \
-      GPIO_ResetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN); \
+      gpio_clear(INTMODULE_PWR_GPIO);				  \
     else                                                          \
-      GPIO_SetBits(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN);   \
+      gpio_set(INTMODULE_PWR_GPIO);				  \
   } while (0)
 
-#define EXTERNAL_MODULE_ON()            GPIO_SetBits(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN)
-#define EXTERNAL_MODULE_OFF()           GPIO_ResetBits(EXTMODULE_PWR_GPIO, EXTMODULE_PWR_GPIO_PIN)
+#define EXTERNAL_MODULE_ON()            gpio_set(EXTMODULE_PWR_GPIO)
+#define EXTERNAL_MODULE_OFF()           gpio_clear(EXTMODULE_PWR_GPIO)
 
-#define BLUETOOTH_MODULE_ON()           GPIO_ResetBits(BLUETOOTH_ON_GPIO, BLUETOOTH_ON_GPIO_PIN)
-#define BLUETOOTH_MODULE_OFF()          GPIO_SetBits(BLUETOOTH_ON_GPIO, BLUETOOTH_ON_GPIO_PIN)
+#define BLUETOOTH_MODULE_ON()           gpio_clear(BLUETOOTH_ON_GPIO)
+#define BLUETOOTH_MODULE_OFF()          gpio_set(BLUETOOTH_ON_GPIO)
 
 #else
 
@@ -242,7 +237,6 @@ void hapticOff();
 void hapticOn(uint32_t pwmPercent);
 
 // Second serial port driver
-//#define AUX_SERIAL
 #define DEBUG_BAUDRATE                  115200
 #define LUA_DEFAULT_BAUDRATE            115200
 

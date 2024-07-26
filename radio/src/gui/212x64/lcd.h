@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _LCD_H_
-#define _LCD_H_
+#pragma once
 
 #include <inttypes.h>
 
@@ -28,8 +27,9 @@
 #include "board.h"
 
 #define BOX_WIDTH                      31
-#define CENTER                         "\015"
 #define CENTER_OFS                     (7*FW-FW/2)
+#define OFS_CHECKTRIMS                 CENTER_OFS+(9*FW)
+#define INDENT_WIDTH                   (FW/2)
 
 #define FW                             6
 #define FWNUM                          5
@@ -105,6 +105,7 @@ void lcdDrawSizedText(coord_t x, coord_t y, const char * s, unsigned char len, L
 void lcdDrawText(coord_t x, coord_t y, const char * s);
 void lcdDrawSizedText(coord_t x, coord_t y, const char * s, unsigned char len);
 void lcdDrawTextAlignedLeft(coord_t y, const char * s);
+void lcdDrawTextIndented(coord_t y, const char * s);
 
 void lcdDrawHexNumber(coord_t x, coord_t y, uint32_t val, LcdFlags mode=0);
 void lcdDrawNumber(coord_t x, coord_t y, int32_t val, LcdFlags mode, uint8_t len);
@@ -113,7 +114,7 @@ void lcdDrawNumber(coord_t x, coord_t y, int32_t val, LcdFlags mode=0);
 void drawModelName(coord_t x, coord_t y, char *name, uint8_t id, LcdFlags att);
 void drawSwitch(coord_t x, coord_t y, int32_t swtch, LcdFlags att=0, bool autoBold = true);
 void drawMainControlLabel(coord_t x, coord_t y, uint8_t idx, LcdFlags att=0);
-void drawSource(coord_t x, coord_t y, uint32_t idx, LcdFlags att=0);
+void drawSource(coord_t x, coord_t y, mixsrc_t idx, LcdFlags att=0);
 void drawCurveName(coord_t x, coord_t y, int8_t idx, LcdFlags att=0);
 void drawTimerMode(coord_t x, coord_t y, swsrc_t mode, LcdFlags att=0);
 
@@ -255,6 +256,3 @@ private:
 
   coord_t pos;
 };
-
-
-#endif // _LCD_H_

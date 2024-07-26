@@ -33,6 +33,7 @@
 #include "hal.h"
 #include "debug.h"
 
+#include "usb_descriptor.h"
 #include "usbd_storage_msd.h"
 
 #include <string.h>
@@ -63,13 +64,6 @@ enum MassstorageLuns {
 #endif
   STORAGE_LUN_NBR
 };
-
-
-// TODO: remove hack
-#define USB_NAME                     "RM TX16S"
-#define USB_MANUFACTURER             'R', 'M', '_', 'T', 'X', ' ', ' ', ' '  /* 8 bytes */
-#define USB_PRODUCT                  'R', 'M', ' ', 'T', 'X', '1', '6', 'S'  /* 8 Bytes */
-
 
 /** USB Mass storage Standard Inquiry Data. */
 const uint8_t STORAGE_Inquirydata_FS[] = {/* 36 */
@@ -142,14 +136,7 @@ USBD_StorageTypeDef USBD_Storage_Interface_fops_FS =
 
 int8_t STORAGE_Init_FS(uint8_t lun)
 {
-  NVIC_SetPriority(SDIO_IRQn, 0);
-  NVIC_EnableIRQ(SDIO_IRQn);
-
-/* TODO if no SD ... if( SD_Init() != 0)
-  {
-    return (-1);
-  }
-*/
+  // TODO: call generic storage init
   return (USBD_OK);
 }
 
@@ -262,7 +249,7 @@ int8_t STORAGE_Read_FS (uint8_t lun,
   */
 int8_t STORAGE_Write_FS(uint8_t lun, uint8_t *buf, uint32_t blk_addr, uint16_t blk_len)
 {
-  WATCHDOG_SUSPEND(100/*1s*/);
+  WATCHDOG_SUSPEND(500/*5s*/);
 
 #if defined(FWDRIVE)
   if (lun == STORAGE_EEPROM_LUN)	{

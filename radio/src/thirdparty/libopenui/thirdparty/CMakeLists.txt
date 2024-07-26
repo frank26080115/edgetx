@@ -1,19 +1,5 @@
 set(LVGL_SOURCES_MINIMAL
-  core/lv_group.c
-  core/lv_obj.c
-  core/lv_event.c
-  core/lv_indev.c
-  core/lv_obj_scroll.c
-  core/lv_obj_draw.c
-  core/lv_disp.c
-  core/lv_obj_style.c
-  core/lv_theme.c
-  core/lv_obj_style_gen.c
   core/lv_refr.c
-  core/lv_indev_scroll.c
-  core/lv_obj_class.c
-  core/lv_obj_tree.c
-  core/lv_obj_pos.c
 
   draw/lv_draw_mask.c
   draw/lv_img_cache.c
@@ -55,7 +41,6 @@ set(LVGL_SOURCES_MINIMAL
   draw/sdl/lv_draw_sdl_line.c
   draw/sdl/lv_draw_sdl_composite.c
   
-  hal/lv_hal_indev.c
   hal/lv_hal_disp.c
   hal/lv_hal_tick.c
 
@@ -91,33 +76,23 @@ set(LVGL_SOURCES_MINIMAL
 
 set(LVGL_SOURCES
   ${LVGL_SOURCES_MINIMAL}
-  # font/lv_font_unscii_8.c
-  # font/lv_font_unscii_16.c
-  # font/lv_font_simsun_16_cjk.c
-  # font/lv_font_dejavu_16_persian_hebrew.c
-  # font/lv_font_montserrat_8.c
-  # font/lv_font_montserrat_10.c
-  # font/lv_font_montserrat_12.c
-  # font/lv_font_montserrat_12_subpx.c
-  # font/lv_font_montserrat_14.c
-  # font/lv_font_montserrat_16.c
-  # font/lv_font_montserrat_18.c
-  # font/lv_font_montserrat_20.c
-  # font/lv_font_montserrat_22.c
-  # font/lv_font_montserrat_24.c
-  # font/lv_font_montserrat_26.c
-  # font/lv_font_montserrat_28.c
-  # font/lv_font_montserrat_28_compressed.c
-  # font/lv_font_montserrat_30.c
-  # font/lv_font_montserrat_32.c
-  # font/lv_font_montserrat_34.c
-  # font/lv_font_montserrat_36.c
-  # font/lv_font_montserrat_38.c
-  # font/lv_font_montserrat_40.c
-  # font/lv_font_montserrat_42.c
-  # font/lv_font_montserrat_44.c
-  # font/lv_font_montserrat_46.c
-  # font/lv_font_montserrat_48.c
+  core/lv_group.c
+  core/lv_obj.c
+  core/lv_event.c
+  core/lv_indev.c
+  core/lv_obj_scroll.c
+  core/lv_obj_draw.c
+  core/lv_disp.c
+  core/lv_obj_style.c
+  core/lv_theme.c
+  core/lv_obj_style_gen.c
+  core/lv_indev_scroll.c
+  core/lv_obj_class.c
+  core/lv_obj_tree.c
+  core/lv_obj_pos.c
+
+  hal/lv_hal_indev.c
+
   widgets/lv_line.c
   widgets/lv_dropdown.c
   widgets/lv_objx_templ.c
@@ -174,17 +149,7 @@ set(LVGL_SOURCES
   extra/widgets/span/lv_span.c
   extra/widgets/keyboard/lv_keyboard.c
   extra/widgets/msgbox/lv_msgbox.c
-  # extra/themes/basic/lv_theme_basic.c
-  # extra/themes/default/lv_theme_default.c
-  # extra/themes/mono/lv_theme_mono.c
 )
 
-foreach(LVGL_FILE ${LVGL_SOURCES_MINIMAL})
-  set(LVGL_SRC_FILES_MINIMAL ${LVGL_SRC_FILES_MINIMAL} ${LVGL_SRC_DIR}/${LVGL_FILE})
-endforeach()
-
-foreach(LVGL_FILE ${LVGL_SOURCES})
-  set(LVGL_SRC_FILES ${LVGL_SRC_FILES} ${LVGL_SRC_DIR}/${LVGL_FILE})
-endforeach()
-
-set(SRC ${SRC} ${LVGL_SRC_FILES})
+list(TRANSFORM LVGL_SOURCES_MINIMAL PREPEND ${LVGL_SRC_DIR}/)
+list(TRANSFORM LVGL_SOURCES PREPEND ${LVGL_SRC_DIR}/)

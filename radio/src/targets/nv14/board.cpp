@@ -18,12 +18,14 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
- 
+
 #include "stm32_adc.h"
+#include "stm32_gpio.h"
 
 #include "board.h"
 #include "boards/generic_stm32/module_ports.h"
 
+#include "hal/gpio.h"
 #include "hal/adc_driver.h"
 #include "hal/trainer_driver.h"
 #include "hal/switch_driver.h"
@@ -65,46 +67,13 @@ void delay_self(int count)
    }
 }
 
-#define RCC_AHB1PeriphMinimum (PWR_RCC_AHB1Periph |	\
-                               LCD_RCC_AHB1Periph |\
-                               BACKLIGHT_RCC_AHB1Periph |\
-                               SDRAM_RCC_AHB1Periph \
-                              )
-#define RCC_AHB1PeriphOther   (SD_RCC_AHB1Periph |\
-                               AUDIO_RCC_AHB1Periph |\
-                               MONITOR_RCC_AHB1Periph |\
-                               TELEMETRY_RCC_AHB1Periph |\
-                               AUDIO_RCC_AHB1Periph |\
-                               HAPTIC_RCC_AHB1Periph |\
-                               INTMODULE_RCC_AHB1Periph |\
-                               EXTMODULE_RCC_AHB1Periph\
-                              )
-#define RCC_AHB3PeriphMinimum (SDRAM_RCC_AHB3Periph)
-
-#define RCC_APB1PeriphMinimum (BACKLIGHT_RCC_APB1Periph)
-
-#define RCC_APB1PeriphOther   (TELEMETRY_RCC_APB1Periph)
-#define RCC_APB2PeriphMinimum (LCD_RCC_APB2Periph)
-
-#define RCC_APB2PeriphOther   (HAPTIC_RCC_APB2Periph |\
-                               AUDIO_RCC_APB2Periph \
-                              )
-
 static uint8_t boardGetPcbRev()
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
-
-  RCC_AHB1PeriphClockCmd(INTMODULE_RCC_AHB1Periph, ENABLE);
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_OD;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure.GPIO_Pin = INTMODULE_PWR_GPIO_PIN;
-  GPIO_Init(INTMODULE_PWR_GPIO, &GPIO_InitStructure);
+  gpio_init(INTMODULE_PWR_GPIO, GPIO_IN, GPIO_PIN_SPEED_LOW);
   delay_ms(1); // delay to let the input settle, else it does not work properly
 
   // detect NV14 vs EL18
-  if (GPIO_ReadInputDataBit(INTMODULE_PWR_GPIO, INTMODULE_PWR_GPIO_PIN) == Bit_SET) {
+  if (gpio_read(INTMODULE_PWR_GPIO)) {
     // pull-up connected: EL18
     return PCBREV_EL18;
   } else {
@@ -113,17 +82,10 @@ static uint8_t boardGetPcbRev()
   }
 }
 
-void boardBootloaderInit()
+void boardBLInit()
 {
-#if defined(USB_SW_PIN)
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_OUT;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_NOPULL;
-  GPIO_InitStructure.GPIO_Pin = USB_SW_PIN;
-  GPIO_Init(USB_SW_GPOIO, &GPIO_InitStructure);
-  RCC_AHB1PeriphClockCmd(USB_SW_AHB1Periph_GPIO, ENABLE);
+#if defined(USB_SW_GPIO)
+  gpio_init(USB_SW_GPIO, GPIO_OUT, GPIO_PIN_SPEED_LOW);
 #endif
 
   // detect NV14 vs EL18
@@ -132,14 +94,7 @@ void boardBootloaderInit()
 
 static void monitorInit()
 {
-  GPIO_InitTypeDef GPIO_InitStructure;
-  GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN;
-  GPIO_InitStructure.GPIO_Speed = GPIO_Speed_2MHz;
-  GPIO_InitStructure.GPIO_OType = GPIO_OType_PP;
-  GPIO_InitStructure.GPIO_PuPd = GPIO_PuPd_DOWN;
-
-  GPIO_InitStructure.GPIO_Pin = VBUS_MONITOR_PIN;
-  GPIO_Init(GPIOJ, &GPIO_InitStructure);
+  gpio_init(VBUS_MONITOR_GPIO, GPIO_IN, GPIO_PIN_SPEED_LOW);
 }
 
 void boardInit()
@@ -149,11 +104,6 @@ void boardInit()
 #endif
 
 #if !defined(SIMU)
-  RCC_AHB1PeriphClockCmd(RCC_AHB1PeriphMinimum | RCC_AHB1PeriphOther, ENABLE);
-  RCC_AHB3PeriphClockCmd(RCC_AHB3PeriphMinimum, ENABLE);
-  RCC_APB1PeriphClockCmd(RCC_APB1PeriphMinimum | RCC_APB1PeriphOther, ENABLE);
-  RCC_APB2PeriphClockCmd(RCC_APB2PeriphMinimum | RCC_APB2PeriphOther, ENABLE);
-
   // enable interrupts
   __enable_irq();
 #endif
@@ -161,7 +111,7 @@ void boardInit()
   // detect NV14 vs EL18
   hardwareOptions.pcbrev = boardGetPcbRev();
 
-#if defined(DEBUG)
+#if defined(DEBUG) && defined(AUX_SERIAL)
   serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
   serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
 #endif
@@ -235,13 +185,13 @@ void boardInit()
   lcdSetInitalFrameBuffer(lcdFront->getData());
 
 #if defined(DEBUG)
-  DBGMCU_APB1PeriphConfig(
+/*  DBGMCU_APB1PeriphConfig(
       DBGMCU_IWDG_STOP | DBGMCU_TIM1_STOP | DBGMCU_TIM2_STOP |
           DBGMCU_TIM3_STOP | DBGMCU_TIM4_STOP | DBGMCU_TIM5_STOP |
           DBGMCU_TIM6_STOP | DBGMCU_TIM7_STOP | DBGMCU_TIM8_STOP |
           DBGMCU_TIM9_STOP | DBGMCU_TIM10_STOP | DBGMCU_TIM11_STOP |
           DBGMCU_TIM12_STOP | DBGMCU_TIM13_STOP | DBGMCU_TIM14_STOP,
-      ENABLE);
+      ENABLE);*/
 #endif
 }
 

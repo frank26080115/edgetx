@@ -35,6 +35,34 @@ class LcdWidget;
 class RadioKeyWidget;
 class RadioUiAction;
 
+// Match with /radio/src/hal/key_driver.h
+enum EnumKeys {
+  KEY_MENU,
+  KEY_EXIT,
+  KEY_ENTER,
+
+  KEY_PAGEUP,
+  KEY_PAGEDN,
+
+  KEY_UP,
+  KEY_DOWN,
+
+  KEY_LEFT,
+  KEY_RIGHT,
+
+  KEY_PLUS,
+  KEY_MINUS,
+
+  KEY_MODEL,
+  KEY_TELE,
+  KEY_SYS,
+
+  KEY_SHIFT,
+  KEY_BIND,
+
+  MAX_KEYS
+};
+
 /*
  * This is a base class for the main hardware-specific radio user interface, including LCD screen and navigation buttons/widgets.
  * It is responsible for hanlding all interactions with this part of the simulation (vs. common radio widgets like sticks/switches/knobs).
@@ -116,13 +144,19 @@ namespace Ui {
   class SimulatedUIWidgetJumperT12;
   class SimulatedUIWidgetJumperTLITE;
   class SimulatedUIWidgetJumperTPRO;
+  class SimulatedUIWidgetJumperT12max;
+  class SimulatedUIWidgetJumperT14;
+  class SimulatedUIWidgetJumperT15;
   class SimulatedUIWidgetJumperT16;
   class SimulatedUIWidgetJumperT18;
+  class SimulatedUIWidgetJumperT20;
   class SimulatedUIWidgetTX16S;
   class SimulatedUIWidgetTX12;
   class SimulatedUIWidgetZorro;
   class SimulatedUIWidgetBoxer;
+  class SimulatedUIWidgetPocket;
   class SimulatedUIWidgetT8;
+  class SimulatedUIWidgetFatfishF16;
   class SimulatedUIWidgetNV14;
   class SimulatedUIWidgetEL18;
   class SimulatedUIWidgetPL18;
@@ -300,6 +334,18 @@ class SimulatedUIWidgetJumperTPRO: public SimulatedUIWidget
     Ui::SimulatedUIWidgetJumperTPRO * ui;
 };
 
+class SimulatedUIWidgetJumperT15: public SimulatedUIWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SimulatedUIWidgetJumperT15(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetJumperT15();
+
+private:
+    Ui::SimulatedUIWidgetJumperT15 * ui;
+};
+
 class SimulatedUIWidgetJumperT16: public SimulatedUIWidget
 {
   Q_OBJECT
@@ -310,6 +356,30 @@ class SimulatedUIWidgetJumperT16: public SimulatedUIWidget
 
   private:
     Ui::SimulatedUIWidgetJumperT16 * ui;
+};
+
+class SimulatedUIWidgetJumperT12max: public SimulatedUIWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SimulatedUIWidgetJumperT12max(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetJumperT12max();
+
+private:
+    Ui::SimulatedUIWidgetJumperT12max * ui;
+};
+
+class SimulatedUIWidgetJumperT14: public SimulatedUIWidget
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetJumperT14(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetJumperT14();
+
+  private:
+    Ui::SimulatedUIWidgetJumperT14 * ui;
 };
 
 class SimulatedUIWidgetJumperT18: public SimulatedUIWidget
@@ -324,6 +394,18 @@ class SimulatedUIWidgetJumperT18: public SimulatedUIWidget
     Ui::SimulatedUIWidgetJumperT18 * ui;
 };
 
+class SimulatedUIWidgetJumperT20: public SimulatedUIWidget
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetJumperT20(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetJumperT20();
+
+  private:
+    Ui::SimulatedUIWidgetJumperT20 * ui;
+};
+
 class SimulatedUIWidgetTX12: public SimulatedUIWidget
 {
   Q_OBJECT
@@ -334,6 +416,18 @@ class SimulatedUIWidgetTX12: public SimulatedUIWidget
 
   private:
     Ui::SimulatedUIWidgetTX12 * ui;
+};
+
+class SimulatedUIWidgetTX16S: public SimulatedUIWidget
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetTX16S(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetTX16S();
+
+  private:
+    Ui::SimulatedUIWidgetTX16S * ui;
 };
 
 class SimulatedUIWidgetZorro: public SimulatedUIWidget
@@ -360,6 +454,18 @@ class SimulatedUIWidgetBoxer: public SimulatedUIWidget
     Ui::SimulatedUIWidgetBoxer * ui;
 };
 
+class SimulatedUIWidgetPocket: public SimulatedUIWidget
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetPocket(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetPocket();
+
+  private:
+    Ui::SimulatedUIWidgetPocket * ui;
+};
+
 class SimulatedUIWidgetT8: public SimulatedUIWidget
 {
 Q_OBJECT
@@ -372,16 +478,16 @@ private:
   Ui::SimulatedUIWidgetT8 * ui;
 };
 
-class SimulatedUIWidgetTX16S: public SimulatedUIWidget
+class SimulatedUIWidgetFatfishF16: public SimulatedUIWidget
 {
   Q_OBJECT
 
   public:
-    explicit SimulatedUIWidgetTX16S(SimulatorInterface * simulator, QWidget * parent = nullptr);
-    virtual ~SimulatedUIWidgetTX16S();
+    explicit SimulatedUIWidgetFatfishF16(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetFatfishF16();
 
   private:
-    Ui::SimulatedUIWidgetTX16S * ui;
+    Ui::SimulatedUIWidgetFatfishF16 * ui;
 };
 
 class SimulatedUIWidgetNV14: public SimulatedUIWidget

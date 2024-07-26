@@ -151,8 +151,10 @@ static void _config_dma_streams(const stm32_spi_t* spi)
   dmaInit.PeriphOrM2MSrcAddress = (uint32_t)&spi->SPIx->DR;
   dmaInit.MemoryOrM2MDstIncMode = LL_DMA_MEMORY_INCREMENT;
   dmaInit.Priority = LL_DMA_PRIORITY_VERYHIGH;
-  dmaInit.FIFOMode = LL_DMA_FIFOMODE_ENABLE;
-  dmaInit.FIFOThreshold = LL_DMA_FIFOTHRESHOLD_FULL;
+  dmaInit.FIFOMode = spi->DMA_FIFOMode;
+  dmaInit.FIFOThreshold = spi->DMA_FIFOThreshold;
+  dmaInit.MemoryOrM2MDstDataSize = spi->DMA_MemoryOrM2MDstDataSize;
+  dmaInit.MemBurst = spi->DMA_MemBurst;
 
   dmaInit.Direction = LL_DMA_DIRECTION_PERIPH_TO_MEMORY;
   LL_DMA_Init(spi->DMA, spi->rxDMA_Stream, &dmaInit);
@@ -162,7 +164,7 @@ static void _config_dma_streams(const stm32_spi_t* spi)
 }
 #endif
 
-void stm32_spi_init(const stm32_spi_t* spi)
+void stm32_spi_init(const stm32_spi_t* spi, uint32_t data_width)
 {
   _init_gpios(spi);
 
@@ -176,6 +178,7 @@ void stm32_spi_init(const stm32_spi_t* spi)
   spiInit.TransferDirection = LL_SPI_FULL_DUPLEX;
   spiInit.Mode = LL_SPI_MODE_MASTER;
   spiInit.NSS = LL_SPI_NSS_SOFT;
+  spiInit.DataWidth = data_width;
 
   LL_SPI_Init(SPIx, &spiInit);
   LL_SPI_Enable(SPIx);
@@ -265,7 +268,7 @@ uint16_t stm32_spi_dma_receive_bytes(const stm32_spi_t* spi,
 {
 #if defined(USE_SPI_DMA)
   if (!spi->DMA) {
-    return stm32_spi_transfer_bytes(spi, 0, data, length);
+    return stm32_spi_transfer_bytes(spi, nullptr, data, length);
   }
 
   if (((uintptr_t)data < SRAM_BASE) || ((uintptr_t)data & 3)) {
@@ -298,7 +301,7 @@ uint16_t stm32_spi_dma_receive_bytes(const stm32_spi_t* spi,
   
   return length;
 #else
-  return stm32_spi_transfer_bytes(spi, 0, data, length);
+  return stm32_spi_transfer_bytes(spi, nullptr, data, length);
 #endif
 }
 
@@ -307,7 +310,7 @@ uint16_t stm32_spi_dma_transmit_bytes(const stm32_spi_t* spi,
 {
 #if defined(USE_SPI_DMA)
   if (!spi->DMA) {
-    return stm32_spi_transfer_bytes(spi, data, 0, length);
+    return stm32_spi_transfer_bytes(spi, data, nullptr, length);
   }
 
   if (((uintptr_t)data < SRAM_BASE) || ((uintptr_t)data & 3)) {

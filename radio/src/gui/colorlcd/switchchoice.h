@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _SWITCHCHOICE_H_
-#define _SWITCHCHOICE_H_
+#pragma once
 
 #include "choice.h"
 #include "form.h"
@@ -34,8 +33,6 @@ class SwitchChoice : public Choice
                std::function<int16_t()> getValue,
                std::function<void(int16_t)> setValue);
 
-  static void LongPressHandler(void* data);
-
  protected:
   friend SwitchChoiceMenuToolbar;
 
@@ -43,12 +40,13 @@ class SwitchChoice : public Choice
 
   void setValue(int value) override;
   int getIntValue() const override;
+  bool onLongPress() override;
 
   void invertChoice();
+
+  void openMenu() override;
 
 #if defined(DEBUG_WINDOWS)
   std::string getName() const override { return "SwitchChoice"; }
 #endif
 };
-
-#endif  // _SWITCHCHOICE_H_

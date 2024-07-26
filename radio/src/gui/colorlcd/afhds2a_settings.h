@@ -21,22 +21,21 @@
 
 #pragma once
 
-#include "form.h"
-#include "choice.h"
+#include "window.h"
 #include "module_setup.h"
 
 struct ModuleData;
 
-class AFHDS2ASettings : public FormWindow, public ModuleOptions
+class AFHDS2ASettings : public Window, public ModuleOptions
 {
   uint8_t moduleIdx;
   ModuleData* md;
   FlexGridLayout grid;
-  tmr10ms_t lastRefresh = 0;
 
   Window* afhds2OptionsLabel = nullptr;
   Window* afhds2ProtoOpts = nullptr;
 #if defined(PCBNV14)
+  bool hasRFPower = false;
   Window* afhds2RFPowerText = nullptr;
   Window* afhds2RFPowerChoice = nullptr;
 #endif  

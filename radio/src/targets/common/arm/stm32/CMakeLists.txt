@@ -83,7 +83,6 @@ if(NOT NATIVE_BUILD)
   add_library(stm32_drivers OBJECT EXCLUDE_FROM_ALL
     ${STM32_DRIVER_DIR}/stm32_hal.cpp
     ${STM32_DRIVER_DIR}/timers_driver.cpp
-    ${STM32_DRIVER_DIR}/sdcard_spi.cpp
     ${STM32_DRIVER_DIR}/diskio_spi.cpp
     ${STM32_DRIVER_DIR}/stm32_exti_driver.cpp
     ${STM32_DRIVER_DIR}/stm32_serial_driver.cpp
@@ -92,8 +91,17 @@ if(NOT NATIVE_BUILD)
     ${STM32_DRIVER_DIR}/stm32_i2c_driver.cpp
     ${STM32_DRIVER_DIR}/stm32_timer.cpp
     ${STM32_DRIVER_DIR}/stm32_dma.cpp
+    ${STM32_DRIVER_DIR}/stm32_gpio.cpp
     ${STM32_DRIVER_DIR}/stm32_spi.cpp
     ${STM32_DRIVER_DIR}/stm32_adc.cpp
+  )
+
+  # HAL/LL drivers using TRACE
+  add_library(stm32_drivers_w_dbg_fw OBJECT EXCLUDE_FROM_ALL
+      ${STM32_DRIVER_DIR}/sdcard_spi.cpp
+  )
+  add_library(stm32_drivers_w_dbg_bl OBJECT EXCLUDE_FROM_ALL
+      ${STM32_DRIVER_DIR}/sdcard_spi.cpp
   )
 
   if(NOT PCB STREQUAL PL18)
@@ -103,29 +111,14 @@ if(NOT NATIVE_BUILD)
   endif()
 
   set(FIRMWARE_SRC ${FIRMWARE_SRC} $<TARGET_OBJECTS:stm32_drivers>)
-  set(BOOTLOADER_SRC ${BOOTLOADER_SRC} $<TARGET_OBJECTS:stm32_drivers>)
-endif()
+  set(FIRMWARE_SRC ${FIRMWARE_SRC} $<TARGET_OBJECTS:stm32_drivers_w_dbg_fw>)
 
-set(FIRMWARE_TARGET_SRC ${FIRMWARE_TARGET_SRC}
-  ../common/arm/stm32/rtc_driver.cpp
-  ../common/arm/stm32/delays_driver.cpp
-  ../common/arm/stm32/trainer_driver.cpp
-  ../common/arm/stm32/flash_driver.cpp
-  ../common/arm/stm32/stm32_softserial_driver.cpp
-  ../common/arm/stm32/stm32_pulse_driver.cpp
-  ../common/arm/stm32/module_timer_driver.cpp
-  ../common/arm/stm32/stm32_switch_driver.cpp
-  ../common/arm/stm32/mixer_scheduler_driver.cpp
-  ../common/arm/stm32/pwr_driver.cpp
-  ../common/arm/stm32/watchdog_driver.cpp
-  ../common/arm/stm32/abnormal_reboot.cpp
-  )
+  set(BOOTLOADER_SRC ${BOOTLOADER_SRC} $<TARGET_OBJECTS:stm32_drivers>)
+  set(BOOTLOADER_SRC ${BOOTLOADER_SRC} $<TARGET_OBJECTS:stm32_drivers_w_dbg_bl>)
+endif()
 
 if(IMU)
   add_definitions(-DIMU)
-  set(FIRMWARE_SRC ${FIRMWARE_SRC}
-    targets/common/arm/stm32/lsm6ds_driver.cpp
-    )
   set(SRC ${SRC} gyro.cpp)
 endif()
 
@@ -151,10 +144,6 @@ endif()
 if(DEBUG OR CLI OR USB_SERIAL)
   add_definitions(-DUSB_SERIAL)
   message("-- Adding support for USB serial")
-endif()
-
-if(GVARS)
-  set(GUI_SRC ${GUI_SRC} ${GVAR_SCREEN})
 endif()
 
 set(FIRMWARE_SRC ${FIRMWARE_SRC} syscalls.c)

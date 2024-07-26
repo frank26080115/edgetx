@@ -39,7 +39,11 @@
 
 #define BLOCK_SIZE FF_MAX_SS
 
+#if defined(SPI_FLASH)
+#define SDCARD_MIN_FREE_SPACE_MB 2 // Maintain 2MB free space buffer to prevent crashes
+#else
 #define SDCARD_MIN_FREE_SPACE_MB 50 // Maintain a 50MB free space buffer to prevent crashes
+#endif
 
 const char * sdCheckAndCreateDirectory(const char * path)
 {
@@ -401,7 +405,7 @@ const char * sdMoveFile(const char * srcPath, const char * destPath)
 {
   const char *result;
   result = sdCopyFile(srcPath, destPath);
-  if(result != 0) {
+  if(result != nullptr) {
     return result;
   }
 
@@ -417,7 +421,7 @@ const char * sdMoveFile(const char * srcFilename, const char * srcDir, const cha
 {
   const char *result;
   result = sdCopyFile(srcFilename, srcDir, destFilename, destDir);
-  if(result != 0) {
+  if(result != nullptr) {
     return result;
   }
 

@@ -21,14 +21,13 @@
 #pragma once
 
 #include "ff.h"
-#include "menus.h"
 #include "page.h"
 
 class ViewTextWindow : public Page
 {
  public:
   ViewTextWindow(const std::string path, const std::string name,
-                 unsigned int icon = ICON_RADIO_SD_MANAGER);
+                 EdgeTxIcon icon);
 
   FRESULT sdReadTextFileBlock(const uint32_t bufSize,
                               const uint32_t offset);
@@ -72,3 +71,4 @@ class ViewTextWindow : public Page
 };
 
 void readModelNotes(bool fromMenu = false);
+void readChecklist();

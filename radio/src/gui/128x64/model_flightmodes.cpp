@@ -71,19 +71,26 @@ void menuModelFlightModeOne(event_t event)
 
   uint8_t old_editMode = s_editMode;
 
-#if defined(GVARS) && !defined(GVARS_IN_CURVES_SCREEN)
-
 #if defined(TRIMS_GPIO_REG_T5L) || defined(TRIMS_GPIO_REG_LSD)
-  #define VERTICAL_SHIFT  (ITEM_MODEL_FLIGHT_MODE_FADE_IN-ITEM_MODEL_FLIGHT_MODE_TRIMS2)
-  static const uint8_t mstate_tab_fm1[]  = {0, 3, 3, 0, 0, (uint8_t)-1, 1, 1, 1, 1, 1, 1};
-  static const uint8_t mstate_tab_others[]  = {0, 0, 3, 3, 0, 0,(uint8_t)-1, 2, 2, 2, 2, 2};
+  #define TRIMS_LINES    2
 #else
-  #define VERTICAL_SHIFT  (ITEM_MODEL_FLIGHT_MODE_FADE_IN-ITEM_MODEL_FLIGHT_MODE_TRIMS)
-  static const uint8_t mstate_tab_fm1[]  = {0, 3, 0, 0, (uint8_t)-1, 1, 1, 1, 1, 1, 1};
-  static const uint8_t mstate_tab_others[]  = {0, 0, 3, 0, 0, (uint8_t)-1, 2, 2, 2, 2, 2};
+  #define TRIMS_LINES    1
 #endif
 
-  check(event, 0, nullptr, 0, (s_currIdx == 0) ? mstate_tab_fm1 : mstate_tab_others, DIM(mstate_tab_others)-1, ITEM_MODEL_FLIGHT_MODE_MAX - HEADER_LINE - (s_currIdx==0 ? (ITEM_MODEL_FLIGHT_MODE_FADE_IN-ITEM_MODEL_FLIGHT_MODE_SWITCH-1) : 0));
+#if defined(GVARS) && !defined(GVARS_IN_CURVES_SCREEN)
+  int VERTICAL_SHIFT = (ITEM_MODEL_FLIGHT_MODE_FADE_IN-ITEM_MODEL_FLIGHT_MODE_TRIMS) - (keysGetMaxTrims() > 4 ? 1 : 0 );
+  static const uint8_t mstate_tab_fm1[]  = {0, 3,
+#if TRIMS_LINES == 2
+  (uint8_t)max(0, keysGetMaxTrims() - 5),
+#endif
+  0, 0, (uint8_t)-1, 1, 1, 1, 1, 1, 1};
+  static const uint8_t mstate_tab_others[]  = {0, 0, 3,
+#if TRIMS_LINES == 2
+  (uint8_t)max(0, keysGetMaxTrims() - 5),
+#endif
+  0, 0,(uint8_t)-1, 2, 2, 2, 2, 2};
+
+  check(event, 0, nullptr, 0, (s_currIdx == 0) ? mstate_tab_fm1 : mstate_tab_others, DIM(mstate_tab_others)-1, ITEM_MODEL_FLIGHT_MODE_MAX - (s_currIdx==0 ? (ITEM_MODEL_FLIGHT_MODE_FADE_IN-ITEM_MODEL_FLIGHT_MODE_SWITCH-TRIMS_LINES) : 0));
 
   title(STR_MENUFLIGHTMODE);
 
@@ -153,11 +160,11 @@ void menuModelFlightModeOne(event_t event)
         break;
 #endif
       case ITEM_MODEL_FLIGHT_MODE_FADE_IN:
-        fm->fadeIn = EDIT_DELAY(0, y, event, attr, STR_FADEIN, fm->fadeIn);
+        fm->fadeIn = EDIT_DELAY(0, y, event, attr, STR_FADEIN, fm->fadeIn, PREC1);
         break;
 
       case ITEM_MODEL_FLIGHT_MODE_FADE_OUT:
-        fm->fadeOut = EDIT_DELAY(0, y, event, attr, STR_FADEOUT, fm->fadeOut);
+        fm->fadeOut = EDIT_DELAY(0, y, event, attr, STR_FADEOUT, fm->fadeOut, PREC1);
         break;
 
 #if defined(GVARS)
@@ -222,14 +229,14 @@ void menuModelFlightModesAll(event_t event)
   int8_t sub = menuVerticalPosition - HEADER_LINE;
 
   // "Check trims" button
-  if (sub == MAX_FLIGHT_MODES && event == EVT_KEY_FIRST(KEY_ENTER)) {
+  if (sub == MAX_FLIGHT_MODES && event == EVT_KEY_BREAK(KEY_ENTER)) {
     s_editMode = 0;
     trimsCheckTimer = 200;  // 2 seconds
   }
 
   // Flight mode lines
   if (sub >= 0 && sub < MAX_FLIGHT_MODES &&
-      (event == EVT_KEY_FIRST(KEY_ENTER) || event == EVT_KEY_FIRST(KEY_RIGHT))) {
+      (event == EVT_KEY_BREAK(KEY_ENTER) || event == EVT_KEY_FIRST(KEY_RIGHT))) {
     s_currIdx = sub;
     pushMenu(menuModelFlightModeOne);
   }
@@ -256,7 +263,7 @@ void menuModelFlightModesAll(event_t event)
 
   if (menuVerticalOffset != MAX_FLIGHT_MODES-(LCD_LINES-2)) return;
 
-  lcdDrawTextAlignedLeft((LCD_LINES-1)*FH+1, STR_CHECKTRIMS);
+  lcdDrawText(CENTER_OFS, (LCD_LINES-1)*FH+1, STR_CHECKTRIMS);
   drawFlightMode(OFS_CHECKTRIMS, (LCD_LINES-1)*FH+1, mixerCurrentFlightMode+1);
   if (sub==MAX_FLIGHT_MODES && !trimsCheckTimer) {
     lcdInvertLastLine();

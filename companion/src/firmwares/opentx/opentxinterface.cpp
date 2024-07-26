@@ -68,12 +68,20 @@ const char * OpenTxEepromInterface::getName()
       return "EdgeTX for Jumper T-Pro";
     case BOARD_JUMPER_TPROV2:
       return "EdgeTX for Jumper T-Pro V2";
+    case BOARD_JUMPER_T12MAX:
+      return "EdgeTX for Jumper T12 MAX";
+    case BOARD_JUMPER_T14:
+      return "EdgeTX for Jumper T14";
+    case BOARD_JUMPER_T15:
+      return "EdgeTX for Jumper T15";
     case BOARD_JUMPER_T16:
       return "EdgeTX for Jumper T16";
     case BOARD_JUMPER_T18:
       return "EdgeTX for Jumper T18";
     case BOARD_JUMPER_T20:
       return "EdgeTX for Jumper T20";
+    case BOARD_JUMPER_T20V2:
+      return "EdgeTX for Jumper T20 V2";
     case BOARD_RADIOMASTER_TX16S:
       return "EdgeTX for Radiomaster TX16S";
     case BOARD_RADIOMASTER_TX12:
@@ -130,6 +138,8 @@ const char * OpenTxEepromInterface::getName()
       return "EdgeTx for BETAFPV LR3PRO";
     case BOARD_IFLIGHT_COMMANDO8:
       return "EdgeTX for iFlight Commando 8";
+    case BOARD_FATFISH_F16:
+      return "EdgeTX for Fatfish F16";
     default:
       return "Board is unknown to EdgeTX";
   }
@@ -137,6 +147,16 @@ const char * OpenTxEepromInterface::getName()
 
 bool OpenTxEepromInterface::loadRadioSettingsFromRLE(GeneralSettings & settings, RleFile * rleFile, uint8_t version)
 {
+  // Companion loads the current profile firmware and associated board hardware definition ONLY!!!!
+  // For each OpenTxEepromInterface create a firmware variant to force the associated base firmware board hardware definition to be loaded.
+  // Note: The base firmware instance does not do load its hardware definition to save unnecessary processing.
+  // To create the variant take the base id and append the language from the current radio profile.
+  Firmware *fw = Firmware::getFirmwareForId(firmware->getId().append("-%1").arg(g.currentProfile().fwType().split('-').last()));
+  if (!fw) {
+    qWarning() << " error unable to create firmware variant";
+    return false;
+  }
+
   QByteArray data(sizeof(settings), 0); // GeneralSettings should be always bigger than the EEPROM struct
   OpenTxGeneralData open9xSettings(settings, board, version);
   efile->openRd(FILE_GENERAL);
@@ -190,6 +210,16 @@ bool OpenTxEepromInterface::saveToByteArray(const T & src, QByteArray & data, ui
 template <class T, class M>
 bool OpenTxEepromInterface::loadFromByteArray(T & dest, const QByteArray & data, uint8_t version, uint32_t variant)
 {
+  // Companion loads the current profile firmware and associated board hardware definition ONLY!!!!
+  // For each OpenTxEepromInterface create a firmware variant to force the associated base firmware board hardware definition to be loaded.
+  // Note: The base firmware instance does not do load its hardware definition to save unnecessary processing.
+  // To create the variant take the base id and append the language from the current radio profile.
+  Firmware *fw = Firmware::getFirmwareForId(firmware->getId().append("-%1").arg(g.currentProfile().fwType().split('-').last()));
+  if (!fw) {
+    qWarning() << " error unable to create firmware variant";
+    return false;
+  }
+
   M manager(dest, board, version, variant);
   if (manager.Import(data) != 0) {
     return false;
@@ -211,6 +241,13 @@ bool OpenTxEepromInterface::loadFromByteArray(T & dest, const QByteArray & data)
       return false;
     }
   }
+
+  if (Boards::getFourCC(board) == Boards::getFourCC(getCurrentBoard()) &&
+      board != getCurrentFirmware()->getBoard()) {
+    qDebug() << QString("%1: Fourcc not unique and does not match profile board: %2").arg(getName()).arg(Boards::getBoardName(getCurrentBoard()));
+    return false;
+  }
+
   qDebug() << QString("%1: OK").arg(getName());
   uint8_t version = data[4];
   QByteArray raw = data.right(data.size() - 8);
@@ -558,7 +595,7 @@ int OpenTxFirmware::getCapability(::Capability capability)
     case VoicesAsNumbers:
       return 0;
     case VoicesMaxLength:
-      return (IS_TARANIS_X9(board) ? 8 : 6);
+      return 8;
     case MultiLangVoice:
       return 1;
     case SoundPitch:
@@ -679,7 +716,7 @@ int OpenTxFirmware::getCapability(::Capability capability)
     case LcdHeight:
       if (IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board))
         return 480;
-      else if (IS_FLYSKY_PL18(board))
+      else if (IS_FLYSKY_PL18(board) || IS_JUMPER_T15(board))
         return 320;
       else if (IS_FAMILY_HORUS_OR_T16(board))
         return 272;
@@ -838,11 +875,6 @@ QString OpenTxFirmware::getCapabilityStr(::Capability capability)
     default:
       return QString();
   }
-}
-
-QString OpenTxFirmware::getAnalogInputName(unsigned int index)
-{
-  return Boards::getAnalogInputName(board, index);
 }
 
 QTime OpenTxFirmware::getMaxTimerStart()
@@ -1226,6 +1258,9 @@ void registerOpenTxFirmwares()
 {
   OpenTxFirmware * firmware;
 
+  static const Firmware::Option opt_bt("bluetooth", Firmware::tr("Support for bluetooth module"));
+  static const Firmware::Option opt_internal_gps("internalgps", Firmware::tr("Support internal GPS"));
+
   /* BETAFPV LR3PRO board */
   firmware = new OpenTxFirmware(FIRMWAREID("lr3pro"), QCoreApplication::translate("Firmware", "BETAFPV LiteRadio3 Pro"), BOARD_BETAFPV_LR3PRO);
   addOpenTxCommonOptions(firmware);
@@ -1236,24 +1271,32 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
+  /* Fatfish F16 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("f16"), Firmware::tr("Fatfish F16"), BOARD_FATFISH_F16);
+  addOpenTxFrskyOptions(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+  firmware->addOptionsGroup({opt_bt, opt_internal_gps});
+  firmware->addOption("flyskygimbals", Firmware::tr("Support hardware mod: FlySky Paladin EV Gimbals"));
+  registerOpenTxFirmware(firmware);
+
   /* FlySky NV14 board */
   firmware = new OpenTxFirmware(FIRMWAREID("nv14"), QCoreApplication::translate("Firmware", "FlySky NV14"), BOARD_FLYSKY_NV14);
   addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  firmware->addOption(opt_bt);
   addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
   registerOpenTxFirmware(firmware);
 
   /* FlySky EL18 board */
   firmware = new OpenTxFirmware(FIRMWAREID("el18"), QCoreApplication::translate("Firmware", "FlySky EL18"), BOARD_FLYSKY_EL18);
   addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  firmware->addOption(opt_bt);
   addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
   registerOpenTxFirmware(firmware);
 
   /* FlySky PL18 board */
   firmware = new OpenTxFirmware(FIRMWAREID("pl18"), Firmware::tr("FlySky PL18"), BOARD_FLYSKY_PL18);
   addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  firmware->addOption(opt_bt);
   addOpenTxRfOptions(firmware, FLEX + AFHDS3);
   registerOpenTxFirmware(firmware);
 
@@ -1265,7 +1308,7 @@ void registerOpenTxFirmwares()
   addOpenTxRfOptions(firmware, EU + FLEX);
 
   /* FrSky Horus X10 Express board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x10express"), Firmware::tr("FrSky Horus X10 Express / X10S Express"), BOARD_X10_EXPRESS, "x10-access");
+  firmware = new OpenTxFirmware(FIRMWAREID("x10express"), Firmware::tr("FrSky Horus X10 Express / X10S Express"), BOARD_X10_EXPRESS, "x10express");
   addOpenTxFrskyOptions(firmware);
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
@@ -1285,7 +1328,7 @@ void registerOpenTxFirmwares()
   addOpenTxRfOptions(firmware, EU + FLEX);
 
   /* FrSky Taranis X7 Access board */
-  firmware = new OpenTxFirmware(FIRMWAREID("x7access"), Firmware::tr("FrSky Taranis X7 / X7S Access"), BOARD_TARANIS_X7_ACCESS, "x7-access");
+  firmware = new OpenTxFirmware(FIRMWAREID("x7access"), Firmware::tr("FrSky Taranis X7 / X7S Access"), BOARD_TARANIS_X7_ACCESS, "x7access");
   addOpenTxTaranisOptions(firmware);
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
@@ -1387,7 +1430,7 @@ void registerOpenTxFirmwares()
   addOpenTxRfOptions(firmware, FLEX);
 
   /* Jumper T-Pro V2 board */
-  firmware = new OpenTxFirmware(FIRMWAREID("tprov2"), QCoreApplication::translate("Firmware", "Jumper T-Pro v2"), BOARD_JUMPER_TPROV2);
+  firmware = new OpenTxFirmware(FIRMWAREID("tprov2"), QCoreApplication::translate("Firmware", "Jumper T-Pro V2"), BOARD_JUMPER_TPROV2);
   addOpenTxCommonOptions(firmware);
   firmware->addOption("noheli", Firmware::tr("Disable HELI menu and cyclic mix support"));
   firmware->addOption("nogvars", Firmware::tr("Disable Global variables"));
@@ -1407,23 +1450,50 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
+  /* Jumper T12 MAX board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t12max"), Firmware::tr("Jumper T12 MAX"), BOARD_JUMPER_T12MAX);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
+  addOpenTxRfOptions(firmware, NONE);
+  registerOpenTxFirmware(firmware);
+
+  /* Jumper T14 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t14"), Firmware::tr("Jumper T14"), BOARD_JUMPER_T14);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
+  addOpenTxRfOptions(firmware, NONE);
+  registerOpenTxFirmware(firmware);
+
+  /* Jumper T15 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t15"), Firmware::tr("Jumper T15"), BOARD_JUMPER_T15);
+  addOpenTxFrskyOptions(firmware);
+  addOpenTxRfOptions(firmware, FLEX);
+  registerOpenTxFirmware(firmware);
+
   /* Jumper T16 board */
   firmware = new OpenTxFirmware(FIRMWAREID("t16"), Firmware::tr("Jumper T16 / T16+ / T16 Pro"), BOARD_JUMPER_T16);
   addOpenTxFrskyOptions(firmware);
   firmware->addOption("internalmulti", Firmware::tr("Support for MULTI internal module"));
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  firmware->addOption(opt_bt);
   addOpenTxRfOptions(firmware, FLEX);
   registerOpenTxFirmware(firmware);
 
   /* Jumper T18 board */
   firmware = new OpenTxFirmware(FIRMWAREID("t18"), Firmware::tr("Jumper T18"), BOARD_JUMPER_T18);
   addOpenTxFrskyOptions(firmware);
-  firmware->addOption("bluetooth", Firmware::tr("Support for bluetooth module"));
+  firmware->addOption(opt_bt);
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX);
 
   /* Jumper T20 board */
   firmware = new OpenTxFirmware(FIRMWAREID("t20"), Firmware::tr("Jumper T20"), BOARD_JUMPER_T20);
+  addOpenTxFrskyOptions(firmware);
+  firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
+  addOpenTxRfOptions(firmware, NONE);
+  registerOpenTxFirmware(firmware);
+
+  /* Jumper T20 V2 board */
+  firmware = new OpenTxFirmware(FIRMWAREID("t20v2"), Firmware::tr("Jumper T20 V2"), BOARD_JUMPER_T20V2);
   addOpenTxFrskyOptions(firmware);
   firmware->addOption("internalelrs", Firmware::tr("Select if internal ELRS module is installed"));
   addOpenTxRfOptions(firmware, NONE);
@@ -1484,8 +1554,6 @@ void registerOpenTxFirmwares()
   firmware = new OpenTxFirmware(FIRMWAREID("tx16s"), Firmware::tr("Radiomaster TX16S / SE / Hall / Masterfire"), BOARD_RADIOMASTER_TX16S);
   addOpenTxFrskyOptions(firmware);
   addOpenTxRfOptions(firmware, FLEX);
-  static const Firmware::Option opt_bt("bluetooth", Firmware::tr("Support for bluetooth module"));
-  static const Firmware::Option opt_internal_gps("internalgps", Firmware::tr("Support internal GPS"));
   firmware->addOptionsGroup({opt_bt, opt_internal_gps});
   firmware->addOption("flyskygimbals", Firmware::tr("Support hardware mod: FlySky Paladin EV Gimbals"));
   registerOpenTxFirmware(firmware);
@@ -1501,22 +1569,22 @@ void registerOpenTxFirmwares()
   registerOpenTxFirmware(firmware);
   addOpenTxRfOptions(firmware, FLEX + AFHDS2A + AFHDS3);
 
-  /* 9XR-Pro */
-  firmware = new OpenTxFirmware(FIRMWAREID("9xrpro"), Firmware::tr("Turnigy 9XR-PRO"), BOARD_9XRPRO);
-  addOpenTxArm9xOptions(firmware, false);
-  registerOpenTxFirmware(firmware, true);
-
-  /* ar9x board */
-  firmware = new OpenTxFirmware(FIRMWAREID("ar9x"), Firmware::tr("9X with AR9X board"), BOARD_AR9X);
-  addOpenTxArm9xOptions(firmware, true);
-  //firmware->addOption("rtc", Firmware::tr("Optional RTC added"));
-  //firmware->addOption("volume", Firmware::tr("i2c volume control added"));
-  registerOpenTxFirmware(firmware, true);
-
-  /* Sky9x board */
-  firmware = new OpenTxFirmware(FIRMWAREID("sky9x"), Firmware::tr("9X with Sky9x board"), BOARD_SKY9X);
-  addOpenTxArm9xOptions(firmware);
-  registerOpenTxFirmware(firmware, true);
+//  /* 9XR-Pro */
+//  firmware = new OpenTxFirmware(FIRMWAREID("9xrpro"), Firmware::tr("Turnigy 9XR-PRO"), BOARD_9XRPRO);
+//  addOpenTxArm9xOptions(firmware, false);
+//  registerOpenTxFirmware(firmware, true);
+//
+//  /* ar9x board */
+//  firmware = new OpenTxFirmware(FIRMWAREID("ar9x"), Firmware::tr("9X with AR9X board"), BOARD_AR9X);
+//  addOpenTxArm9xOptions(firmware, true);
+//  //firmware->addOption("rtc", Firmware::tr("Optional RTC added"));
+//  //firmware->addOption("volume", Firmware::tr("i2c volume control added"));
+//  registerOpenTxFirmware(firmware, true);
+//
+//  /* Sky9x board */
+//  firmware = new OpenTxFirmware(FIRMWAREID("sky9x"), Firmware::tr("9X with Sky9x board"), BOARD_SKY9X);
+//  addOpenTxArm9xOptions(firmware);
+//  registerOpenTxFirmware(firmware, true);
 
   Firmware::sortRegisteredFirmwares();
   Firmware::setDefaultVariant(Firmware::getFirmwareForFlavour("tx16s"));

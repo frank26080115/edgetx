@@ -19,147 +19,112 @@
 #include "choice.h"
 
 #include "menu.h"
-#include "theme.h"
+#include "themes/etx_lv_theme.h"
 
-void choice_changed_cb(lv_event_t* e)
+// Choice
+static void choice_constructor(const lv_obj_class_t* class_p, lv_obj_t* obj)
 {
-  auto code = lv_event_get_code(e);
-
-  if (code == LV_EVENT_VALUE_CHANGED) {
-    lv_obj_t* target = lv_event_get_target(e);
-    if (target != nullptr) {
-      ChoiceBase* cb = (ChoiceBase*)lv_obj_get_user_data(target);
-      if (cb) {
-        std::string text = cb->getLabelText();
-        lv_label_set_text(cb->label, text.c_str());
-      }
-    }
-  }
+  etx_std_style(obj, LV_PART_MAIN, PAD_TINY);
+  lv_obj_set_style_pad_hor(obj, PAD_MEDIUM, LV_PART_MAIN);
 }
 
-ChoiceBase::ChoiceBase(Window* parent, const rect_t& rect, ChoiceType type,
-                       WindowFlags windowFlags) :
-    FormField(parent, rect, windowFlags, 0, etx_choice_create), type(type)
+static const lv_obj_class_t choice_class = {
+    .base_class = &lv_obj_class,
+    .constructor_cb = choice_constructor,
+    .destructor_cb = nullptr,
+    .user_data = nullptr,
+    .event_cb = nullptr,
+    .width_def = LV_SIZE_CONTENT,
+    .height_def = EdgeTxStyles::UI_ELEMENT_HEIGHT,
+    .editable = LV_OBJ_CLASS_EDITABLE_INHERIT,
+    .group_def = LV_OBJ_CLASS_GROUP_DEF_TRUE,
+    .instance_size = sizeof(lv_obj_t),
+};
+
+static lv_obj_t* choice_create(lv_obj_t* parent)
 {
-  //   lv_obj_set_height(lvobj, LV_SIZE_CONTENT);
-  //   lv_obj_set_width(lvobj, LV_SIZE_CONTENT);
-  lv_obj_set_layout(lvobj, LV_LAYOUT_FLEX);
-  lv_obj_set_flex_flow(lvobj, LV_FLEX_FLOW_ROW);
+  return etx_create(&choice_class, parent);
+}
 
-  lv_obj_add_event_cb(lvobj, choice_changed_cb, LV_EVENT_VALUE_CHANGED, lvobj);
-  label = lv_label_create(lvobj);
-
-  lv_group_t* def_group = lv_group_get_default();
-  if (def_group) {
-    lv_group_add_obj(def_group, lvobj);
-  }
-
-  lv_obj_set_style_pad_left(label, FIELD_PADDING_LEFT, LV_PART_MAIN);
-  lv_obj_set_style_pad_top(label, FIELD_PADDING_TOP, LV_PART_MAIN);
-  lv_obj_set_style_pad_right(label, CHOICE_LABEL_MARGIN_RIGHT, LV_PART_MAIN);
-  // lv_obj_set
-
-  // add the image
+ChoiceBase::ChoiceBase(Window* parent, const rect_t& rect,
+                       int vmin, int vmax, const char* title,
+                       std::function<int()> _getValue,
+                       std::function<void(int)> _setValue,
+                       ChoiceType type) :
+    FormField(parent, rect, 0, choice_create),
+    vmin(vmin), vmax(vmax), menuTitle(title),
+    _getValue(std::move(_getValue)),
+    _setValue(std::move(_setValue))
+{
+  // Add image
   lv_obj_t* img = lv_img_create(lvobj);
   lv_img_set_src(
       img, type == CHOICE_TYPE_DROPOWN ? LV_SYMBOL_DOWN : LV_SYMBOL_DIRECTORY);
-  lv_obj_set_align(img, LV_ALIGN_RIGHT_MID);
+  lv_obj_set_pos(img, 0, PAD_TINY);
+
+  // Add label
+  label = lv_label_create(lvobj);
+  lv_obj_set_pos(label, ICON_W, PAD_TINY);
 }
 
 std::string Choice::getLabelText()
 {
   std::string text;
 
-  if (textHandler != nullptr) {
-    if (_getValue) {
-      text = textHandler(_getValue());
-    }
-  } else if (_getValue) {
+  if (_getValue) {
     int val = _getValue();
-    val -= vmin;
-    if (val >= 0 && val < (int)values.size()) {
-      text = values[val];
+    if (textHandler) {
+      text = textHandler(val);
+    } else {
+      val -= vmin;
+      if (val >= 0 && val < (int)values.size()) {
+        text = values[val];
+      } else {
+        text = std::to_string(val);
+      }
     }
   }
 
   return text;
 }
 
-Choice::Choice(Window* parent, const rect_t& rect, int vmin, int vmax,
-               std::function<int()> _getValue,
-               std::function<void(int)> _setValue, WindowFlags windowFlags) :
-    ChoiceBase(parent, rect, CHOICE_TYPE_DROPOWN, windowFlags),
-    vmin(vmin),
-    vmax(vmax),
-    _getValue(std::move(_getValue)),
-    _setValue(std::move(_setValue)),
-    longPressData({})
+void ChoiceBase::update()
 {
-  lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
+  if (!deleted())
+    lv_label_set_text(label, getLabelText().c_str());
+}
+
+Choice::Choice(Window* parent, const rect_t& rect, int vmin, int vmax,
+               std::function<int()> getValue,
+               std::function<void(int)> setValue, const char* title, ChoiceType type) :
+    ChoiceBase(parent, rect, vmin, vmax, title, getValue, setValue, type)
+{
+  update();
 }
 
 Choice::Choice(Window* parent, const rect_t& rect, const char* const values[],
-               int vmin, int vmax, std::function<int()> _getValue,
-               std::function<void(int)> _setValue, WindowFlags windowFlags) :
-    ChoiceBase(parent, rect, CHOICE_TYPE_DROPOWN, windowFlags),
-    vmin(vmin),
-    vmax(vmax),
-    _getValue(std::move(_getValue)),
-    _setValue(std::move(_setValue)),
-    longPressData({})
+               int vmin, int vmax, std::function<int()> getValue,
+               std::function<void(int)> setValue, const char* title) :
+    ChoiceBase(parent, rect, vmin, vmax, title, getValue, setValue, CHOICE_TYPE_DROPOWN)
 {
   setValues(values);
-  lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
+  update();
 }
 
 Choice::Choice(Window* parent, const rect_t& rect,
                std::vector<std::string> values, int vmin, int vmax,
-               std::function<int()> _getValue,
-               std::function<void(int)> _setValue, WindowFlags windowFlags) :
-    ChoiceBase(parent, rect, CHOICE_TYPE_DROPOWN, windowFlags),
-    values(std::move(values)),
-    vmin(vmin),
-    vmax(vmax),
-    _getValue(std::move(_getValue)),
-    _setValue(std::move(_setValue)),
-    longPressData({})
+               std::function<int()> getValue,
+               std::function<void(int)> setValue, const char* title) :
+    ChoiceBase(parent, rect, vmin, vmax, title, getValue, setValue, CHOICE_TYPE_DROPOWN),
+    values(std::move(values))
 {
-  lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
-}
-
-Choice::Choice(Window* parent, const rect_t& rect, const char* values, int vmin,
-               int vmax, std::function<int()> _getValue,
-               std::function<void(int)> _setValue, WindowFlags windowFlags) :
-    ChoiceBase(parent, rect, CHOICE_TYPE_DROPOWN, windowFlags),
-    vmin(vmin),
-    vmax(vmax),
-    _getValue(std::move(_getValue)),
-    _setValue(std::move(_setValue)),
-    longPressData({})
-{
-  if (values) {
-    uint8_t len = values[0];
-    const char* value = &values[1];
-    for (int i = vmin; i <= vmax; i++) {
-      this->values.emplace_back(
-          std::string(value, min<uint8_t>(len, strlen(value))));
-      value += len;
-    }
-  }
-  lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
+  update();
 }
 
 void Choice::addValue(const char* value)
 {
   values.emplace_back(value);
   vmax += 1;
-}
-
-void Choice::addValues(const char* const values[], uint8_t count)
-{
-  this->values.reserve(this->values.size() + count);
-  for (uint8_t i = 0; i < count; i++) this->values.emplace_back(values[i]);
-  vmax += count;
 }
 
 void Choice::setValues(std::vector<std::string> values)
@@ -182,18 +147,19 @@ void Choice::setValue(int val)
 {
   if (_setValue) {
     _setValue(val);
-    lv_event_send(lvobj, LV_EVENT_VALUE_CHANGED, nullptr);
+    update();
   }
 }
 
 void Choice::onClicked()
 {
-  if (!longPressData.isLongPressed) openMenu();
+  openMenu();
 }
 
 void Choice::fillMenu(Menu* menu, const FilterFct& filter)
 {
-  menu->removeLines();
+  if (menu->count() > 0)
+    menu->removeLines();
   auto value = getIntValue();
 
   int count = 0;
@@ -237,33 +203,9 @@ void Choice::openMenu()
   setEditMode(true);  // this needs to be done first before menu is created.
 
   auto menu = new Menu(this);
-  if (!menuTitle.empty()) menu->setTitle(menuTitle);
-
-  if (beforeDisplayMenuHandler) {
-    beforeDisplayMenuHandler(menu);
-  }
+  if (menuTitle) menu->setTitle(menuTitle);
 
   fillMenu(menu);
 
   menu->setCloseHandler([=]() { setEditMode(false); });
-}
-
-static void localLongPressHandler(lv_event_t* e)
-{
-  lv_eventData_t* ld = (lv_eventData_t*)lv_event_get_user_data(e);
-  ld->isLongPressed = true;
-  ld->lv_LongPressHandler(ld->userData);
-}
-
-void Choice::set_lv_LongPressHandler(lvHandler_t longPressHandler, void* data)
-{
-  TRACE("longPressHandler=%p", longPressHandler);
-
-  if (longPressHandler) {
-    longPressData.userData = data;
-    longPressData.lv_LongPressHandler = longPressHandler;
-    lv_obj_add_event_cb(lvobj, localLongPressHandler, LV_EVENT_LONG_PRESSED,
-                        &longPressData);
-    lv_obj_add_event_cb(lvobj, ClickHandler, LV_EVENT_CLICKED, this);
-  }
 }

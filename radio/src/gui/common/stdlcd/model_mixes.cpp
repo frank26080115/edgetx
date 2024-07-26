@@ -178,7 +178,6 @@ void menuModelMixAll(event_t event)
     case EVT_KEY_LONG(KEY_EXIT):
       if (s_copyMode && s_copyTgtOfs == 0) {
         deleteMix(s_currIdx);
-        killEvents(event);
         event = 0;
       }
       // no break
@@ -204,7 +203,7 @@ void menuModelMixAll(event_t event)
       }
       break;
     case EVT_KEY_BREAK(KEY_ENTER):
-      if ((!s_currCh || (s_copyMode && !s_copyTgtOfs)) && !READ_ONLY()) {
+      if ((!s_currCh || (s_copyMode && !s_copyTgtOfs))) {
         s_copyMode = (s_copyMode == COPY_MODE ? MOVE_MODE : COPY_MODE);
         s_copySrcIdx = s_currIdx;
         s_copySrcCh = chn;
@@ -214,36 +213,22 @@ void menuModelMixAll(event_t event)
       // no break
 
     case EVT_KEY_LONG(KEY_ENTER):
-      killEvents(event);
       if (s_copyTgtOfs) {
         s_copyMode = 0;
         s_copyTgtOfs = 0;
       }
       else {
-        if (READ_ONLY()) {
-          if (!s_currCh) {
-            pushMenu(menuModelMixOne);
-          }
+        if (s_copyMode) s_currCh = 0;
+        if (s_currCh) {
+          if (reachMixesLimit()) break;
+          insertMix(s_currIdx, s_currCh - 1);
+          pushMenu(menuModelMixOne);
+          s_copyMode = 0;
         }
         else {
-          if (s_copyMode) s_currCh = 0;
-          if (s_currCh) {
-            if (reachMixesLimit()) break;
-            insertMix(s_currIdx, s_currCh - 1);
-            pushMenu(menuModelMixOne);
-            s_copyMode = 0;
-          }
-          else {
-            event = 0;
-            s_copyMode = 0;
-            POPUP_MENU_ADD_ITEM(STR_EDIT);
-            POPUP_MENU_ADD_ITEM(STR_INSERT_BEFORE);
-            POPUP_MENU_ADD_ITEM(STR_INSERT_AFTER);
-            POPUP_MENU_ADD_ITEM(STR_COPY);
-            POPUP_MENU_ADD_ITEM(STR_MOVE);
-            POPUP_MENU_ADD_ITEM(STR_DELETE);
-            POPUP_MENU_START(onMixesMenu);
-          }
+          event = 0;
+          s_copyMode = 0;
+          POPUP_MENU_START(onMixesMenu, 6, STR_EDIT, STR_INSERT_BEFORE, STR_INSERT_AFTER, STR_COPY, STR_MOVE, STR_DELETE);
         }
       }
       break;
@@ -258,7 +243,6 @@ void menuModelMixAll(event_t event)
     //     insertMix(s_currIdx, s_currCh - 1);
     //     pushMenu(menuModelMixOne);
     //     s_copyMode = 0;
-    //     killEvents(event);
     //   }
     //   break;
   }
@@ -286,7 +270,7 @@ void menuModelMixAll(event_t event)
     }
     else {
       // only swap the mix with its neighbor
-      moveMix(s_currIdx, IS_PREVIOUS_EVENT(event));
+      s_currIdx = moveMix(s_currIdx, IS_PREVIOUS_EVENT(event));
     }
 
     s_copyTgtOfs = next_ofs;

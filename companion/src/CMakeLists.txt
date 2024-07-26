@@ -92,6 +92,7 @@ include_directories(
 )
 
 ############# Do macro replacements on input files #############
+
 configure_file(${COMPANION_SRC_DIRECTORY}/version.h.in ${CMAKE_BINARY_DIR}/version.h @ONLY)
 configure_file(${COMPANION_SRC_DIRECTORY}/companion.desktop.in ${CMAKE_CURRENT_BINARY_DIR}/companion.desktop @ONLY)
 configure_file(${COMPANION_SRC_DIRECTORY}/simulator.desktop.in ${CMAKE_CURRENT_BINARY_DIR}/simulator.desktop @ONLY)
@@ -128,15 +129,31 @@ foreach(qm_file ${companion_QM} ${qt_QM} ${qtbase_QM})
 endforeach()
 configure_file(${COMPANION_SRC_DIRECTORY}/translations.qrc.in ${TRANSLATIONS_QRC} @ONLY)
 
-### Add optional "translations" target for updating .ts files
+### Add optional "companion_translations" target for updating .ts files
 if(QT_LUPDATE_EXECUTABLE)
   add_custom_target(companion_translations
     WORKING_DIRECTORY ${COMPANION_SRC_DIRECTORY}
-    COMMAND ${QT_LUPDATE_EXECUTABLE} ${CMAKE_SOURCE_DIR} -no-obsolete -ts ${companion_TS}
+    COMMAND ${QT_LUPDATE_EXECUTABLE} ${COMPANION_SRC_DIRECTORY} -no-obsolete -ts ${companion_TS}
     )
 else()
-  message(STATUS "Qt lupdate not found, 'translations' target will not be availabe.")
+  message(STATUS "Qt lupdate not found, 'companion_translations' target will not be availabe.")
 endif()
+
+############# Import radio hardware definitions ###############
+
+set(HWDEFS_DIR "${CMAKE_CURRENT_BINARY_DIR}/../../radio/src")
+set(HWDEFS_TMPL "${COMPANION_SRC_DIRECTORY}/hwdefs.qrc.in")
+set(HWDEFS_PHDR "HWDEF_JSON_LIST")
+set(HWDEFS_QRC "${CMAKE_CURRENT_BINARY_DIR}/hwdefs.qrc")
+set(HWDEFS_CMD "${COMPANION_SRC_DIRECTORY}/../util/generate_hwdefs_qrc.py")
+
+add_custom_command(OUTPUT ${HWDEFS_QRC}
+  COMMAND ${HWDEFS_CMD} -d ${HWDEFS_DIR}
+                        -t ${HWDEFS_TMPL}
+                        -p ${HWDEFS_PHDR}
+                        -o ${HWDEFS_QRC}
+  DEPENDS ${HWDEFS_TMPL}
+  )
 
 ############# Common lib ###############
 
@@ -156,6 +173,7 @@ set(common_MOC_HDRS
 set(common_RESOURCES
   companion.qrc
   ${TRANSLATIONS_QRC}
+  ${HWDEFS_QRC}
   )
 
 qt5_wrap_cpp(common_SRCS ${common_MOC_HDRS})
@@ -290,6 +308,8 @@ elseif(PCB STREQUAL X7 AND PCBREV STREQUAL TPROV2)
   set(FLAVOUR tprov2)
 elseif(PCB STREQUAL X7 AND PCBREV STREQUAL T20)
   set(FLAVOUR t20)
+elseif(PCB STREQUAL X7 AND PCBREV STREQUAL T20V2)
+  set(FLAVOUR t20v2)
 elseif(PCB STREQUAL X7 AND PCBREV STREQUAL TX12)
   set(FLAVOUR tx12)
 elseif(PCB STREQUAL X7 AND PCBREV STREQUAL TX12MK2)
@@ -306,14 +326,22 @@ elseif(PCB STREQUAL X7 AND PCBREV STREQUAL COMMANDO8)
   set(FLAVOUR commando8)
 elseif(PCB STREQUAL X7 AND PCBREV STREQUAL T8)
   set(FLAVOUR t8)
+elseif(PCB STREQUAL X7 AND PCBREV STREQUAL MT12)
+  set(FLAVOUR mt12)
 elseif(PCB STREQUAL X9D+ AND PCBREV STREQUAL 2019)
   set(FLAVOUR x9d+2019)
 elseif(PCB STREQUAL X10 AND PCBREV STREQUAL EXPRESS)
   set(FLAVOUR x10express)
-elseif(PCB STREQUAL X10 AND PCBREV STREQUAL T16)
-  set(FLAVOUR t16)
 elseif(PCB STREQUAL X10 AND PCBREV STREQUAL TX16S)
   set(FLAVOUR tx16s)
+elseif(PCB STREQUAL X10 AND PCBREV STREQUAL F16)
+  set(FLAVOUR f16)
+elseif(PCB STREQUAL X7 AND PCBREV STREQUAL T14)
+  set(FLAVOUR t14)
+elseif(PCB STREQUAL X10 AND PCBREV STREQUAL T15)
+  set(FLAVOUR t15)
+elseif(PCB STREQUAL X10 AND PCBREV STREQUAL T16)
+  set(FLAVOUR t16)
 elseif(PCB STREQUAL X10 AND PCBREV STREQUAL T18)
   set(FLAVOUR t18)
 elseif(PCB STREQUAL NV14 AND PCBREV STREQUAL EL18)
@@ -416,7 +444,9 @@ elseif(WIN32)
     endif()
   endif()
 
-  install(FILES "${COMPANION_SRC_DIRECTORY}/../targets/windows/license.txt" DESTINATION ${INSTALL_DESTINATION})
+  set(LICENSE_FILE "${CMAKE_CURRENT_BINARY_DIR}/license.txt")
+  configure_file("${COMPANION_SRC_DIRECTORY}/../targets/windows/license.txt.in" ${LICENSE_FILE} @ONLY)
+  install(FILES "${LICENSE_FILE}" DESTINATION ${INSTALL_DESTINATION})
 
   if(SDL2_FOUND AND DEFINED SDL2_LIB_PATH)
     install(FILES "${SDL2_LIB_PATH}" DESTINATION ${INSTALL_DESTINATION})

@@ -21,27 +21,24 @@
 
 #pragma once
 
-#include "model_inputs.h"
+#include "list_line_button.h"
+#include <list>
 
-
-class ModelMixesPage : public ModelInputsPage
+class ModelMixesPage : public InputMixPageBase
 {
-  bool showMonitors = false;
-  Window* scroll_win = nullptr;
-  
  public:
   ModelMixesPage();
 
-  void build(FormWindow* window) override;
+  void build(Window* window) override;
 
  protected:
-  InputMixGroup* getGroupByIndex(uint8_t index) override;
+  bool showMonitors = false;
+
+  InputMixGroupBase* getGroupByIndex(uint8_t index) override;
 
   void addLineButton(uint8_t index) override;
-  void addLineButton(mixsrc_t src, uint8_t index) override;
-  InputMixGroup* createGroup(FormWindow* form, mixsrc_t src) override;
-  InputMixButton* createLineButton(InputMixGroup* group,
-                                   uint8_t index) override;
+  InputMixGroupBase* createGroup(Window* form, mixsrc_t src) override;
+  InputMixButtonBase* createLineButton(InputMixGroupBase* group, uint8_t index) override;
 
   void newMix();
   void editMix(uint8_t input, uint8_t index);

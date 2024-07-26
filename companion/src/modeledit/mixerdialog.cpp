@@ -23,6 +23,7 @@
 #include "radiodata.h"
 #include "filtereditemmodels.h"
 #include "helpers.h"
+#include "namevalidator.h"
 
 MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, GeneralSettings & generalSettings, Firmware * firmware,
                          CompoundItemModelFactory * sharedItemModels) :
@@ -36,10 +37,11 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
 {
   ui->setupUi(this);
 
+  Board::Type board = firmware->getBoard();
+
   dialogFilteredItemModels = new FilteredItemModelFactory();
   int id;
 
-  QRegExp rx(CHAR_FOR_NAMES_REGEX);
   QLabel * lb_fp[CPN_MAX_FLIGHT_MODES] = {ui->lb_FP0, ui->lb_FP1, ui->lb_FP2, ui->lb_FP3, ui->lb_FP4, ui->lb_FP5, ui->lb_FP6, ui->lb_FP7, ui->lb_FP8 };
   QCheckBox * tmp[CPN_MAX_FLIGHT_MODES] = {ui->cb_FP0, ui->cb_FP1, ui->cb_FP2, ui->cb_FP3, ui->cb_FP4, ui->cb_FP5, ui->cb_FP6, ui->cb_FP7, ui->cb_FP8 };
   for (int i = 0; i < CPN_MAX_FLIGHT_MODES; i++) {
@@ -53,6 +55,8 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
                                                    "RawSource");
   ui->sourceCB->setModel(dialogFilteredItemModels->getItemModel(id));
   ui->sourceCB->setCurrentIndex(ui->sourceCB->findData(md->srcRaw.toValue()));
+  if (ui->sourceCB->currentIndex() < 0 && md->srcRaw.toValue() == 0)
+    ui->sourceCB->setCurrentIndex(ui->sourceCB->count() / 2); // '----' not in list so set to first positive entry
 
   int limit = firmware->getCapability(OffsetWeight);
 
@@ -84,7 +88,7 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
 
   if (!firmware->getCapability(VirtualInputs)) {
     for(int i = 0; i < CPN_MAX_STICKS; i++) {
-      ui->trimCB->addItem(firmware->getAnalogInputName(i));
+      ui->trimCB->addItem(Boards::getInputName(i, board));
     }
   }
 
@@ -98,7 +102,7 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
   else {
     ui->mixerName->setMaxLength(namelength);
   }
-  ui->mixerName->setValidator(new QRegExpValidator(rx, this));
+  ui->mixerName->setValidator(new NameValidator(board, this));
   ui->mixerName->setText(md->name);
 
   if (!firmware->getCapability(FlightModes)) {
@@ -131,16 +135,11 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
   ui->switchesCB->setCurrentIndex(ui->switchesCB->findData(md->swtch.toValue()));
   ui->warningCB->setCurrentIndex(md->mixWarn);
   ui->mltpxCB->setCurrentIndex(md->mltpx);
+  ui->speedPrecCB->setCurrentIndex(md->speedPrec);
+
   int scale=firmware->getCapability(SlowScale);
   float range=firmware->getCapability(SlowRange);
-  ui->slowDownSB->setMaximum(range / scale);
-  ui->slowDownSB->setSingleStep(1.0 / scale);
-  ui->slowDownSB->setDecimals((scale == 1 ? 0 : 1));
-  ui->slowDownSB->setValue((float)md->speedDown/scale);
-  ui->slowUpSB->setMaximum(range / scale);
-  ui->slowUpSB->setSingleStep(1.0 / scale);
-  ui->slowUpSB->setDecimals((scale == 1 ? 0 : 1));
-  ui->slowUpSB->setValue((float)md->speedUp/scale);
+
   ui->delayDownSB->setMaximum(range / scale);
   ui->delayDownSB->setSingleStep(1.0 / scale);
   ui->delayDownSB->setDecimals((scale == 1 ? 0 : 1));
@@ -149,6 +148,16 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
   ui->delayUpSB->setSingleStep(1.0 / scale);
   ui->delayUpSB->setDecimals((scale == 1 ? 0 : 1));
   ui->delayUpSB->setValue((float)md->delayUp / scale);
+
+  if (md->speedPrec) scale = scale * 10;
+  ui->slowDownSB->setMaximum(range / scale);
+  ui->slowDownSB->setSingleStep(1.0 / scale);
+  ui->slowDownSB->setDecimals((scale == 1 ? 0 : scale == 10 ? 1 : 2));
+  ui->slowDownSB->setValue((float)md->speedDown/scale);
+  ui->slowUpSB->setMaximum(range / scale);
+  ui->slowUpSB->setSingleStep(1.0 / scale);
+  ui->slowUpSB->setDecimals((scale == 1 ? 0 : scale == 10 ? 1 : 2));
+  ui->slowUpSB->setValue((float)md->speedUp/scale);
 
   valuesChanged();
 
@@ -161,6 +170,7 @@ MixerDialog::MixerDialog(QWidget *parent, ModelData & model, MixData * mixdata, 
   connect(ui->mltpxCB,SIGNAL(currentIndexChanged(int)),this,SLOT(valuesChanged()));
   connect(ui->delayDownSB,SIGNAL(editingFinished()),this,SLOT(valuesChanged()));
   connect(ui->delayUpSB,SIGNAL(editingFinished()),this,SLOT(valuesChanged()));
+  connect(ui->speedPrecCB,SIGNAL(currentIndexChanged(int)),this,SLOT(valuesChanged()));
   connect(ui->slowDownSB,SIGNAL(editingFinished()),this,SLOT(valuesChanged()));
   connect(ui->slowUpSB,SIGNAL(editingFinished()),this,SLOT(valuesChanged()));
 
@@ -198,7 +208,7 @@ void MixerDialog::valuesChanged()
     lock = true;
     md->srcRaw  = RawSource(ui->sourceCB->itemData(ui->sourceCB->currentIndex()).toInt());
     if (firmware->getCapability(HasNoExpo)) {
-      bool drVisible = (md->srcRaw.type == SOURCE_TYPE_STICK && md->srcRaw.index < CPN_MAX_STICKS);
+      bool drVisible = (md->srcRaw.type == SOURCE_TYPE_INPUT && md->srcRaw.index < CPN_MAX_STICKS);
       ui->MixDR_CB->setEnabled(drVisible);
       ui->label_MixDR->setEnabled(drVisible);
     }
@@ -207,11 +217,30 @@ void MixerDialog::valuesChanged()
     md->swtch     = RawSwitch(ui->switchesCB->itemData(ui->switchesCB->currentIndex()).toInt());
     md->mixWarn   = ui->warningCB->currentIndex();
     md->mltpx     = (MltpxValue)ui->mltpxCB->currentIndex();
+
     int scale = firmware->getCapability(SlowScale);
     md->delayDown = round(ui->delayDownSB->value() * scale);
     md->delayUp   = round(ui->delayUpSB->value() * scale);
+
+    // Update values based on old precision (in case it changed)
+    if (md->speedPrec) scale = scale * 10;
     md->speedDown = round(ui->slowDownSB->value() * scale);
     md->speedUp   = round(ui->slowUpSB->value() * scale);
+
+    // Get new precion and update controls
+    md->speedPrec = ui->speedPrecCB->currentIndex();
+    float range = firmware->getCapability(SlowRange);
+    scale = firmware->getCapability(SlowScale);
+    if (md->speedPrec) scale = scale * 10;
+    ui->slowDownSB->setMaximum(range / scale);
+    ui->slowDownSB->setSingleStep(1.0 / scale);
+    ui->slowDownSB->setDecimals((scale == 1 ? 0 : scale == 10 ? 1 : 2));
+    ui->slowDownSB->setValue((float)md->speedDown / scale);
+    ui->slowUpSB->setMaximum(range / scale);
+    ui->slowUpSB->setSingleStep(1.0 / scale);
+    ui->slowUpSB->setDecimals((scale == 1 ? 0 : scale == 10 ? 1 : 2));
+    ui->slowUpSB->setValue((float)md->speedUp / scale);
+
     strcpy(md->name, ui->mixerName->text().toLatin1());
 
     md->flightModes = 0;

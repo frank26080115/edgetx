@@ -25,17 +25,22 @@
 #include "form.h"
 #include "curve.h"
 
-class FormWindow;
+class Window;
+class NumberEdit;
 
 class MixEditAdvanced : public Page
 {
  public:
   MixEditAdvanced(int8_t channel, uint8_t index);
 
+  static LAYOUT_VAL(NUM_EDIT_W, 100, 100)
+
  protected:
   uint8_t channel;
   uint8_t index;
+  NumberEdit* slowUp;
+  NumberEdit* slowDn;
 
   void buildHeader(Window *window);
-  void buildBody(FormWindow *window);
+  void buildBody(Window *window);
 };

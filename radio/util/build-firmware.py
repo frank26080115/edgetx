@@ -169,6 +169,11 @@ def main():
         cmake_options["PCBREV"] = "T8"
         firmware_options = options_radiomaster_t8
         maxsize = 65536 * 8
+    elif board_name == "t15":
+        cmake_options["PCB"] = "X10"
+        cmake_options["PCBREV"] = "T15"
+        firmware_options = options_jumper_t16
+        maxsize = 2 * 1024 * 1024
     elif board_name == "t16":
         cmake_options["PCB"] = "X10"
         cmake_options["PCBREV"] = "T16"
@@ -183,6 +188,11 @@ def main():
         cmake_options["PCB"] = "X10"
         cmake_options["PCBREV"] = "TX16S"
         firmware_options = options_radiomaster_tx16s
+        maxsize = 2 * 1024 * 1024
+    elif board_name == "f16":
+        cmake_options["PCB"] = "X10"
+        cmake_options["PCBREV"] = "F16"
+        firmware_options = options_fatfish_f16
         maxsize = 2 * 1024 * 1024
     else:
         return INVALID_BOARD

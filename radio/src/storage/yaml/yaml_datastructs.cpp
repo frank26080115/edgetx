@@ -31,7 +31,11 @@
 #if defined(PCBX12S)
  #include "yaml_datastructs_x12s.cpp"
 #elif defined(PCBX10)
- #include "yaml_datastructs_x10.cpp"
+#if defined(RADIO_T15)
+    #include "yaml_datastructs_t15.cpp"
+  #else
+    #include "yaml_datastructs_x10.cpp"
+  #endif
 #elif defined(PCBNV14)
  #include "yaml_datastructs_nv14.cpp"
 #elif defined(PCBPL18)
@@ -39,14 +43,12 @@
 #elif defined(PCBX7)
  #if defined(RADIO_TPRO) || defined(RADIO_TPROV2)
   #include "yaml_datastructs_tpro.cpp"
- #elif defined(RADIO_T20)
+ #elif defined(RADIO_FAMILY_T20)
   #include "yaml_datastructs_t20.cpp"
  #else
   #include "yaml_datastructs_128x64.cpp"
  #endif
-#elif defined(PCBX9LITE) && !defined(PCBX9LITES)
- #include "yaml_datastructs_x9lite.cpp"
-#elif defined(PCBX9LITES)
+#elif defined(PCBX9LITE)
  #include "yaml_datastructs_128x64.cpp"
 #elif defined(PCBXLITE) && !defined(PCBXLITES)
  #include "yaml_datastructs_128x64.cpp"

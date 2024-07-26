@@ -47,6 +47,7 @@ LogicalSwitchesPanel::LogicalSwitchesPanel(QWidget * parent, ModelData & model, 
   if (lsCapabilityExt) {
     headerLabels << tr("Duration") << tr("Delay");
   }
+  headerLabels << tr("Persistent");
   TableLayout * tableLayout = new TableLayout(this, lsCapability, headerLabels);
 
   const int channelsMax = model.getChannelsMax(true);
@@ -152,6 +153,13 @@ LogicalSwitchesPanel::LogicalSwitchesPanel(QWidget * parent, ModelData & model, 
       connect(dsbDelay[i], SIGNAL(valueChanged(double)), this, SLOT(onDelayChanged(double)));
       tableLayout->addWidget(i, 6, dsbDelay[i]);
     }
+
+    cbPersist[i] = new QCheckBox(this);
+    cbPersist[i]->setProperty("index", i);
+    cbPersist[i]->setText(tr(""));
+    cbPersist[i]->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Minimum);
+    connect(cbPersist[i], SIGNAL(stateChanged(int)), this, SLOT(onPersistChanged()));
+    tableLayout->addWidget(i, 7, cbPersist[i]);
   }
 
   disableMouseScrolling();
@@ -257,6 +265,16 @@ void LogicalSwitchesPanel::onDelayChanged(double delay)
   }
 }
 
+void LogicalSwitchesPanel::onPersistChanged()
+{
+  if (!lock) {
+    QCheckBox *ckb = qobject_cast<QCheckBox*>(sender());
+    int index = ckb->property("index").toInt();
+    model->logicalSw[index].lsPersist = (ckb->checkState() ? 1 : 0);
+    emit modified();
+  }
+}
+
 void LogicalSwitchesPanel::onOffsetChanged()
 {
   offsetChangedAt(sender()->property("index").toInt());
@@ -277,7 +295,7 @@ bool LogicalSwitchesPanel::offsetChangedAt(int index)
     {
       RawSource source = RawSource(model->logicalSw[index].val1);
       RawSourceRange range = source.getRange(model, generalSettings, model->logicalSw[index].getRangeFlags());
-      double currVal = source.isTimeBased() ? teOffset[index]->timeInSeconds() : dsbOffset[index]->value();
+      double currVal = source.type == SOURCE_TYPE_TIMER ? teOffset[index]->timeInSeconds() : dsbOffset[index]->value();
       value = round((currVal - range.offset) / range.step);
       mod = (mod || value != model->logicalSw[index].val2);
       model->logicalSw[index].val2 = value;
@@ -343,6 +361,7 @@ void LogicalSwitchesPanel::updateTimerParam(QDoubleSpinBox *sb, int timer, doubl
 #define DELAY_ENABLED    0x40
 #define DURATION_ENABLED 0x80
 #define LINE_ENABLED     0x100
+#define PERSIST_ENABLED  0x200
 
 void LogicalSwitchesPanel::updateLine(int i)
 {
@@ -352,6 +371,7 @@ void LogicalSwitchesPanel::updateLine(int i)
 
   cbFunction[i]->setCurrentIndex(cbFunction[i]->findData(model->logicalSw[i].func));
   cbAndSwitch[i]->setCurrentIndex(cbAndSwitch[i]->findData(RawSwitch(model->logicalSw[i].andsw).toValue()));
+  dsbOffset[i]->setSuffix("");
 
   if (!model->logicalSw[i].isEmpty()) {
     mask = LINE_ENABLED | DELAY_ENABLED | DURATION_ENABLED;
@@ -366,7 +386,7 @@ void LogicalSwitchesPanel::updateLine(int i)
         double value = range.step * model->logicalSw[i].val2 + range.offset;  /* TODO+source.getRawOffset(model)*/
         cbSource1[i]->setModel(rawSourceFilteredModel);
         cbSource1[i]->setCurrentIndex(cbSource1[i]->findData(source.toValue()));
-        if (source.isTimeBased()) {
+        if (source.type == SOURCE_TYPE_TIMER) {
           mask |= VALUE_TO_VISIBLE;
           teOffset[i]->setTimeRange(range.min, range.max);
           teOffset[i]->setSingleStep(range.step);
@@ -376,9 +396,7 @@ void LogicalSwitchesPanel::updateLine(int i)
         }
         else {
           mask |= VALUE2_VISIBLE;
-          if (range.unit.isEmpty())
-            dsbOffset[i]->setSuffix("");
-          else
+          if (!range.unit.isEmpty())
             dsbOffset[i]->setSuffix(" " + range.unit);
           dsbOffset[i]->setDecimals(range.decimals);
           dsbOffset[i]->setMinimum(range.min);
@@ -391,6 +409,8 @@ void LogicalSwitchesPanel::updateLine(int i)
       }
 
       case LS_FAMILY_STICKY:  // no break
+        mask |= PERSIST_ENABLED;
+        cbPersist[i]->setChecked(model->logicalSw[i].lsPersist);
       case LS_FAMILY_VBOOL:
         mask |= SOURCE1_VISIBLE | SOURCE2_VISIBLE;
         cbSource1[i]->setModel(rawSwitchFilteredModel);
@@ -432,6 +452,7 @@ void LogicalSwitchesPanel::updateLine(int i)
   dsbOffset2[i]->setVisible(mask & VALUE3_VISIBLE);
   teOffset[i]->setVisible(mask & VALUE_TO_VISIBLE);
   cbAndSwitch[i]->setVisible(mask & LINE_ENABLED);
+  cbPersist[i]->setVisible(mask & PERSIST_ENABLED);
   if (lsCapabilityExt) {
     dsbDuration[i]->setVisible(mask & DURATION_ENABLED);
     dsbDelay[i]->setVisible(mask & DELAY_ENABLED);

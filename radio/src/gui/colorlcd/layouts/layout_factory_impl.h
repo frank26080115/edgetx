@@ -69,49 +69,49 @@ class Layout: public LayoutBase
     {
       return "Layout";
     }
-
-    void paint(BitmapBuffer * dc) override;
 #endif
 
-    void create() override;
+    void create() override {}
   
     const LayoutFactory * getFactory() const
     {
       return factory;
     }
   
-    bool hasTopbar() const {
-      return getOptionValue(LAYOUT_OPTION_TOPBAR)->boolValue;
+    virtual bool hasTopbar() const {
+      return ((uint8_t*)(&getOptionValue(LAYOUT_OPTION_TOPBAR)->boolValue))[0];
     }
 
-    bool hasFlightMode() const {
-      return getOptionValue(LAYOUT_OPTION_FM)->boolValue;
+    virtual bool hasFlightMode() const {
+      return ((uint8_t*)(&getOptionValue(LAYOUT_OPTION_FM)->boolValue))[0];
     }
 
-    bool hasSliders() const {
-      return getOptionValue(LAYOUT_OPTION_SLIDERS)->boolValue;
+    virtual bool hasSliders() const {
+      return ((uint8_t*)(&getOptionValue(LAYOUT_OPTION_SLIDERS)->boolValue))[0];
     }
 
-    bool hasTrims() const {
-      return getOptionValue(LAYOUT_OPTION_TRIMS)->boolValue;
+    virtual bool hasTrims() const {
+      return ((uint8_t*)(&getOptionValue(LAYOUT_OPTION_TRIMS)->boolValue))[0];
     }
 
-    bool isMirrored() const {
-      return getOptionValue(LAYOUT_OPTION_MIRRORED)->boolValue;
+    virtual bool isMirrored() const {
+      return ((uint8_t*)(&getOptionValue(LAYOUT_OPTION_MIRRORED)->boolValue))[0];
     }
+
+    virtual bool isAppMode() const { return false; }
 
     // Set decoration visibility
     void setTrimsVisible(bool visible);
     void setSlidersVisible(bool visible);
     void setFlightModeVisible(bool visible);
 
-    // Update from theme settings
-    void updateFromTheme() override;
-
     // Updates settings for trims, sliders, pots, etc...
     void adjustLayout() override;
+    void show(bool visible = true) override;
 
     bool isLayout() override { return true; }
+  
+    static LAYOUT_VAL(MAIN_ZONE_BORDER, 10, 10)
 
   protected:
     const LayoutFactory * factory  = nullptr;
@@ -141,14 +141,6 @@ class Layout: public LayoutBase
     unsigned int getZonesCount() const override { return zoneCount; }
     rect_t getZone(unsigned int index) const override;
 };
-
-#if LCD_W > LCD_H
-#define BM_W    51
-#define BM_H    25
-#else
-#define BM_W    22
-#define BM_H    34
-#endif
 
 template<class T>
 class BaseLayoutFactory: public LayoutFactory
