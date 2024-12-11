@@ -265,7 +265,6 @@ void displayTrims(uint8_t phase)
                 ym - 2, -abs(dir), TINSIZE);
           }
         }
-        lcdDrawSquare(xm - 3, ym - 3, 7, att);
       }
       else {
         xm += val;

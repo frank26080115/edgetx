@@ -34,7 +34,6 @@
 // RX state
 static uint8_t rxBitCount;
 static uint8_t rxByte;
-static bool _softseriaRxInvert = false;
 
 // RX FIFO
 static volatile uint8_t rxRidx;
@@ -53,21 +52,14 @@ static void _softserial_exti()
     for (uint8_t i = 0; i < 16; ++i) {
       if (!gpio_read(port->GPIO)) return;
     }
-    else {
-      for (uint8_t i = 0; i < 16; ++i) {
-        if (LL_GPIO_IsInputPinSet(port->GPIOx, port->GPIO_Pin) != 0)
-          return;
-      }
-    }
-
-    // disable start bit interrupt
-    LL_EXTI_DisableIT_0_31(port->EXTI_Line);
 
     // enable timer counter
     auto TIMx = port->TIMx;
     LL_TIM_SetAutoReload(TIMx, (BITLEN + BITLEN/2) - 1);
-    LL_TIM_SetCounter(TIMx, 0);
     LL_TIM_EnableCounter(TIMx);
+    
+    // disable start bit interrupt
+    LL_EXTI_DisableIT_0_31(port->EXTI_Line);
   }
 }
 

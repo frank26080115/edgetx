@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "opentx.h"
+//#include "opentx.h"
 
 #include "serial.h"
 

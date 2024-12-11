@@ -448,6 +448,8 @@ int8_t escBridgeJrBayInit(etx_serial_init* params)
   return ESCBRIDGE_INIT_ERR_NO_HW;
 }
 
+#include "lcd.h"
+
 void escBridgeDisplayLcd()
 {
   lcdRefreshWait();
