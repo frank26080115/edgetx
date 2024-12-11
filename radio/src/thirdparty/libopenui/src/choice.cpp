@@ -80,7 +80,7 @@ std::string Choice::getLabelText()
       if (val >= 0 && val < (int)values.size()) {
         text = values[val];
       } else {
-        text = std::to_string(val);
+        text = std::to_string(val + vmin);
       }
     }
   }
@@ -153,7 +153,8 @@ void Choice::setValue(int val)
 
 void Choice::onClicked()
 {
-  openMenu();
+  if (!deleted())
+    openMenu();
 }
 
 void Choice::fillMenu(Menu* menu, const FilterFct& filter)

@@ -21,30 +21,26 @@
 
 #pragma once
 
-#include "page.h"
-#include "curve.h"
-#include "choice.h"
+#include <stdint.h>
 
-struct ExpoData;
+uint32_t stm32_flash_get_size_kb();
+uint32_t stm32_flash_get_sector(uint32_t address);
+uint32_t stm32_flash_get_sector_size(uint32_t sector);
+uint32_t stm32_flash_get_bank(uint32_t address);
 
-class InputEditWindow : public Page
-{
- public:
-  InputEditWindow(int8_t input, uint8_t index);
+void stm32_flash_unlock();
+void stm32_flash_lock();
 
-  static LAYOUT_VAL(INPUT_EDIT_CURVE_WIDTH, 140, 176)
-  static LAYOUT_VAL(INPUT_EDIT_CURVE_HEIGHT, INPUT_EDIT_CURVE_WIDTH, 132)
+int stm32_flash_erase_sector(uint32_t address);
+int stm32_flash_program(uint32_t address, uint8_t* data, uint32_t len);
 
- protected:
-  uint8_t input;
-  uint8_t index;
-  Curve* preview = nullptr;
-  getvalue_t lastWeightVal = 0;
-  getvalue_t lastOffsetVal = 0;
-  getvalue_t lastCurveVal = 0;
+// Legacy API
 
-  void buildBody(Window *window);
+uint32_t isFirmwareStart(const uint8_t * buffer);
+uint32_t isBootloaderStart(const uint8_t * buffer);
 
-  void checkEvents() override;
-  void deleteLater(bool detach = true, bool trash = true) override;
-};
+void unlockFlash();
+void lockFlash();
+
+void flashWrite(uint32_t* address, const uint32_t* buffer);
+
