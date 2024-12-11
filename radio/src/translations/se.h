@@ -94,8 +94,6 @@
 #define TR_CSWEQUAL                     "a=x"
 #define TR_VCSWFUNC                     "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
-#define TR_TEXT_SIZE                    "Std","XS","S","M","L"
-
 #define TR_SF_TRAINER                  "Lärare"
 #define TR_SF_INST_TRIM                "Spara trimmar"
 #define TR_SF_RESET                    "Återställ"
@@ -125,12 +123,15 @@
 #define TR_SF_DISABLE_TOUCH             "Ej pekskärm"
 #define TR_SF_DISABLE_AUDIO_AMP         TR("Audioförst. av","Audioförstärkare av")
 #define TR_SF_SET_SCREEN                "Sätt huvudskärm"
-#define TR_SF_LCD_TO_VIDEO             "LCD to Video"
+#define TR_SF_SET_TELEMSCREEN           "Visa skärm"
+#define TR_SF_PUSH_CUST_SWITCH          "Tryck CS"
+#define TR_SF_LCD_TO_VIDEO              "LCD till Video"
 
 #define TR_FSW_RESET_TELEM              TR("Telm","Telemetri")
+#define TR_FSW_RESET_TRIMS              "Trims"
 #define TR_FSW_RESET_TIMERS             "Tmr1","Tmr2","Tmr3"
 
-#define TR_VFSWRESET                    TR_FSW_RESET_TIMERS,"Alla",TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                    TR_FSW_RESET_TIMERS,"Alla",TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 #define TR_FUNCSOUNDS                   TR("Bp1","Beep1"),TR("Bp2","Beep2"),TR("Bp3","Beep3"),TR("Wrn1","Warn1"),TR("Wrn2","Warn2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
 
@@ -406,6 +407,7 @@
 #define TR_PLAY_HELLO                   "Startljud"
 #define TR_PWR_ON_DELAY                 "Fördröj start"
 #define TR_PWR_OFF_DELAY                "Fördröj avslut"
+#define TR_PWR_AUTO_OFF                 TR("Auto avstängn.","Automatisk avstängning")
 #define TR_PWR_ON_OFF_HAPTIC            TR("Tx AV/PÅ vibr.","Radio AV/PÅ vibration")
 #define TR_BLCOLOR                      "Färg"
 #define TR_THROTTLE_WARNING             TR("Gasvarn.", "Gasvarning")
@@ -669,11 +671,7 @@
 #define TR_INT_MULTI_SPEC               "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                 "Inkompatibel"
 #define TR_WARNING                      "VARNING"
-#define TR_EEPROMWARN                   "EEPROM"
 #define TR_STORAGE_WARNING              "LAGRINGS-"
-#define TR_EEPROM_CONVERTING            "EEPROM konvertering"
-#define TR_SDCARD_CONVERSION_REQUIRE    "SD-kortet behöver konverteras"
-#define TR_CONVERTING                   "Konverteras: "
 #define TR_THROTTLE_UPPERCASE           "GAS-"
 #define TR_ALARMSWARN                   "ALARM"
 #define TR_SWITCHWARN                   "BRYTAR-"
@@ -725,6 +723,8 @@
 #define TR_TEMP_CALIB                   "Temp. kalib."
 #define TR_TIME                         "Tid"
 #define TR_BAUDRATE                     "Baudrate"
+#define TR_CRSF_ARMING_MODE             TR("Aktivera m.", "Aktivera med")
+#define TR_CRSF_ARMING_MODES            TR_CH"5", TR_SWITCH
 #define TR_MAXBAUDRATE                  "Max bauds"
 #define TR_SAMPLE_MODE                  TR("Sampling","Sample Mode")
 #define TR_SAMPLE_MODES                 "Normal","OneBit"
@@ -797,7 +797,7 @@
 #define TR_FLASH_FLIGHT_CONTROLLER_BY_INTERNAL_MODULE_OTA "Flash FC gnm int. OTA"
 #define TR_FLASH_BLUETOOTH_MODULE       TR("Flasha BT-modul", "Flasha Bluetoothmodul")
 #define TR_FLASH_POWER_MANAGEMENT_UNIT  "Flash pwr mngt unit"
-#define TR_DEVICE_NO_RESPONSE           TR("Device not responding", "Device not responding")
+#define TR_DEVICE_NO_RESPONSE           TR("Enheten svarar ej", "Enheten svarar inte")
 #define TR_DEVICE_FILE_ERROR            TR("Device file prob.", "Device file prob.")
 #define TR_DEVICE_DATA_REFUSED          TR("Device data refused", "Device data refused")
 #define TR_DEVICE_WRONG_REQUEST         TR("Device access problem", "Device access problem")
@@ -810,14 +810,14 @@
 #define TR_FLASH_EXTERNAL_MULTI         TR("Flasha ext. Multi", "Flasha extern Multi")
 #define TR_FLASH_EXTERNAL_ELRS          TR("Flasha ext. ELRS", "Flasha extern ELRS")
 
-#define TR_FIRMWARE_UPDATE_ERROR        TR("FW update Error","Firmware update error")
-#define TR_FIRMWARE_UPDATE_SUCCESS      "Flash successful"
+#define TR_FIRMWARE_UPDATE_ERROR        TR("FW uppdat.fel","Firmware uppdateringsfel")
+#define TR_FIRMWARE_UPDATE_SUCCESS      "Flashning OK"
 #define TR_WRITING                      "Skriver..."
 #define TR_CONFIRM_FORMAT               "Formatera minnet?"
 #define TR_INTERNALRF                   "Intern radiomodul"
 #define TR_INTERNAL_MODULE              TR("Int. modul","Intern modul")
 #define TR_EXTERNAL_MODULE              TR("Ext. modul","Extern modul")
-#define TR_OPENTX_UPGRADE_REQUIRED      "EdgeTX behöver uppgraderas"
+#define TR_EDGETX_UPGRADE_REQUIRED      "EdgeTX behöver uppgraderas"
 #define TR_TELEMETRY_DISABLED           "Telem. inaktiverad"
 #define TR_MORE_OPTIONS_AVAILABLE       "Fler alternativ finns"
 #define TR_NO_MODULE_INFORMATION        "Modulinformation saknas"
@@ -969,7 +969,8 @@
 #define TR_COPY_TRIMS_TO_OFS            TR("Kop. trim->subtrim","Spara trimmar som subtrim")
 #define TR_INCDEC                       "Öka/Minska"
 #define TR_GLOBALVAR                    "Globala var"
-#define TR_MIXSOURCE                    "Mixerkälla"
+#define TR_MIXSOURCE                    "Källa (%)"
+#define TR_MIXSOURCERAW                 "Källa (värde)"
 #define TR_CONSTANT                     "Konstant"
 #define TR_PREFLIGHT_POTSLIDER_CHECK    "Av","På","Auto"
 #define TR_PREFLIGHT                    "Startkontroller"
@@ -1050,9 +1051,9 @@
 
 // Bootloader common
 #define TR_BL_USB_CONNECTED             "USB ansluten"
-#define TR_BL_USB_PLUGIN                "Eller anslut med en USB-kabel"
+#define TR_BL_USB_PLUGIN                "Eller anslut med USB-kabel"
 #define TR_BL_USB_MASS_STORE            "foer masslagring"
-#define TR_BL_USB_PLUGIN_MASS_STORE     "Eller anslut med en USB-kabel foer masslagring"
+#define TR_BL_USB_PLUGIN_MASS_STORE     "Eller anslut med USB-kabel foer masslagring"
 #define TR_BL_WRITE_FW                  "Skriv firmware"
 #define TR_BL_FORK                      "Gren:"
 #define TR_BL_VERSION                   "Version:"
@@ -1060,21 +1061,21 @@
 #define TR_BL_EXIT                      "Avsluta"
 #define TR_BL_DIR_MISSING               " Katalogen saknas"
 #define TR_BL_DIR_EMPTY                 " Katalogen aer tom"
-#define TR_BL_WRITING_FW                "Skriver firmware ..."
+#define TR_BL_WRITING_FW                "Skriver..."
 #define TR_BL_WRITING_COMPL             "Skrivning klar"
 
 #if LCD_W >= 480
-  #define TR_BL_INVALID_FIRMWARE        "Inte en giltig firmwarefil"
+  #define TR_BL_INVALID_FIRMWARE        "Ej en giltig firmwarefil"
 #elif LCD_W >= 212
   #define TR_BL_OR_PLUGIN_USB_CABLE     TR_BL_USB_PLUGIN_MASS_STORE
   #define TR_BL_HOLD_ENTER_TO_START     "\012Tryck [ENT] foer att boerja skriva  "
-  #define TR_BL_INVALID_FIRMWARE        "\011Inte en giltig firmwarefil!       "
-  #define TR_BL_INVALID_EEPROM          "\011Inte en giltig EEPROM-fil!        "
+  #define TR_BL_INVALID_FIRMWARE        "\011Ej en giltig firmwarefil!       "
+  #define TR_BL_INVALID_EEPROM          "\011Ej en giltig EEPROM-fil!        "
 #else
   #define TR_BL_OR_PLUGIN_USB_CABLE     TR_BL_USB_PLUGIN
   #define TR_BL_HOLD_ENTER_TO_START     "\006Tryck [ENT] för att boerja      "
-  #define TR_BL_INVALID_FIRMWARE        "\004Inte en giltig firmware!     "
-  #define TR_BL_INVALID_EEPROM          "\004Inte en giltig EEPROM!       "
+  #define TR_BL_INVALID_FIRMWARE        "\004Ej en giltig firmware!     "
+  #define TR_BL_INVALID_EEPROM          "\004Ej en giltig EEPROM!       "
 #endif
 
 #if defined(PCBTARANIS)
@@ -1086,12 +1087,12 @@
   #endif
 #elif defined(PCBHORUS)
    // Bootloader Horus specific - ASCII characters only
-  #define TR_BL_ERASE_INT_FLASH         "Erase Internal Flash Storage"
-  #define TR_BL_ERASE_FLASH             "Erase Flash Storage"
-  #define TR_BL_ERASE_FLASH_MSG         "This may take up to 200s"
+  #define TR_BL_ERASE_INT_FLASH         "Radera interna flashminnet"
+  #define TR_BL_ERASE_FLASH             "Radera flashminnet"
+  #define TR_BL_ERASE_FLASH_MSG         "Detta kan ta upp till 200s"
   #define TR_BL_SELECT_KEY              "[ENT] för att vaelja fil"
   #define TR_BL_FLASH_KEY               "Tryck [ENT] foer att flasha"
-  #define TR_BL_ERASE_KEY               "Hold [ENT] long to erase"
+  #define TR_BL_ERASE_KEY               "Haall ner [ENT] foer att raderag"
   #define TR_BL_EXIT_KEY                "[RTN] foer att avbryta"
 #elif defined(PCBNV14)
    // Bootloader NV14 specific - ASCII characters only
@@ -1328,7 +1329,8 @@
 #define TR_SORT_MODELS_BY               "Sortera modeller"
 #define TR_CREATE_NEW                   "Skapa"
 
-#define TR_MIX_SLOW_PREC                TR("Dröj preci.", "Fördröj upp/ner precision")
+#define TR_MIX_SLOW_PREC                TR("Långsam preci.", "Långsam upp/ner precision")
+#define TR_MIX_DELAY_PREC               TR("Fördröj preci.", "Fördröj upp/ner precision")
 
 #define TR_THEME_EXISTS                 "Det finns redan ett tema med samma namn"
 
@@ -1339,3 +1341,5 @@
 #define TR_HIGH_BATT_COLOR              "Högt batteri"
 
 #define TR_WIDGET_SIZE                  "Widgetstorlek"
+
+#define TR_DEL_DIR_NOT_EMPTY            "Katalog måste var tom innan radering"

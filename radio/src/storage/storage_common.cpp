@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "timers_driver.h"
 #include "tasks/mixer_task.h"
 #include "mixes.h"
@@ -63,9 +63,7 @@ void preModelLoad()
 {
   watchdogSuspend(500/*5s*/);
 
-#if defined(SDCARD)
   logsClose();
-#endif
 
   bool needDelay = false;
   if (mixerTaskStarted()) {
@@ -285,9 +283,7 @@ if(g_model.rssiSource) {
     pulsesStart();
   }
 
-#if defined(SDCARD)
   referenceModelAudioFiles();
-#endif
 
 #if defined(COLORLCD)
   LayoutFactory::loadCustomScreens();

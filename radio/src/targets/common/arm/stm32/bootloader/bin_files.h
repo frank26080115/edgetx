@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _bin_files_h_
-#define _bin_files_h_
+#pragma once
 
 #include <FatFs/ff.h>
 #include "sdcard.h"
@@ -33,11 +32,7 @@ enum MemoryType {
   MEM_EEPROM
 };
 
-#if defined(EEPROM)
-#define getBinaryPath(mt)  ((mt == MEM_FLASH) ? FIRMWARES_PATH : EEPROMS_PATH)
-#else
 #define getBinaryPath(mt)  (FIRMWARES_PATH)
-#endif
 
 #if LCD_H == 480
 #define MAX_NAMES_ON_SCREEN   13
@@ -98,5 +93,3 @@ FRESULT readBinFile();
 
 // Close the previously opened file
 FRESULT closeBinFile();
-
-#endif

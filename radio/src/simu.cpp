@@ -29,7 +29,7 @@
 #include "FXPNGImage.h"
 #include <unistd.h>
 #include "fxkeys.h"
-#include "opentx.h"
+#include "edgetx.h"
 #include <time.h>
 #include <ctype.h>
 
@@ -167,10 +167,6 @@ OpenTxSim::~OpenTxSim()
 
   simuStop();
   stopAudioThread();
-
-#if defined(EEPROM)
-  stopEepromThread();
-#endif
 
   delete bmp;
   delete sliders[0];
@@ -440,7 +436,7 @@ void OpenTxSim::updateKeysAndSwitches(bool start)
   SWITCH_KEY(C, 2, 3);
   SWITCH_KEY(D, 3, 3);
 
-  #if defined(RADIO_TPRO) || defined(RADIO_TPROV2)
+  #if defined(RADIO_TPRO) || defined(RADIO_TPROV2) || defined(RADIO_TPROS) || defined(RADIO_BUMBLEBEE)
     SWITCH_KEY(1, 4, 2);
     SWITCH_KEY(2, 5, 2);
     SWITCH_KEY(3, 6, 2);
@@ -645,12 +641,7 @@ int main(int argc, char ** argv)
   opentxSim->show(); // Otherwise the main window gets centred across my two monitors, split down the middle.
 #endif
 
-
   printf("Model size = %d\n", (int)sizeof(g_model));
-
-#if defined(EEPROM) || defined(EEPROM_RLC)
-  startEepromThread(argc >= 2 ? argv[1] : "eeprom.bin");
-#endif
 
 #if !defined(SIMU_BOOTLOADER)
   startAudioThread();

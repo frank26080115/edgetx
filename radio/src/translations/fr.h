@@ -89,8 +89,6 @@
 #define TR_CSWEQUAL                    "a=x"
 #define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","ET","OU","OUX",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
-#define TR_TEXT_SIZE                   "Standard","Mini","Petit","Moyen","Double"
-
 #define TR_SF_TRAINER                  "Écolage"
 #define TR_SF_INST_TRIM                "Inst. Trim"
 #define TR_SF_RESET                    "Remise à 0"
@@ -120,13 +118,16 @@
 #define TR_SF_DISABLE_TOUCH            "Non Tactile"
 #define TR_SF_DISABLE_AUDIO_AMP        "Désact. Ampli Audio"
 #define TR_SF_SET_SCREEN               "Définir Écran Princ."
+#define TR_SF_SET_TELEMSCREEN          "Aff. écran"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Télem.", "Télémétrie")
-#define TR_FSW_RESET_TIMERS          "Chr1","Chr2","Chr3"
+#define TR_FSW_RESET_TRIMS             "Trims"
+#define TR_FSW_RESET_TIMERS            "Chr1","Chr2","Chr3"
 
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS, "Tout", TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,"Tout",TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 #define TR_FUNCSOUNDS                  TR("Bp1","Beep1"),TR("Bp2","Beep2"),TR("Bp3","Beep3"),TR("Wrn1","Warn1"),TR("Wrn2","Warn2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
 #if LCD_W >= 212
@@ -400,6 +401,7 @@
 #define TR_PLAY_HELLO                  "Son de démarrage"
 #define TR_PWR_ON_DELAY                "Délai btn ON"
 #define TR_PWR_OFF_DELAY               "Délai btn OFF"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("Pwr ON/OFF Vibreur","Power ON/OFF Vibreur")
 #define TR_THROTTLE_WARNING            TR("Alerte gaz", "Alerte gaz")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Pos. Perso", "Position perso ?")
@@ -655,11 +657,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "Incompatible"
 #define TR_WARNING                     "ALERTE"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "STOCKAGE"
-#define TR_EEPROM_CONVERTING           "Conversion EEPROM"
-#define TR_SDCARD_CONVERSION_REQUIRE   "Conversion carte SD exigée"
-#define TR_CONVERTING                  "Convertit: "
 #define TR_THROTTLE_UPPERCASE          "GAZ"
 #define TR_ALARMSWARN                  "SON"
 #define TR_SWITCHWARN                  TR("INTERS","CONTRÔLES")
@@ -712,6 +710,8 @@
 #define TR_TIME                        "Heure"
 #define TR_MAXBAUDRATE                 "Max bauds"
 #define TR_BAUDRATE                    "Baudrate"
+#define TR_CRSF_ARMING_MODE            TR("Mod. Arm.", "Mode d'armement")
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 "Mode"
 #define TR_SAMPLE_MODES                "Normal","OneBit"
 #define TR_LOADING                     "Chargement..."
@@ -801,7 +801,7 @@
 #define TR_INTERNALRF                  "HF interne"
 #define TR_INTERNAL_MODULE             TR("Module int.","Module interne")
 #define TR_EXTERNAL_MODULE             TR("Module ext.","Module externe")
-#define TR_OPENTX_UPGRADE_REQUIRED     "Màj OpenTX nécessaire"
+#define TR_EDGETX_UPGRADE_REQUIRED     "Màj EdgeTX nécessaire"
 #define TR_TELEMETRY_DISABLED          "Télém. désactivée"
 #define TR_MORE_OPTIONS_AVAILABLE      "Autres options disponibles"
 #define TR_NO_MODULE_INFORMATION       "Pas d'info Module"
@@ -947,7 +947,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Cpy trim->subtrim", "Trim vers subtrim")
 #define TR_INCDEC                      "Inc/décrémenter"
 #define TR_GLOBALVAR                   "Var. globale"
-#define TR_MIXSOURCE                   "Source mixeur"
+#define TR_MIXSOURCE                   "Source (%)"
+#define TR_MIXSOURCERAW                "Source (valeur)"
 #define TR_CONSTANT                    "Constante"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "Off","On","Auto"
 #define TR_PREFLIGHT                   "Vérifs avant vol"
@@ -1310,6 +1311,7 @@
 #define TR_CREATE_NEW             "Créer"
 
 #define TR_MIX_SLOW_PREC          TR("Slow prec", "Slow up/dn prec")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "Un thème avec le même nom existe déjà."
 
@@ -1320,3 +1322,5 @@
 #define TR_HIGH_BATT_COLOR        "High battery"
 
 #define TR_WIDGET_SIZE            "Taille Widget"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

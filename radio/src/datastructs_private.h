@@ -26,7 +26,7 @@
 #include "board.h"
 #include "dataconstants.h"
 #include "definitions.h"
-#include "opentx_types.h"
+#include "edgetx_types.h"
 #include "globals.h"
 #include "serial.h"
 #include "usb_joystick.h"
@@ -65,7 +65,7 @@
 PACK(union SourceNumVal {
   struct {
     int16_t value:10;
-    bool isSource:1;
+    uint16_t isSource:1;
   };
   uint16_t rawValue:11;
 });
@@ -74,7 +74,7 @@ inline uint16_t makeSourceNumVal(int16_t val, bool isSource = false)
 {
   SourceNumVal v;
   v.value = val;
-  v.isSource= isSource;
+  v.isSource = isSource;
   return v.rawValue;
 }
 
@@ -93,9 +93,10 @@ PACK(struct MixData {
   uint16_t carryTrim:1;
   uint16_t mixWarn:2;       // mixer warning
   uint16_t mltpx:2 ENUM(MixerMultiplex);
+  uint16_t delayPrec:1;
   uint16_t speedPrec:1;
   uint16_t flightModes:9 CUST(r_flightModes, w_flightModes);
-  uint16_t spare:2 SKIP;
+  uint16_t spare:1 SKIP;
   uint32_t weight:11 CUST(r_sourceNumVal,w_sourceNumVal);
   uint32_t offset:11 CUST(r_sourceNumVal,w_sourceNumVal);
   int32_t  swtch:10 CUST(r_swtchSrc,w_swtchSrc);
@@ -177,12 +178,12 @@ PACK(struct CustomFunctionData {
       int16_t val;
       uint8_t mode;
       uint8_t param;
-      NOBACKUP(int32_t spare);
+      int32_t val2;
     }) all;
 
     NOBACKUP(PACK(struct {
       int32_t val1;
-      NOBACKUP(int32_t val2);
+      int32_t val2;
     }) clear);
   }) NAME(fp) SKIP;
   uint8_t active : 1 SKIP;
@@ -534,9 +535,13 @@ PACK(struct ModuleData {
       uint8_t telemetryBaudrate:3;
       uint8_t spare1:4 SKIP;
     } ghost);
-    NOBACKUP(struct {
+    NOBACKUP(PACK(struct {
       uint8_t telemetryBaudrate:3;
-    } crsf);
+      uint8_t crsfArmingMode:1;
+      uint8_t spare2:4 SKIP;
+      int16_t crsfArmingTrigger:10 CUST(r_swtchSrc,w_swtchSrc);
+      int16_t spare3:6;
+    }) crsf);
     NOBACKUP(struct {
       uint8_t flags;
     } dsmp);
@@ -586,8 +591,8 @@ static_assert(sizeof(potwarnen_t) * 8 >= MAX_POTS,
 #if defined(COLORLCD) && defined(BACKUP)
 #define CUSTOM_SCREENS_DATA
 #elif defined(COLORLCD)
-#include "gui/colorlcd/layout.h"
-#include "gui/colorlcd/topbar.h"
+#include "layout.h"
+#include "topbar.h"
 #define LAYOUT_ID_LEN 12
 PACK(struct CustomScreenData {
   char LayoutId[LAYOUT_ID_LEN];
@@ -986,9 +991,7 @@ PACK(struct RadioData {
   NOBACKUP(uint8_t modelSFDisabled:1);
   NOBACKUP(uint8_t modelCustomScriptsDisabled:1);
   NOBACKUP(uint8_t modelTelemetryDisabled:1);
-
   NOBACKUP(uint8_t disableTrainerPoweroffAlarm:1);
-
   NOBACKUP(uint8_t disablePwrOnOffHaptic:1);
 
 #if defined(COLORLCD)
@@ -999,6 +1002,8 @@ PACK(struct RadioData {
 #else
   NOBACKUP(uint8_t spare:4 SKIP);
 #endif
+
+  NOBACKUP(uint8_t pwrOffIfInactive);
 
   NOBACKUP(uint8_t getBrightness() const
   {

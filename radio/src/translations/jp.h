@@ -119,12 +119,15 @@
 #define TR_SF_DISABLE_TOUCH            "非タッチ"
 #define TR_SF_DISABLE_AUDIO_AMP        "オーディオアンプ OFF"
 #define TR_SF_SET_SCREEN               "メイン画面設定"
+#define TR_SF_SET_TELEMSCREEN          "画面設定"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "テレメトリー")
+#define TR_FSW_RESET_TRIMS             "Trims"
 #define TR_FSW_RESET_TIMERS            "Tmr1","Tmr2","Tmr3"
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("すべて","飛行時"),TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("すべて","飛行時"),TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 
 #define TR_FUNCSOUNDS                  TR("Bp1","Beep1"),TR("Bp2","Beep2"),TR("Bp3","Beep3"),TR("Wrn1","Warn1"),TR("Wrn2","Warn2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
@@ -215,7 +218,6 @@
 #define TR_VFORMULAS                   "加算値","平均値","最小値","最大値","乗算値","合計値","セル","消費量","距離"
 #define TR_VPREC                       "0.--","0.0 ","0.00"
 #define TR_VCELLINDEX                  "最低値","1","2","3","4","5","6","7","8","最高値","差分"
-#define TR_TEXT_SIZE                   "標準","微小","小","中","2倍"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA " (中央)","= (全体)"
 #define TR_TIMER_DIR                   TR("Remain", "残り時間表示"), TR("Elaps.", "経過時間表示")
 #define TR_PPMUNIT                     "0.--","0.0","us"
@@ -393,6 +395,7 @@
 #define TR_PLAY_HELLO                  "起動時サウンド"
 #define TR_PWR_ON_DELAY                "電源ON遅延"
 #define TR_PWR_OFF_DELAY               "電源OFF遅延"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("Pwr ON/OFF Haptic","電源 ON/OFF 時のバイブ")
 #define TR_THROTTLE_WARNING            TR("T-Warning", "Throttle状態")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Cust-Pos", "カスタム位置？")
@@ -657,11 +660,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "非対応"
 #define TR_WARNING                     "警告"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "ストレージ"
-#define TR_EEPROM_CONVERTING           "EEPROM変換"
-#define TR_SDCARD_CONVERSION_REQUIRE   "SDカードの変換が必要です"
-#define TR_CONVERTING                  "変換: "
 #define TR_THROTTLE_UPPERCASE          "THROTTLE"
 #define TR_ALARMSWARN                  "アラーム"
 #define TR_SWITCHWARN                  TR("スイッチ", "コントロール")
@@ -714,6 +713,8 @@
 #define TR_TIME                        "時間"
 #define TR_MAXBAUDRATE                 "最大ボーレート"
 #define TR_BAUDRATE                    "ボーレート"
+#define TR_CRSF_ARMING_MODE            "アーム ロック解除"
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 "サンプルモード"
 #define TR_SAMPLE_MODES                "標準","OneBit"
 #define TR_LOADING                     "読み込み中..."
@@ -804,7 +805,7 @@
 #define TR_INTERNALRF                  "内部RFモジュール"
 #define TR_INTERNAL_MODULE             TR("Int. module", "内部モジュール")
 #define TR_EXTERNAL_MODULE             TR("Ext. module", "外部モジュール")
-#define TR_OPENTX_UPGRADE_REQUIRED     "OpenTXアップグレードが必要です"
+#define TR_EDGETX_UPGRADE_REQUIRED     "EdgeTXアップグレードが必要です"
 #define TR_TELEMETRY_DISABLED          "テレメトリー無効"
 #define TR_MORE_OPTIONS_AVAILABLE      "その他のオプション"
 #define TR_NO_MODULE_INFORMATION       "モジュール情報なし"
@@ -945,7 +946,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Cpy trim->subtrim", "トリムからサブトリムへコピー")
 #define TR_INCDEC                      "増加/減少"
 #define TR_GLOBALVAR                   "グローバル変数"
-#define TR_MIXSOURCE                   "ミキサーソース"
+#define TR_MIXSOURCE                   "ソース (%)"
+#define TR_MIXSOURCERAW                "ソース (値)"
 #define TR_CONSTANT                    "変化なし"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "OFF","ON","自動"
 #define TR_PREFLIGHT                   "飛行前チェック"
@@ -1294,6 +1296,7 @@
 #define TR_CREATE_NEW             "作成"
 
 #define TR_MIX_SLOW_PREC          TR("Slow prec", "Slow up/dn prec")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "同じ名前のテーマディレクトリが既に存在します。"
 
@@ -1304,3 +1307,5 @@
 #define TR_HIGH_BATT_COLOR        "バッテリー高"
 
 #define TR_WIDGET_SIZE            "ウィジェットサイズ"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

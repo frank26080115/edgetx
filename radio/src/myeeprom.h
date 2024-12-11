@@ -23,16 +23,9 @@
 #define _MYEEPROM_H_
 
 #include "datastructs.h"
-#include "libopenui/src/bitfield.h"
+#include "bitfield.h"
 #include "storage/yaml/yaml_defs.h"
 #include "hal/switch_driver.h"
-
-#if defined(SDCARD_YAML)
-  #define EEPROM_VER           221
-#else
-  #define EEPROM_VER           220
-#endif
-#define FIRST_CONV_EEPROM_VER  219
 
 #define GET_MODULE_PPM_POLARITY(idx)             g_model.moduleData[idx].ppm.pulsePol
 #define GET_TRAINER_PPM_POLARITY()               g_model.trainerData.pulsePol
@@ -54,17 +47,14 @@
   #define IS_HAPTIC_FUNC(func)         (0)
 #endif
 
-#if defined(COLORLCD)
-#define HAS_REPEAT_PARAM(func)         (IS_PLAY_FUNC(func) || IS_HAPTIC_FUNC(func) || func == FUNC_PLAY_SCRIPT || func == FUNC_SET_SCREEN)
-#else
-#define HAS_REPEAT_PARAM(func)         (IS_PLAY_FUNC(func) || IS_HAPTIC_FUNC(func) || func == FUNC_PLAY_SCRIPT)
-#endif
+#define HAS_REPEAT_PARAM(func)         (IS_PLAY_FUNC(func) || IS_HAPTIC_FUNC(func) || func == FUNC_PLAY_SCRIPT || func == FUNC_RGB_LED || func == FUNC_SET_SCREEN)
 
 #define CFN_EMPTY(p)                   (!(p)->swtch)
 #define CFN_SWITCH(p)                  ((p)->swtch)
 #define CFN_FUNC(p)                    ((p)->func)
 #define CFN_ACTIVE(p)                  ((p)->active)
 #define CFN_CH_INDEX(p)                ((p)->all.param)
+#define CFN_CS_INDEX(p)                ((p)->all.param)
 #define CFN_GVAR_INDEX(p)              ((p)->all.param)
 #define CFN_TIMER_INDEX(p)             ((p)->all.param)
 #define CFN_PLAY_REPEAT(p)             ((p)->repeat)
@@ -72,6 +62,7 @@
 #define CFN_PLAY_REPEAT_NOSTART        -1
 #define CFN_GVAR_MODE(p)               ((p)->all.mode)
 #define CFN_PARAM(p)                   ((p)->all.val)
+#define CFN_VAL2(p)                    ((p)->all.val2)
 #define CFN_RESET(p)                   ((p)->active=0, (p)->clear.val1=0, (p)->clear.val2=0)
 #define CFN_GVAR_CST_MIN               -GVAR_MAX
 #define CFN_GVAR_CST_MAX               GVAR_MAX

@@ -122,13 +122,16 @@
 #define TR_SF_DISABLE_TOUCH            "ללא מסך מגע"
 #define TR_SF_DISABLE_AUDIO_AMP        "Audio Amp Off"
 #define TR_SF_SET_SCREEN               "הגדרת מסך ראשי"
+#define TR_SF_SET_TELEMSCREEN          "Set Screen"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "טלמטריה")
+#define TR_FSW_RESET_TRIMS             "Trims"
 #define TR_FSW_RESET_TIMERS            "שעון 1","שעון 2","שעון 3"
 
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("All","Flight"),TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("All","Flight"),TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 
 #define TR_FUNCSOUNDS                  TR("Bp1","Beep1"),TR("Bp2","Beep2"),TR("Bp3","Beep3"),TR("Wrn1","Warn1"),TR("Wrn2","Warn2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
@@ -220,7 +223,6 @@
 #define TR_VFORMULAS                   "Add","Average","Min","Max","Multiply","Totalize","Cell","Consumpt","Distance"
 #define TR_VPREC                       "0.--","0.0 ","0.00"
 #define TR_VCELLINDEX                  "Lowest","1","2","3","4","5","6","7","8","Highest","Delta"
-#define TR_TEXT_SIZE                   "Standard","Tiny","Small","Mid","Double"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA " (center only)","= (symmetrical)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
 #define TR_PPMUNIT                     "0.--","0.0","us"
@@ -398,6 +400,7 @@
 #define TR_PLAY_HELLO                  "צליל אתחול"
 #define TR_PWR_ON_DELAY                "השהיית הפעלה פעיל"
 #define TR_PWR_OFF_DELAY               "משך לחיצה לכיבוי השלט"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("Pwr ON/OFF Haptic","Power ON/OFF Haptic")
 #define TR_THROTTLE_WARNING            TR("T-Warning", "התראת מצערת פתוחה")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Cust-Pos", "עריכת מיקום ידנית")
@@ -657,11 +660,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "Incompatible"
 #define TR_WARNING                     "אזהרה"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "איחסון"
-#define TR_EEPROM_CONVERTING           "Converting EEPROM"
-#define TR_SDCARD_CONVERSION_REQUIRE   "SD card conversion required"
-#define TR_CONVERTING                  ":ממיר "
 #define TR_THROTTLE_UPPERCASE          "מצערת"
 #define TR_ALARMSWARN                  "התראות"
 #define TR_SWITCHWARN                  TR("SWITCH", "CONTROL")
@@ -714,6 +713,8 @@
 #define TR_TIME                        "זמן"
 #define TR_MAXBAUDRATE                 "Max bauds"
 #define TR_BAUDRATE                    "Baudrate"
+#define TR_CRSF_ARMING_MODE            "Arm using"
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 "Sample Mode"
 #define TR_SAMPLE_MODES                "Normal","OneBit"
 #define TR_LOADING                     "...טוען"
@@ -804,7 +805,7 @@
 #define TR_INTERNALRF                  "מודול פנימי"
 #define TR_INTERNAL_MODULE             TR("Int. module", "מודול פנימי")
 #define TR_EXTERNAL_MODULE             TR("Ext. module", "מודול חיצוני")
-#define TR_OPENTX_UPGRADE_REQUIRED     "OpenTX upgrade required"
+#define TR_EDGETX_UPGRADE_REQUIRED     "EdgeTX upgrade required"
 #define TR_TELEMETRY_DISABLED          "Telem. disabled"
 #define TR_MORE_OPTIONS_AVAILABLE      "More options available"
 #define TR_NO_MODULE_INFORMATION       "No module information"
@@ -945,7 +946,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Cpy trim->subtrim", "Copy trims to subtrim")
 #define TR_INCDEC                      "Inc/Decrement"
 #define TR_GLOBALVAR                   "Global var"
-#define TR_MIXSOURCE                   "מקור מיקסר"
+#define TR_MIXSOURCE                   "מקור (%)"
+#define TR_MIXSOURCERAW                "מקור (ערך)"
 #define TR_CONSTANT                    "Constant"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "כבוי","פועל","אוטומטי"
 #define TR_PREFLIGHT                   "מצב הביקורת לשלט"
@@ -1294,6 +1296,7 @@
 #define TR_CREATE_NEW             "יצירה חדשה"
 
 #define TR_MIX_SLOW_PREC          TR("Slow prec", "Slow up/dn prec")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "כבר קיימת ערכת נושא עם אותו שם"
 
@@ -1304,3 +1307,5 @@
 #define TR_HIGH_BATT_COLOR        "מתח סוללה גבוה"
 
 #define TR_WIDGET_SIZE            "Widget size"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

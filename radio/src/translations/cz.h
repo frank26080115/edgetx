@@ -92,8 +92,6 @@
 #define TR_CSWEQUAL                    "a=x"
 #define TR_VCSWFUNC                    "---",TR_CSWEQUAL,"a" STR_CHAR_TILDE "x","a>x","a<x","|a|>x","|a|<x","AND","OR","XOR",TR_CSWSTAY,"a=b","a>b","a<b",STR_CHAR_DELTA "≥x","|" STR_CHAR_DELTA "|≥x",TR_CSWTIMER,TR_CSWSTICKY
 
-#define TR_TEXT_SIZE                   "Standard","Nejmenší","Malé","Střední","Dvojité"
-
 #define TR_SF_TRAINER                  "Trenér"
 #define TR_SF_INST_TRIM                "Insta-Trim"
 #define TR_SF_RESET                    "Reset"
@@ -123,17 +121,21 @@
 #define TR_SF_DISABLE_TOUCH            "Deaktivace dotyku"
 #define TR_SF_DISABLE_AUDIO_AMP        "Vypnutí zesilovače zvuku"
 #define TR_SF_SET_SCREEN               "Vybrat hlavní obrazovku"
+#define TR_SF_SET_TELEMSCREEN          "Nast obrazovku"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Telm","Telemetrie")
 
 #if LCD_W >= 212
-  #define TR_FSW_RESET_TIMERS          "Stopky1","Stopky2","Stopky3"
+  #define TR_FSW_RESET_TRIMS           "Trims"
+#define TR_FSW_RESET_TIMERS            "Stopky1","Stopky2","Stopky3"
 #else
-  #define TR_FSW_RESET_TIMERS          "Čas1","Čas2","Čas3"
+  #define TR_FSW_RESET_TRIMS           "Trims"
+#define TR_FSW_RESET_TIMERS            "Čas1","Čas2","Čas3"
 #endif
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,"Vše",TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,"Vše",TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 #define TR_FUNCSOUNDS                  TR("Píp1","Pípnutí1"),TR("Píp2","Pípnutí2"),TR("Píp3","Pípnutí3"),TR("Var1","Varování1"),TR("Var2","Varování2"),TR("Chee","Cheep"),TR("Rata", "Ratata"),"Tick",TR("Sirn","Siréna"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
 #define LENGTH_UNIT_IMP                "ft"
@@ -405,6 +407,7 @@
 #define TR_PLAY_HELLO                  "Zvuk při spuštění"
 #define TR_PWR_ON_DELAY                "Zpoždění zapnutí"
 #define TR_PWR_OFF_DELAY               "Zpoždění vypnutí"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("Zap ON/OFF vibrace","Zapnutí ON/OFF vibrace")
 #define TR_THROTTLE_WARNING            TR("* Plyn", "Kontrola plynu")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Vlas-Poz", "Vlastní pozice?")
@@ -665,11 +668,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "Nekompatibilní"
 #define TR_WARNING                     "KONTROLA"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "ÚLOŽIŠTĚ"
-#define TR_EEPROM_CONVERTING           "Aktualizuji EEPROM"
-#define TR_SDCARD_CONVERSION_REQUIRE   "SD karta vyžaduje konverzi"
-#define TR_CONVERTING                  "Konverze: "
 #define TR_THROTTLE_UPPERCASE          "PLYNU"
 #define TR_ALARMSWARN                  "ALARMU"
 #define TR_SWITCHWARN                  "POZICE"
@@ -722,6 +721,8 @@
 #define TR_TIME                        "Čas"
 #define TR_MAXBAUDRATE                 "Max baudů"
 #define TR_BAUDRATE                    "Baudrate"
+#define TR_CRSF_ARMING_MODE            "Arm mód"
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 "Vzorkovací režim"
 #define TR_SAMPLE_MODES                "Normální","OneBit"
 #define TR_LOADING                     "Načítání..."
@@ -811,7 +812,7 @@
 #define TR_INTERNALRF                  "Interní RF modul"
 #define TR_INTERNAL_MODULE             "Interní modul"
 #define TR_EXTERNAL_MODULE             "Externí modul"
-#define TR_OPENTX_UPGRADE_REQUIRED     TR("Aktualizujte EdgeTX", "Vyžadována aktualizace EdgeTX")
+#define TR_EDGETX_UPGRADE_REQUIRED     TR("Aktualizujte EdgeTX", "Vyžadována aktualizace EdgeTX")
 #define TR_TELEMETRY_DISABLED          "Telem. zakázána"
 #define TR_MORE_OPTIONS_AVAILABLE      TR("Více možností", "Více dostupných možností")
 #define TR_NO_MODULE_INFORMATION       "Žádné info o modulu"
@@ -957,7 +958,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Trimy do subtrimu", "Kopírovat trimy do subtrimů")
 #define TR_INCDEC                      "Zvětšit/Zmenšit"
 #define TR_GLOBALVAR                   "Glob. proměnná"
-#define TR_MIXSOURCE                   "Zdroje mixeru"
+#define TR_MIXSOURCE                   "Zdroj (%)"
+#define TR_MIXSOURCERAW                "Zdroj (hodnota)"
 #define TR_CONSTANT                    "Konstanta"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "Vyp","Zap","Auto"
 #define TR_PREFLIGHT                   "Předletová kontrola"
@@ -1307,6 +1309,7 @@
 #define TR_CREATE_NEW             "Vytvořit"
 
 #define TR_MIX_SLOW_PREC          TR("Přesnost zpomal", "Přesnost zpomalení")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "Adresář vzhledu s tímto názvem již existuje."
 
@@ -1317,3 +1320,5 @@
 #define TR_HIGH_BATT_COLOR        "Plně nabitá baterie"
 
 #define TR_WIDGET_SIZE            "Velikost widgetu"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

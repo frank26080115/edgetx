@@ -121,12 +121,15 @@
 #define TR_SF_DISABLE_TOUCH            "Сенсор вык"
 #define TR_SF_DISABLE_AUDIO_AMP        "Вык аудио усил."
 #define TR_SF_SET_SCREEN               "Выбр глав экран"
+#define TR_SF_SET_TELEMSCREEN          "Set Screen"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Телем", "Телеметрия")
+#define TR_FSW_RESET_TRIMS             "Trims"
 #define TR_FSW_RESET_TIMERS            "Тмр1","Трм2","Трм3"
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS, TR("Все","Полетн"), TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS, TR("Все","Полетн"), TR_FSW_RESET_TELEM, TR_FSW_RESET_TRIMS
 
 #define TR_FUNCSOUNDS                  TR("Bp1","Beep1"),TR("Bp2","Beep2"),TR("Bp3","Beep3"),TR("Wrn1","Warn1"),TR("Wrn2","Warn2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
@@ -218,7 +221,6 @@
 #define TR_VFORMULAS                   "Добав","Средн","Мин","Макс","Умнож","Суммир","Ячейка","Расх","Дист"
 #define TR_VPREC                       "0.--","0.0 ","0.00"
 #define TR_VCELLINDEX                  "Низ","1","2","3","4","5","6","7","8","Выс","Дельта"
-#define TR_TEXT_SIZE                   "Стд","Крошеч","Мален","Сред","Двойной"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA " (Тол цен)", "= (Симметр)"
 #define TR_TIMER_DIR                   TR("Остал", "Остал"), TR("Прошло", "Прошед")
 #define TR_PPMUNIT                     "0.--","0.0","us"
@@ -396,6 +398,7 @@
 #define TR_PLAY_HELLO                  "Звук запуска"
 #define TR_PWR_ON_DELAY                "Время включ"
 #define TR_PWR_OFF_DELAY               "Время выключ"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off") 
 #define TR_PWR_ON_OFF_HAPTIC           TR("Pwr ON/OFF Haptic","Power ON/OFF Haptic")
 #define TR_THROTTLE_WARNING            TR("Г-Предупр", "Статис газа")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Свое пол", "Свое пол?")
@@ -660,11 +663,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "Несовмес"
 #define TR_WARNING                     "ВНИМАНИЕ"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "ПАМЯТЬ"
-#define TR_EEPROM_CONVERTING           "Преобр EEPROM"
-#define TR_SDCARD_CONVERSION_REQUIRE   "Треб конверт SD карты"
-#define TR_CONVERTING                  "Преобр: "
 #define TR_THROTTLE_UPPERCASE          "Газ"
 #define TR_ALARMSWARN                  "СИГНАЛЫ"
 #define TR_SWITCHWARN                  TR("ТУМБЛЕРЫ", "ТУМБЛЕРЫ")
@@ -717,6 +716,8 @@
 #define TR_TIME                        "Время"
 #define TR_MAXBAUDRATE                 "Макс скорость"
 #define TR_BAUDRATE                    "Скор пер"
+#define TR_CRSF_ARMING_MODE            "Arm режим"
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 TR("Реж выб","Реж выб")
 #define TR_SAMPLE_MODES                "Обыч","Один бит"
 #define TR_LOADING                     "Загрузка..."
@@ -807,7 +808,7 @@
 #define TR_INTERNALRF                  "Внут RF"
 #define TR_INTERNAL_MODULE             TR("Внут. Модуль", "Внут Модуль")
 #define TR_EXTERNAL_MODULE             TR("Внеш. Модуль", "Внеш Модуль")
-#define TR_OPENTX_UPGRADE_REQUIRED     "OpenTX требуется обновл"
+#define TR_EDGETX_UPGRADE_REQUIRED     "EdgeTX требуется обновл"
 #define TR_TELEMETRY_DISABLED          "Телем. откл"
 #define TR_MORE_OPTIONS_AVAILABLE      "Доступно больше опций"
 #define TR_NO_MODULE_INFORMATION       "Нет инфо о модуле"
@@ -948,7 +949,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Коп трим->субтрим", "Коп тримы в субтрим")
 #define TR_INCDEC                      "Увел/Умен"
 #define TR_GLOBALVAR                   "Глоб переменная"
-#define TR_MIXSOURCE                   "Источник микшера"
+#define TR_MIXSOURCE                   "Источ (%)"
+#define TR_MIXSOURCERAW                "Источ (Значен)"
 #define TR_CONSTANT                    "Постоянное значение"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "Выкл","Вкл","Авто"
 #define TR_PREFLIGHT                   "Предстарт проверки"
@@ -1232,25 +1234,25 @@
 // End Main menu
 
 // Voice in native language
-#define TR_VOICE_ENGLISH                "Английский"
-#define TR_VOICE_CHINESE                "Китайский"
+#define TR_VOICE_ENGLISH                TR("Англ","Английский")
+#define TR_VOICE_CHINESE                TR("Китайс","Китайский")
 #define TR_VOICE_CZECH                  "Чешский"
 #define TR_VOICE_DANISH                 "Датский"
-#define TR_VOICE_DEUTSCH                "Немецкий"
-#define TR_VOICE_DUTCH                  "Голландский"
-#define TR_VOICE_ESPANOL                "Испанский"
-#define TR_VOICE_FRANCAIS               "Французский"
-#define TR_VOICE_HUNGARIAN              "Венгерский"
-#define TR_VOICE_ITALIANO               "Итальянский"
-#define TR_VOICE_POLISH                 "Польский"
-#define TR_VOICE_PORTUGUES              "Португальск"
+#define TR_VOICE_DEUTSCH                TR("Немец","Немецкий")
+#define TR_VOICE_DUTCH                  TR("Голланд","Голландский")
+#define TR_VOICE_ESPANOL                TR("Испанс","Испанский")
+#define TR_VOICE_FRANCAIS               TR("Францу","Французский")
+#define TR_VOICE_HUNGARIAN              TR("Венгер","Венгерский")
+#define TR_VOICE_ITALIANO               TR("Итальян","Итальянский")
+#define TR_VOICE_POLISH                 TR("Польск","Польский")
+#define TR_VOICE_PORTUGUES              TR("Порту","Португальск")
 #define TR_VOICE_RUSSIAN                "Русский"
-#define TR_VOICE_SLOVAK                 "Словацкий"
+#define TR_VOICE_SLOVAK                 TR("Словацк","Словацкий")
 #define TR_VOICE_SWEDISH                "Шведский"
-#define TR_VOICE_TAIWANESE              "Тайваньский"
+#define TR_VOICE_TAIWANESE              TR("Тайван","Тайваньский")
 #define TR_VOICE_JAPANESE               "Японский"
 #define TR_VOICE_HEBREW                 "Иврит"
-#define TR_VOICE_UKRAINIAN              "Украинский"
+#define TR_VOICE_UKRAINIAN              TR("Украинс","Украинский")
 
 #define TR_USBJOYSTICK_LABEL           "USB Джойс"
 #define TR_USBJOYSTICK_EXTMODE         "Режим"
@@ -1297,6 +1299,7 @@
 #define TR_CREATE_NEW             "Создать"
 
 #define TR_MIX_SLOW_PREC          TR("Точн замедл", "Точность замедления")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "Уже есть каталог с таким названием"
 
@@ -1306,4 +1309,6 @@
 #define TR_MID_BATT_COLOR         "Середина АКБ "
 #define TR_HIGH_BATT_COLOR        "Заряженная АКБ"
 
-#define TR_WIDGET_SIZE            "Widget size"
+#define TR_WIDGET_SIZE            "Размер виджета"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

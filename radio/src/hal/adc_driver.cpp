@@ -22,12 +22,16 @@
 #include "adc_driver.h"
 #include "board.h"
 
-#include "opentx.h"
+#include "edgetx.h"
 
 const etx_hal_adc_driver_t* _hal_adc_driver = nullptr;
 const etx_hal_adc_inputs_t* _hal_adc_inputs = nullptr;
 
 static uint16_t adcValues[MAX_ANALOG_INPUTS] __DMA;
+
+#if defined(CSD203_SENSOR)
+  extern uint16_t getCSD203BatteryVoltage(void);
+#endif
 
 bool adcInit(const etx_hal_adc_driver_t* driver)
 {
@@ -243,6 +247,11 @@ uint16_t getRTCBatteryVoltage()
 uint16_t getAnalogValue(uint8_t index)
 {
   if (index >= MAX_ANALOG_INPUTS) return 0;
+#if defined(SIXPOS_SWITCH_INDEX) && !defined(SIMU)
+  if (index == SIXPOS_SWITCH_INDEX)
+    return getSixPosAnalogValue(adcValues[index]);
+  else
+#endif
   return adcValues[index];
 }
 
@@ -297,12 +306,18 @@ tmr10ms_t jitterResetTime = 0;
 
 uint16_t getBatteryVoltage()
 {
+#if defined(CSD203_SENSOR) && !defined(SIMU)
+  return getCSD203BatteryVoltage() / 10;
+#else
   // using filtered ADC value on purpose
   if (adcGetMaxInputs(ADC_INPUT_VBAT) < 1) return 0;
   int32_t instant_vbat = anaIn(adcGetInputOffset(ADC_INPUT_VBAT));
 
   // TODO: remove BATT_SCALE / BATTERY_DIVIDER defines
-#if defined(BATT_SCALE)
+#if defined(VBAT_MOSFET_DROP)
+  // 1000 is used as multiplier for both numerator and denominator to allow to stay in integer domain
+  return (uint16_t)((instant_vbat * ADC_VREF_PREC2 * ((((1000 + g_eeGeneral.txVoltageCalibration)) * (VBAT_DIV_R2 + VBAT_DIV_R1)) / VBAT_DIV_R1)) / (2*RESX*1000)) + VBAT_MOSFET_DROP;
+#elif defined(BATT_SCALE)
   instant_vbat =
       (instant_vbat * BATT_SCALE * (128 + g_eeGeneral.txVoltageCalibration)) /
       BATTERY_DIVIDER;
@@ -320,6 +335,7 @@ uint16_t getBatteryVoltage()
 #else
   return (uint16_t)((instant_vbat * (1000 + g_eeGeneral.txVoltageCalibration)) /
                     BATTERY_DIVIDER);
+#endif
 #endif
 }
 
@@ -578,4 +594,18 @@ const char* adcGetInputShortLabel(uint8_t type, uint8_t idx)
     return "";
 
   return _hal_adc_inputs[type].inputs[idx].short_label;
+}
+
+void adcSetInputMask(uint32_t mask)
+{
+  if (_hal_adc_driver && _hal_adc_driver->set_input_mask) {
+    _hal_adc_driver->set_input_mask(mask);
+  }
+}
+
+uint32_t adcGetInputMask()
+{
+  return _hal_adc_driver && _hal_adc_driver->get_input_mask
+             ? _hal_adc_driver->get_input_mask()
+             : 0;
 }

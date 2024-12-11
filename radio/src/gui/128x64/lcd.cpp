@@ -23,7 +23,7 @@
 #include <memory.h>
 
 #include "lcd.h"
-#include "thirdparty/libopenui/src/bitfield.h"
+#include "bitfield.h"
 #include "gui/common/stdlcd/fonts.h"
 #include "gui/common/stdlcd/utf8.h"
 
@@ -34,7 +34,7 @@
 #endif
 
 #if !defined(BOOT)
-  #include "opentx.h"
+  #include "edgetx.h"
   #include "hal/switch_driver.h"
   #include "hal/adc_driver.h"
   #include "switches.h"

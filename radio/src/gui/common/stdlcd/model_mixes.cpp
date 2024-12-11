@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "tasks/mixer_task.h"
 #include "hal/adc_driver.h"
 #include "input_mapping.h"
@@ -176,6 +176,7 @@ void menuModelMixAll(event_t event)
       s_copyTgtOfs = 0;
       break;
     case EVT_KEY_LONG(KEY_EXIT):
+      killEvents(event);
       if (s_copyMode && s_copyTgtOfs == 0) {
         deleteMix(s_currIdx);
         event = 0;
@@ -203,7 +204,7 @@ void menuModelMixAll(event_t event)
       }
       break;
     case EVT_KEY_BREAK(KEY_ENTER):
-      if ((!s_currCh || (s_copyMode && !s_copyTgtOfs))) {
+      if (sub >= 0 && (!s_currCh || (s_copyMode && !s_copyTgtOfs))) {
         s_copyMode = (s_copyMode == COPY_MODE ? MOVE_MODE : COPY_MODE);
         s_copySrcIdx = s_currIdx;
         s_copySrcCh = chn;
@@ -213,6 +214,7 @@ void menuModelMixAll(event_t event)
       // no break
 
     case EVT_KEY_LONG(KEY_ENTER):
+      killEvents(event);
       if (s_copyTgtOfs) {
         s_copyMode = 0;
         s_copyTgtOfs = 0;
@@ -225,7 +227,7 @@ void menuModelMixAll(event_t event)
           pushMenu(menuModelMixOne);
           s_copyMode = 0;
         }
-        else {
+        else if (sub >= 0) {
           event = 0;
           s_copyMode = 0;
           POPUP_MENU_START(onMixesMenu, 6, STR_EDIT, STR_INSERT_BEFORE, STR_INSERT_AFTER, STR_COPY, STR_MOVE, STR_DELETE);
@@ -236,6 +238,7 @@ void menuModelMixAll(event_t event)
       // TODO: add PLUS / MINUS?
     // case EVT_KEY_LONG(KEY_LEFT):
     // case EVT_KEY_LONG(KEY_RIGHT):
+    //   killEvents(event);
     //   if (s_copyMode && !s_copyTgtOfs) {
     //     if (reachMixesLimit()) break;
     //     s_currCh = chn;
@@ -330,14 +333,9 @@ void menuModelMixAll(event_t event)
 
           drawSource(MIX_LINE_SRC_POS, y, md->srcRaw, 0);
 
-          if (mixCnt == 0 && md->mltpx == 1) {
-            lcdDrawText(MIX_LINE_WEIGHT_POS, y, "MULT!", RIGHT | ((isMixActive(i) ? BOLD : 0)));
-          }
-          else {
-            editSrcVarFieldValue(MIX_LINE_WEIGHT_POS, y, nullptr, md->weight, 
-                        MIX_WEIGHT_MIN, MIX_WEIGHT_MAX, RIGHT | ((isMixActive(i) ? BOLD : 0)),
-                        0, 0, 0);
-          }
+          editSrcVarFieldValue(MIX_LINE_WEIGHT_POS, y, nullptr, md->weight, 
+                      MIX_WEIGHT_MIN, MIX_WEIGHT_MAX, RIGHT | ((isMixActive(i) ? BOLD : 0)),
+                      0, 0, MIXSRC_FIRST, INPUTSRC_LAST);
 
 #if LCD_W >= 212
           displayMixLine(y, md);

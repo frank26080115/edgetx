@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
 
@@ -334,8 +334,9 @@ void displayBattVoltage()
 
 #define displayVoltageOrAlarm() displayBattVoltage()
 
-#if defined(RADIO_T8) || defined(RADIO_COMMANDO8)
 #define EVT_KEY_CONTEXT_MENU           EVT_KEY_LONG(KEY_ENTER)
+
+#if defined(RADIO_T8) || defined(RADIO_COMMANDO8)
 #define EVT_KEY_PREVIOUS_VIEW          EVT_KEY_BREAK(KEY_PAGEUP)
 #define EVT_KEY_NEXT_VIEW              EVT_KEY_BREAK(KEY_PAGEDN)
 #define EVT_KEY_NEXT_PAGE              EVT_KEY_BREAK(KEY_PLUS)
@@ -344,7 +345,6 @@ void displayBattVoltage()
 #define EVT_KEY_GENERAL_MENU           EVT_KEY_BREAK(KEY_SYS)
 #define EVT_KEY_TELEMETRY              EVT_KEY_LONG(KEY_PAGEUP)
 #elif defined(NAVIGATION_X7_TX12)
-#define EVT_KEY_CONTEXT_MENU           EVT_KEY_LONG(KEY_ENTER)
 #define EVT_KEY_PREVIOUS_VIEW          EVT_KEY_BREAK(KEY_PAGEUP)
 #define EVT_KEY_NEXT_VIEW              EVT_KEY_BREAK(KEY_PAGEDN)
 #define EVT_KEY_NEXT_PAGE              EVT_ROTARY_RIGHT
@@ -352,32 +352,14 @@ void displayBattVoltage()
 #define EVT_KEY_MODEL_MENU             EVT_KEY_BREAK(KEY_MODEL)
 #define EVT_KEY_GENERAL_MENU           EVT_KEY_BREAK(KEY_SYS)
 #define EVT_KEY_TELEMETRY              EVT_KEY_BREAK(KEY_TELE)
-#elif defined(NAVIGATION_X7)  || defined(NAVIGATION_TBS)
-#define EVT_KEY_CONTEXT_MENU           EVT_KEY_LONG(KEY_ENTER)
+#elif defined(NAVIGATION_X7) || defined(NAVIGATION_TBS)
 #define EVT_KEY_NEXT_VIEW              EVT_KEY_BREAK(KEY_PAGEDN)
 #define EVT_KEY_NEXT_PAGE              EVT_ROTARY_RIGHT
 #define EVT_KEY_PREVIOUS_PAGE          EVT_ROTARY_LEFT
 #define EVT_KEY_MODEL_MENU             EVT_KEY_BREAK(KEY_MENU)
 #define EVT_KEY_GENERAL_MENU           EVT_KEY_LONG(KEY_MENU)
 #define EVT_KEY_TELEMETRY              EVT_KEY_BREAK(KEY_PAGEUP)
-#elif defined(NAVIGATION_XLITE)
-#define EVT_KEY_CONTEXT_MENU           EVT_KEY_LONG(KEY_ENTER)
-#define EVT_KEY_PREVIOUS_VIEW          EVT_KEY_BREAK(KEY_UP)
-#define EVT_KEY_NEXT_VIEW              EVT_KEY_BREAK(KEY_DOWN)
-#define EVT_KEY_NEXT_PAGE              EVT_KEY_BREAK(KEY_RIGHT)
-#define EVT_KEY_PREVIOUS_PAGE          EVT_KEY_BREAK(KEY_LEFT)
-#define EVT_KEY_MODEL_MENU             EVT_KEY_LONG(KEY_RIGHT)
-#define EVT_KEY_GENERAL_MENU           EVT_KEY_LONG(KEY_LEFT)
-#define EVT_KEY_TELEMETRY              EVT_KEY_LONG(KEY_DOWN)
-#define EVT_KEY_STATISTICS             EVT_KEY_LONG(KEY_UP)
 #else
-#if defined(NAVIGATION_9X)
-#define EVT_KEY_CONTEXT_MENU           EVT_KEY_BREAK(KEY_ENTER)
-#define EVT_KEY_LAST_MENU              EVT_KEY_LONG(KEY_ENTER)
-#else
-#define EVT_KEY_CONTEXT_MENU           EVT_KEY_BREAK(KEY_MENU)
-#define EVT_KEY_LAST_MENU              EVT_KEY_LONG(KEY_MENU)
-#endif
 #define EVT_KEY_PREVIOUS_VIEW          EVT_KEY_BREAK(KEY_UP)
 #define EVT_KEY_NEXT_VIEW              EVT_KEY_BREAK(KEY_DOWN)
 #define EVT_KEY_NEXT_PAGE              EVT_KEY_BREAK(KEY_RIGHT)
@@ -707,13 +689,13 @@ void menuMainView(event_t event)
     lcdDrawText(15 * FW, 0, "BIND", 0);
   }
 #if defined(RTCLOCK)
-  else if (view_base != VIEW_CHAN_MONITOR) {
+  else if (view_base != VIEW_CHAN_MONITOR && rtcIsValid()) {
     drawRtcTime(CLOCK_X, CLOCK_Y, LEFT|TIMEBLINK);
   }
 #endif
 #else
 #if defined(RTCLOCK)
-  if (view_base != VIEW_CHAN_MONITOR) {
+  if (view_base != VIEW_CHAN_MONITOR && rtcIsValid()) {
     drawRtcTime(CLOCK_X, CLOCK_Y, LEFT|TIMEBLINK);
   }
 #endif

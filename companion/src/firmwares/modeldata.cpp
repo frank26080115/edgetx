@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -192,7 +193,7 @@ bool ModelData::isEmpty() const
 
 void ModelData::setDefaultInputs(const GeneralSettings & settings)
 {
-  for (int i = 0; i < CPN_MAX_STICKS; i++) {
+  for (int i = 0; i < Boards::getCapability(getCurrentBoard(), Board::Sticks); i++) {
     ExpoData * expo = &expoData[i];
     expo->chn = i;
     expo->mode = INPUT_MODE_BOTH;
@@ -206,7 +207,7 @@ void ModelData::setDefaultMixes(const GeneralSettings & settings)
 {
   setDefaultInputs(settings);
 
-  for (int i = 0; i < CPN_MAX_STICKS; i++) {
+  for (int i = 0; i < Boards::getCapability(getCurrentBoard(), Board::Sticks); i++) {
     MixData * mix = &mixData[i];
     mix->destCh = i + 1;
     mix->weight = 100;
@@ -767,7 +768,7 @@ int ModelData::updateReference()
       if (!cfd->isEmpty()) {
         updateSwitchRef(cfd->swtch);
         if (cfd->func == FuncVolume || cfd->func == FuncBacklight || cfd->func == FuncPlayValue ||
-            (cfd->func >= FuncAdjustGV1 && cfd->func <= FuncAdjustGVLast && (cfd->adjustMode == FUNC_ADJUST_GVAR_GVAR || cfd->adjustMode == FUNC_ADJUST_GVAR_SOURCE))) {
+            (cfd->func >= FuncAdjustGV1 && cfd->func <= FuncAdjustGVLast && (cfd->adjustMode == FUNC_ADJUST_GVAR_GVAR || cfd->adjustMode == FUNC_ADJUST_GVAR_SOURCE || cfd->adjustMode == FUNC_ADJUST_GVAR_SOURCERAW))) {
           updateSourceIntRef(cfd->param);
           if (cfd->param == 0)
             cfd->clear();
@@ -1491,20 +1492,21 @@ void ModelData::updateResetParam(CustomFunctionData * cfd)
 
 QString ModelData::thrTraceSrcToString() const
 {
-  return thrTraceSrcToString((int)thrTraceSrc);
+  return thrTraceSrcToString(nullptr, (int)thrTraceSrc);
 }
 
-QString ModelData::thrTraceSrcToString(const int index) const
+QString ModelData::thrTraceSrcToString(const GeneralSettings * generalSettings, const int index) const
 {
   const Board::Type board = getCurrentBoard();
   const int pscnt = Boards::getCapability(board, Board::Pots) + Boards::getCapability(board, Board::Sliders);
 
   if (index == 0)
-    return tr("THR");
+    return Boards::getCapability(board, Board::Air) ? tr("THR") : tr("TH");
   else if (index <= pscnt)
-    return Boards::getInputName(index + Boards::getCapability(board, Board::Sticks) - 1, board);
+    //return Boards::getInputName(index + Boards::getCapability(board, Board::Sticks) - 1, board);
+    return RawSource(SOURCE_TYPE_INPUT, index + Boards::getCapability(board, Board::Sticks)).toString(this, generalSettings, board);
   else if (index <= pscnt + getCurrentFirmware()->getCapability(Outputs))
-    return RawSource(SOURCE_TYPE_CH, index - pscnt - 1).toString(this);
+    return RawSource(SOURCE_TYPE_CH, index - pscnt).toString(this);
 
   return QString(CPN_STR_UNKNOWN_ITEM);
 }
@@ -1521,10 +1523,12 @@ bool ModelData::isThrTraceSrcAvailable(const GeneralSettings * generalSettings, 
 {
   const Board::Type board = getCurrentBoard();
 
-  if (index > 0 && index <= Boards::getCapability(board, Board::Pots) + Boards::getCapability(board, Board::Sliders))
-    return RawSource(SOURCE_TYPE_INPUT, index + Boards::getCapability(board, Board::Sticks) - 1).isAvailable(this, generalSettings, board);
-  else
+  if (index == 0)
     return true;
+  else if (index > 0 && index <= Boards::getCapability(board, Board::Pots) + Boards::getCapability(board, Board::Sliders))
+    return RawSource(SOURCE_TYPE_INPUT, index + Boards::getCapability(board, Board::Sticks)).isAvailable(this, generalSettings, board);
+  else
+    return hasMixes(index - Boards::getCapability(board, Board::Pots) - Boards::getCapability(board, Board::Sliders) - 1);
 }
 
 void ModelData::limitsClear(const int index)
@@ -1647,6 +1651,16 @@ bool ModelData::isTrainerModeAvailable(const GeneralSettings & generalSettings, 
       generalSettings.bluetoothMode)
     return false;
 
+  if (value == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE &&
+      !Boards::getCapability(board, Board::HasTrainerModuleSBUS))
+    return false;
+
+  if ((value == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE || value == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE) &&
+      (Boards::getCapability(board, Board::HasTrainerModuleCPPM) ||
+       Boards::getCapability(board, Board::HasTrainerModuleSBUS)) &&
+      moduleData[1].protocol != PULSES_OFF)
+    return false;
+
   if (value == TRAINER_MODE_MASTER_SERIAL &&
       (generalSettings.serialPort[GeneralSettings::SP_AUX1] != GeneralSettings::AUX_SERIAL_SBUS_TRAINER &&
        generalSettings.serialPort[GeneralSettings::SP_AUX2] != GeneralSettings::AUX_SERIAL_SBUS_TRAINER))
@@ -1663,16 +1677,6 @@ bool ModelData::isTrainerModeAvailable(const GeneralSettings & generalSettings, 
 
   if (value == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE &&
       !Boards::getCapability(board, Board::HasTrainerModuleCPPM))
-    return false;
-
-  if (value == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE &&
-      !Boards::getCapability(board, Board::HasTrainerModuleSBUS))
-    return false;
-
-  if ((value == TRAINER_MODE_MASTER_SBUS_EXTERNAL_MODULE || value == TRAINER_MODE_MASTER_CPPM_EXTERNAL_MODULE) &&
-      (Boards::getCapability(board, Board::HasTrainerModuleCPPM) ||
-       Boards::getCapability(board, Board::HasTrainerModuleSBUS)) &&
-      moduleData[1].protocol != PULSES_OFF)
     return false;
 
   if (value == TRAINER_MODE_MULTI &&

@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include "libopenui/src/bitfield.h"
+#include "bitfield.h"
 #include "definitions.h"
-#include "opentx_helpers.h"
+#include "edgetx_helpers.h"
 #include "storage/storage.h"
 #include "globals.h"
 #include "MultiProtoDefs.h"
@@ -681,7 +681,7 @@ inline bool isTelemAllowedOnBind(uint8_t moduleIndex)
   if (moduleIndex == INTERNAL_MODULE)
     return true;
 
-  if (!modulePortIsPortUsedByModule(moduleIndex, ETX_MOD_PORT_SPORT))
+  if (modulePortIsPortUsedByModule(INTERNAL_MODULE, ETX_MOD_PORT_SPORT))
     return false;
 #endif
 

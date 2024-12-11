@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -71,7 +72,7 @@ ModelEdit::ModelEdit(QWidget * parent, RadioData & radioData, int modelId, Firmw
 
   s1.report("Init");
 
-  SetupPanel * setupPanel = new SetupPanel(this, model, generalSettings, firmware, sharedItemModels);
+  SetupPanel *setupPanel = new SetupPanel(this, model, generalSettings, firmware, sharedItemModels);
   addTab(setupPanel, tr("Setup"));
   s1.report("Setup");
 
@@ -80,8 +81,10 @@ ModelEdit::ModelEdit(QWidget * parent, RadioData & radioData, int modelId, Firmw
     s1.report("Heli");
   }
 
-  addTab(new FlightModesPanel(this, model, generalSettings, firmware, sharedItemModels), tr("Flight Modes"));
-  s1.report("Flight Modes");
+  QString radioType = QString("%1 Modes").arg(Boards::getRadioTypeString(firmware->getBoard()));
+  FlightModesPanel *flightModesPanel = new FlightModesPanel(this, model, generalSettings, firmware, sharedItemModels);
+  addTab(flightModesPanel, radioType);
+  s1.report(radioType);
 
   addTab(new InputsPanel(this, model, generalSettings, firmware, sharedItemModels), tr("Inputs"));
   s1.report("Inputs");
@@ -89,7 +92,7 @@ ModelEdit::ModelEdit(QWidget * parent, RadioData & radioData, int modelId, Firmw
   addTab(new MixesPanel(this, model, generalSettings, firmware, sharedItemModels), tr("Mixes"));
   s1.report("Mixes");
 
-  ChannelsPanel * channelsPanel = new ChannelsPanel(this, model, generalSettings, firmware, sharedItemModels);
+  ChannelsPanel *channelsPanel = new ChannelsPanel(this, model, generalSettings, firmware, sharedItemModels);
   addTab(channelsPanel, tr("Outputs"));
   s1.report("Outputs");
 
@@ -120,6 +123,7 @@ ModelEdit::ModelEdit(QWidget * parent, RadioData & radioData, int modelId, Firmw
   s1.report("Enabled Features");
 
   connect(setupPanel, &SetupPanel::extendedLimitsToggled, channelsPanel, &ChannelsPanel::refreshExtendedLimits);
+  connect(setupPanel, &SetupPanel::throttleReverseChanged, flightModesPanel, &FlightModesPanel::onThrottleReverseChanged);
   connect(ui->tabWidget, &QTabWidget::currentChanged, this, &ModelEdit::onTabIndexChanged);
   connect(ui->pushButton, &QPushButton::clicked, this, &ModelEdit::launchSimulation);
 

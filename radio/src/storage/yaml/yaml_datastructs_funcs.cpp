@@ -19,8 +19,8 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
-#include "opentx_constants.h"
+#include "edgetx.h"
+#include "edgetx_constants.h"
 #include "yaml_bits.h"
 #include "yaml_node.h"
 #include "yaml_tree_walker.h"
@@ -1022,7 +1022,7 @@ static uint32_t r_swtchSrc(const YamlNode* node, const char* val, uint8_t val_le
 
       ival = switchLookupIdx(val, val_len - 1) * 3;
       if (ival < 0) return SWSRC_NONE;
-      ival += yaml_str2int(val + 3, val_len - 2);
+      ival += yaml_str2int(val + 3, val_len - 3);
       ival += SWSRC_FIRST_SWITCH;
       
     } else if (val_len > 2 && val[0] == 'S'
@@ -1456,7 +1456,7 @@ static bool w_flightModes(const YamlNode* node, uint32_t val,
 }
 
 static const char* const _func_reset_param_lookup[] = {
-  "Tmr1","Tmr2","Tmr3","All","Tele"
+  "Tmr1","Tmr2","Tmr3","All","Tele","Trims"
 };
 
 static const char* const _func_failsafe_lookup[] = {
@@ -1470,7 +1470,7 @@ static const char* const _func_sound_lookup[] = {
 };
 
 static const char* const _adjust_gvar_mode_lookup[] = {
-  "Cst", "Src", "GVar", "IncDec"
+  "Cst", "Src", "SrcRaw", "GVar", "IncDec"
 };
 
 static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
@@ -1545,6 +1545,13 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
                && val[2] == 'l'
                && val[3] == 'e') {
       CFN_PARAM(cfn) = FUNC_RESET_TELEMETRY;
+    } else if (l_sep == 5
+             && val[0] == 'T'
+             && val[1] == 'r'
+             && val[2] == 'i'
+             && val[3] == 'm'
+             && val[4] == 's') {
+      CFN_PARAM(cfn) = FUNC_RESET_TRIMS;
     } else {
       uint32_t sensor = yaml_str2uint(val, l_sep);
       CFN_PARAM(cfn) = sensor + FUNC_RESET_PARAM_FIRST_TELEM;
@@ -1612,14 +1619,23 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     }
     break;
 
-#if defined(COLORLCD)
   case FUNC_SET_SCREEN:
-#endif  
   case FUNC_HAPTIC:
   case FUNC_LOGS: // 10th of seconds
     CFN_PARAM(cfn) = yaml_str2uint(val, l_sep);
     break;
+#if defined(FUNCTION_SWITCHES)
+  case FUNC_PUSH_CUST_SWITCH:
+    CFN_CS_INDEX(cfn) = yaml_str2uint_ref(val, val_len); // SW index
 
+    // ","
+    if (!val_len || val[0] != ',') return;
+    val++; val_len--;
+    l_sep = find_sep(val, val_len);
+
+    CFN_PARAM(cfn) = yaml_str2int(val, l_sep); // Duration, 10th of seconds
+    break;
+#endif
   case FUNC_ADJUST_GVAR: {
 
     CFN_GVAR_INDEX(cfn) = yaml_str2int_ref(val, l_sep);
@@ -1650,6 +1666,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
       CFN_PARAM(cfn) = yaml_str2int(val, l_sep);
       break;
     case FUNC_ADJUST_GVAR_SOURCE:
+    case FUNC_ADJUST_GVAR_SOURCERAW:
       CFN_PARAM(cfn) = r_mixSrcRawEx(nullptr, val, l_sep);
       break;
     case FUNC_ADJUST_GVAR_GVAR: {
@@ -1707,7 +1724,7 @@ static void r_customFn(void* user, uint8_t* data, uint32_t bitoffs,
   }
 
   if (HAS_REPEAT_PARAM(func)) {
-    if (func == FUNC_PLAY_SCRIPT) {
+    if (func == FUNC_PLAY_SCRIPT || func == FUNC_RGB_LED) {
       if (val_len == 2 && val[0] == '1' && val[1] == 'x')
         CFN_PLAY_REPEAT(cfn) = 1;
       else
@@ -1764,7 +1781,7 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
 
   case FUNC_RESET:
     if (CFN_PARAM(cfn) < FUNC_RESET_PARAM_FIRST_TELEM) {
-      // Tmr1,Tmr2,Tmr3,All
+      // Tmr1,Tmr2,Tmr3,All,Tele, Trims
       str = _func_reset_param_lookup[CFN_PARAM(cfn)];
     } else {
       // sensor index
@@ -1808,9 +1825,17 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     if (!wf(opaque, str, strlen(str))) return false;
     break;
 
-#if defined(COLORLCD)
-  case FUNC_SET_SCREEN:
+#if defined(FUNCTION_SWITCHES)
+  case FUNC_PUSH_CUST_SWITCH:
+    str = yaml_unsigned2str(CFN_CS_INDEX(cfn)); // SW index
+    if (!wf(opaque, str, strlen(str))) return false;
+    if (!wf(opaque,",",1)) return false;
+    str = yaml_signed2str(CFN_PARAM(cfn)); // Duration
+    if (!wf(opaque, str, strlen(str))) return false;
+    break;
 #endif
+
+  case FUNC_SET_SCREEN:
   case FUNC_HAPTIC:
   case FUNC_LOGS: // 10th of seconds
     str = yaml_unsigned2str(CFN_PARAM(cfn));
@@ -1835,6 +1860,7 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
       if (!wf(opaque, str, strlen(str))) return false;
       break;
     case FUNC_ADJUST_GVAR_SOURCE:
+    case FUNC_ADJUST_GVAR_SOURCERAW:
       if (!w_mixSrcRawExNoQuote(nullptr, CFN_PARAM(cfn), wf, opaque)) return false;
       break;
     case FUNC_ADJUST_GVAR_GVAR:
@@ -1861,7 +1887,7 @@ static bool w_customFn(void* user, uint8_t* data, uint32_t bitoffs,
     // ","
     if (!wf(opaque,",",1)) return false;
 
-    if (func == FUNC_PLAY_SCRIPT) {
+    if (func == FUNC_PLAY_SCRIPT || func == FUNC_RGB_LED) {
       if (!wf(opaque,(CFN_PLAY_REPEAT(cfn) == 0) ? "On" : "1x",2)) return false;
     } else if (CFN_PLAY_REPEAT(cfn) == 0) {
       // "1x"
@@ -2230,12 +2256,14 @@ static void r_carryTrim(void* user, uint8_t* data, uint32_t bitoffs,
   yaml_put_bits(data, i, bitoffs, 6);
 }
 
+#if defined(ROTARY_ENCODER_NAVIGATION) && !defined(USE_HATS_AS_KEYS)
 static void r_rotEncDirection(void* user, uint8_t* data, uint32_t bitoffs,
                            const char* val, uint8_t val_len)
 {
   uint32_t i = yaml_str2uint(val, val_len);
   yaml_put_bits(data, i, bitoffs, 2);
 }
+#endif
 
 static void r_telemetryBaudrate(void* user, uint8_t* data, uint32_t bitoffs,
                                 const char* val, uint8_t val_len)

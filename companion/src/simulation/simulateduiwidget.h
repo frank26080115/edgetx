@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -18,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef SIMULATEDUIWIDGET_H
-#define SIMULATEDUIWIDGET_H
+#pragma once
 
 #include "boards.h"
 #include "constants.h"
@@ -34,6 +34,8 @@ class SimulatorInterface;
 class LcdWidget;
 class RadioKeyWidget;
 class RadioUiAction;
+class ButtonsWidget;
+class QPushButton;
 
 // Match with /radio/src/hal/key_driver.h
 enum EnumKeys {
@@ -61,6 +63,23 @@ enum EnumKeys {
   KEY_BIND,
 
   MAX_KEYS
+};
+
+struct GenericKeyDefinition {
+  int index = 0;
+  QChar side = 'L';
+  int gridRow = 0;
+  int gridCol = 0;
+  QList<int> keys = QList<int>();
+  QString helpKeys = "";
+  QString helpActions = "";
+
+  GenericKeyDefinition(int index, QChar side, int gridRow, int gridCol,
+                       QList<int> keys, QString helpKeys, QString helpActions) :
+                       index(index), side(side), gridRow(gridRow), gridCol(gridCol),
+                       keys(keys), helpKeys(helpKeys), helpActions(helpActions) {}
+
+  GenericKeyDefinition() = default;
 };
 
 /*
@@ -125,11 +144,20 @@ class SimulatedUIWidget : public QWidget
     unsigned int m_backLight;
     int m_beepShow;
     int m_beepVal;
+
+    static int strKeyToInt(std::string key);
+
+    void addGenericPushButton(int index, QString label, ButtonsWidget * leftButtons, QGridLayout * leftButtonsGrid,
+                              ButtonsWidget * rightButtons, QGridLayout * rightButtonsGrid);
+    void addGenericPushButtons(ButtonsWidget * leftButtons, ButtonsWidget * rightButtons);
+    void addScrollActions();
+    void addMouseActions();
 };
 
 
 // Each subclass is responsible for its own Ui
 namespace Ui {
+  class SimulatedUIWidgetGeneric;
   class SimulatedUIWidget9X;
   class SimulatedUIWidgetX9LITE;
   class SimulatedUIWidgetX7;
@@ -144,6 +172,8 @@ namespace Ui {
   class SimulatedUIWidgetJumperT12;
   class SimulatedUIWidgetJumperTLITE;
   class SimulatedUIWidgetJumperTPRO;
+  class SimulatedUIWidgetJumperTPROS;
+  class SimulatedUIWidgetJumperBumblebee;
   class SimulatedUIWidgetJumperT12max;
   class SimulatedUIWidgetJumperT14;
   class SimulatedUIWidgetJumperT15;
@@ -154,13 +184,28 @@ namespace Ui {
   class SimulatedUIWidgetTX12;
   class SimulatedUIWidgetZorro;
   class SimulatedUIWidgetBoxer;
+  class SimulatedUIWidgetMT12;
   class SimulatedUIWidgetPocket;
   class SimulatedUIWidgetT8;
   class SimulatedUIWidgetFatfishF16;
   class SimulatedUIWidgetNV14;
   class SimulatedUIWidgetEL18;
   class SimulatedUIWidgetPL18;
+  class SimulatedUIWidgetV16;
 }
+
+class SimulatedUIWidgetGeneric: public SimulatedUIWidget
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetGeneric(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetGeneric();
+
+  private:
+    Ui::SimulatedUIWidgetGeneric * ui;
+
+};
 
 class SimulatedUIWidget9X: public SimulatedUIWidget
 {
@@ -334,6 +379,30 @@ class SimulatedUIWidgetJumperTPRO: public SimulatedUIWidget
     Ui::SimulatedUIWidgetJumperTPRO * ui;
 };
 
+class SimulatedUIWidgetJumperTPROS: public SimulatedUIWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SimulatedUIWidgetJumperTPROS(SimulatorInterface * simulator, QWidget * parent = NULL);
+    virtual ~SimulatedUIWidgetJumperTPROS();
+
+private:
+    Ui::SimulatedUIWidgetJumperTPROS * ui;
+};
+
+class SimulatedUIWidgetJumperBumblebee: public SimulatedUIWidget
+{
+    Q_OBJECT
+
+public:
+    explicit SimulatedUIWidgetJumperBumblebee(SimulatorInterface * simulator, QWidget * parent = NULL);
+    virtual ~SimulatedUIWidgetJumperBumblebee();
+
+private:
+    Ui::SimulatedUIWidgetJumperBumblebee * ui;
+};
+
 class SimulatedUIWidgetJumperT15: public SimulatedUIWidget
 {
     Q_OBJECT
@@ -454,6 +523,15 @@ class SimulatedUIWidgetBoxer: public SimulatedUIWidget
     Ui::SimulatedUIWidgetBoxer * ui;
 };
 
+class SimulatedUIWidgetMT12: public SimulatedUIWidgetGeneric
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetMT12(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetMT12();
+};
+
 class SimulatedUIWidgetPocket: public SimulatedUIWidget
 {
   Q_OBJECT
@@ -526,4 +604,14 @@ class SimulatedUIWidgetPL18: public SimulatedUIWidget
     Ui::SimulatedUIWidgetPL18 * ui;
 };
 
-#endif // SIMULATEDUIWIDGET_H
+class SimulatedUIWidgetV16: public SimulatedUIWidget
+{
+  Q_OBJECT
+
+  public:
+    explicit SimulatedUIWidgetV16(SimulatorInterface * simulator, QWidget * parent = nullptr);
+    virtual ~SimulatedUIWidgetV16();
+
+  private:
+    Ui::SimulatedUIWidgetV16 * ui;
+};

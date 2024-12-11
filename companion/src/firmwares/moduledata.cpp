@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -764,6 +765,38 @@ AbstractStaticItemModel * ModuleData::afhds3EmiItemModel()
 
   for (int i = 0; i < afhds3EmiList.size(); i++) {
     mdl->appendToItemList(afhds3EmiList.at(i), i + 1); // Note: 1 based
+  }
+
+  mdl->loadItemList();
+  return mdl;
+}
+
+QString ModuleData::crsfArmingModeToString() const
+{
+  return crsfArmingModeToString(crsf.crsfArmingMode);
+}
+
+// static
+QString ModuleData::crsfArmingModeToString(int mode)
+{
+  switch (mode) {
+    case CRSF_ARMING_MODE_CH5:
+      return tr("CH5");
+    case CRSF_ARMING_MODE_SWITCH:
+      return tr("Switch");
+    default:
+      return CPN_STR_UNKNOWN_ITEM;
+  }
+}
+
+// static
+AbstractStaticItemModel * ModuleData::crsfArmingModeItemModel()
+{
+  AbstractStaticItemModel * mdl = new AbstractStaticItemModel();
+  mdl->setName(AIM_MODULE_CRSFARMINGMODE);
+
+  for (int i = 0; i < CRSF_ARMING_MODE_COUNT; i++) {
+    mdl->appendToItemList(crsfArmingModeToString(i), i);
   }
 
   mdl->loadItemList();

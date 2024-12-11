@@ -41,7 +41,7 @@ class BoardJson
     };
 
     struct InputDefn {
-      Board::AnalogInputType type = AIT_NONE;
+      Board::AnalogInputType type      = AIT_NONE;
       std::string tag                  = "";
       std::string name                 = "";
       std::string shortName            = "";
@@ -61,7 +61,7 @@ class BoardJson
     };
 
     struct SwitchDefn {
-      Board::SwitchType type = Board::SWITCH_NOT_AVAILABLE;
+      Board::SwitchType type           = Board::SWITCH_NOT_AVAILABLE;
       std::string tag                  = "";
       std::string name                 = "";
       int flags                        = 0;
@@ -76,9 +76,22 @@ class BoardJson
 
     typedef std::vector<SwitchDefn> SwitchesTable;
 
-    struct TrimDefn {
+    struct KeyDefn {
       std::string tag  = "";
       std::string name = "";
+      std::string key = "";
+      std::string label = "";
+      Board::LookupValueType cfgYaml   = Board::LVT_TAG;
+      Board::LookupValueType refYaml   = Board::LVT_NAME;
+
+      KeyDefn() = default;
+    };
+
+    typedef std::vector<KeyDefn> KeysTable;
+
+    struct TrimDefn {
+      std::string tag                  = "";
+      std::string name                 = "";
       Board::LookupValueType cfgYaml   = Board::LVT_TAG;
       Board::LookupValueType refYaml   = Board::LVT_NAME;
 
@@ -106,6 +119,7 @@ class BoardJson
     const int getInputSliderIndex(int index);
     const QString getInputTag(int index) const;
     const int getInputTagOffset(QString tag);
+    const int getInputThrottleIndex();
     const int getInputTypeOffset(Board::AnalogInputType type);
     const int getInputYamlIndex(const QString val, YamlLookupType ylt) const;
     const QString getInputYamlName(int index, YamlLookupType ylt) const;
@@ -119,11 +133,15 @@ class BoardJson
     const bool isInputStick(int index) const;
     const bool isInputSwitch(int index) const;
 
+    const Board::KeyInfo getKeyInfo(int index) const;
+    const int getKeyIndex(const QString key) const;
+
     const int getSwitchIndex(const QString val, Board::LookupValueType lvt) const;
     const Board::SwitchInfo getSwitchInfo(int index) const;
     const QString getSwitchName(int index) const;
     const QString getSwitchTag(int index) const;
     const int getSwitchTagNum(int index) const;
+    const int getSwitchTypeOffset(Board::SwitchType type);
     const int getSwitchYamlIndex(const QString val, YamlLookupType ylt) const;
     const QString getSwitchYamlName(int index, YamlLookupType ylt) const;
 
@@ -143,6 +161,7 @@ private:
     InputsTable *m_inputs;
     SwitchesTable *m_switches;
     TrimsTable *m_trims;
+    KeysTable *m_keys;
 
     struct InputCounts {
       unsigned int flexGyroAxes;
@@ -166,8 +185,10 @@ private:
 
     SwitchCounts m_switchCnt;
 
-    static bool loadFile(Board::Type board, QString hwdefn, InputsTable * inputs, SwitchesTable * switches, TrimsTable * trims);
-    static void afterLoadFixups(Board::Type board, InputsTable * inputs, SwitchesTable * switches);
+    static bool loadFile(Board::Type board, QString hwdefn, InputsTable * inputs, SwitchesTable * switches,
+                         KeysTable * keys, TrimsTable * trims);
+    static void afterLoadFixups(Board::Type board, InputsTable * inputs, SwitchesTable * switches,
+                                KeysTable * keys, TrimsTable * trims);
 
     static int getInputsCalibrated(const InputsTable * inputs);
 
@@ -178,11 +199,15 @@ private:
     static int getInputTagOffset(const InputsTable * inputs, QString tag);
     static int getInputTypeOffset(const InputsTable * inputs, Board::AnalogInputType type);
 
+    static int getKeyIndex(const KeysTable * keys, QString key);
+    static Board::KeyInfo getKeyInfo(const KeysTable * keys, int index);
+
     static int getSwitchIndex(const SwitchesTable * switches, QString val, Board::LookupValueType lvt);
     static Board::SwitchInfo getSwitchInfo(const SwitchesTable * switches, int index);
     static QString getSwitchName(const SwitchesTable * switches, int index);
     static QString getSwitchTag(const SwitchesTable * switches, int index);
     static int getSwitchTagNum(const SwitchesTable * switches, int index);
+    static int getSwitchTypeOffset(const SwitchesTable * switches, Board::SwitchType type);
 
     static int getTrimIndex(const TrimsTable * trims, QString val, Board::LookupValueType lvt);
     static QString getTrimName(const TrimsTable * trims, int index);

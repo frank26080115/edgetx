@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include <math.h>
 
 #include "hal/adc_driver.h"
@@ -159,26 +159,18 @@ char getPreviousChar(char c, uint8_t position)
   return c - 1;
 }
 
-static bool isNameCharset(int v)
+static const char nameChars[] = " abcdefghijklmnopqrstuvwxyz0123456789_-,.";
+
+static int nameCharIdx(char v)
 {
-  char c = (char)v;
-
-  if (c == ' ')
-    return true;
-
-  if (c == '-')
-    return true;
-
-  if (c >= '0' && c <= '9')
-    return true;
-
-  if (c >= 'A' && c <= 'Z')
-    return true;
-
-  if (c >= 'a' && c <= 'z')
-    return true;
-
-  return false;
+  if (islower(v)) return v - 'a' + 1;
+  if (isupper(v)) return v - 'A' + 1;
+  if (isdigit(v)) return v - '0' + 27;
+  if (v == '_') return 37;
+  if (v == '-') return 38;
+  if (v == ',') return 39;
+  if (v == '.') return 40;
+  return 0;
 }
 
 void editName(coord_t x, coord_t y, char* name, uint8_t size, event_t event,
@@ -202,7 +194,9 @@ void editName(coord_t x, coord_t y, char* name, uint8_t size, event_t event,
       int8_t v = c ? c : ' ';
 
       if (IS_NEXT_EVENT(event) || IS_PREVIOUS_EVENT(event)) {
-        v = checkIncDec(event, abs(v), ' ', 'z', 0, isNameCharset);
+        bool caps = isupper(v);
+        v = nameChars[checkIncDec(event, nameCharIdx(v), 0, DIM(nameChars)-2)];
+        if (caps && islower(v)) v = toupper(v);
       }
 
       switch (event) {
@@ -237,6 +231,7 @@ void editName(coord_t x, coord_t y, char* name, uint8_t size, event_t event,
 #else
         case EVT_KEY_LONG(KEY_ENTER):
 #endif
+          killEvents(event);
 
 #if !defined(NAVIGATION_XLITE)
           if (v == ' ') {
@@ -397,12 +392,12 @@ void drawCurveRef(coord_t x, coord_t y, CurveRef & curve, LcdFlags att)
     switch (curve.type) {
       case CURVE_REF_DIFF:
         lcdDrawText(x, y, "D", att);
-        editSrcVarFieldValue(lcdNextPos, y, nullptr, curve.value, -100, 100, LEFT|att, 0, 0, 0);
+        editSrcVarFieldValue(lcdNextPos, y, nullptr, curve.value, -100, 100, LEFT|att, 0, 0, MIXSRC_FIRST, INPUTSRC_LAST);
         break;
 
       case CURVE_REF_EXPO:
         lcdDrawText(x, y, "E", att);
-        editSrcVarFieldValue(lcdNextPos, y, nullptr, curve.value, -100, 100, LEFT|att, 0, 0, 0);
+        editSrcVarFieldValue(lcdNextPos, y, nullptr, curve.value, -100, 100, LEFT|att, 0, 0, MIXSRC_FIRST, INPUTSRC_LAST);
         break;
 
       case CURVE_REF_FUNC:

@@ -24,14 +24,14 @@
 
 #define SWAP_DEFINED
 #include "location.h"
-#include "opentx.h"
+#include "edgetx.h"
 
 #if defined(COLORLCD)
 
 #include "bitmaps.h"
 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "stb_image_write.h"
+#include "stb/stb_image_write.h"
 
 void convert_RGB565_to_RGB888(uint8_t* dst, const BitmapBuffer* src, coord_t w,
                               coord_t h)

@@ -55,7 +55,6 @@ enum SwitchContext
   MixesContext
 };
 
-int circularIncDec(int current, int inc, int min, int max, IsValueAvailable isValueAvailable=nullptr);
 int getFirstAvailable(int min, int max, IsValueAvailable isValueAvailable);
 
 bool isInputAvailable(int input);
@@ -73,6 +72,7 @@ bool isSwitchAvailable(int swtch, SwitchContext context);
 bool isSerialModeAvailable(uint8_t port_nr, int mode);
 bool isSwitchAvailableInLogicalSwitches(int swtch);
 bool isSwitchAvailableInCustomFunctions(int swtch);
+bool isSwitchAvailableForArming(int swtch);
 bool isSwitchAvailableInMixes(int swtch);
 bool isPxx2IsrmChannelsCountAllowed(int channels);
 bool isModuleUsingSport(uint8_t moduleBay, uint8_t moduleType);

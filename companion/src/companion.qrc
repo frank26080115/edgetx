@@ -212,6 +212,22 @@
     <file>images/simulator/JumperTPRO/left.png</file>
     <file>images/simulator/JumperTPRO/right.png</file>
     <file>images/simulator/JumperTPRO/top.png</file>
+    <file>images/simulator/JumperTPROS/bottom.png</file>
+    <file>images/simulator/JumperTPROS/left.png</file>
+    <file>images/simulator/JumperTPROS/right.png</file>
+    <file>images/simulator/JumperTPROS/right-ent.png</file>
+    <file>images/simulator/JumperTPROS/top.png</file>
+    <file>images/simulator/JumperTPROS/exit.png</file>
+    <file>images/simulator/JumperTPROS/menu.png</file>
+    <file>images/simulator/JumperTPROS/page.png</file>
+    <file>images/simulator/JumperBumblebee/top.png</file>
+    <file>images/simulator/JumperBumblebee/bottom.png</file>
+    <file>images/simulator/JumperBumblebee/enter.png</file>
+    <file>images/simulator/JumperBumblebee/exit.png</file>
+    <file>images/simulator/JumperBumblebee/left.png</file>
+    <file>images/simulator/JumperBumblebee/menu.png</file>
+    <file>images/simulator/JumperBumblebee/page.png</file>
+    <file>images/simulator/JumperBumblebee/right.png</file>
     <file>images/simulator/TX12/left.png</file>
     <file>images/simulator/TX12/left-pageup.png</file>
     <file>images/simulator/TX12/left-pagedn.png</file>
@@ -316,10 +332,20 @@
     <file>images/simulator/TX16S/left_tele.png</file>
     <file>images/simulator/TX16S/right_ent.png</file>
     <file>images/simulator/TX16S/right_mdl.png</file>
-    <file>images/simulator/NV14/left.png</file>
-    <file>images/simulator/NV14/right.png</file>
     <file>images/simulator/NV14/top.png</file>
     <file>images/simulator/NV14/bottom.png</file>
+    <file>images/simulator/NV14/lhs.png</file>
+    <file>images/simulator/NV14/rhs.png</file>
+    <file>images/simulator/NV14/lhs_hat_left.png</file>
+    <file>images/simulator/NV14/lhs_hat_right.png</file>
+    <file>images/simulator/NV14/lhs_hat_up.png</file>
+    <file>images/simulator/NV14/lhs_hat_down.png</file>
+    <file>images/simulator/NV14/lhs_hat_press.png</file>
+    <file>images/simulator/NV14/rhs_hat_left.png</file>
+    <file>images/simulator/NV14/rhs_hat_right.png</file>
+    <file>images/simulator/NV14/rhs_hat_up.png</file>
+    <file>images/simulator/NV14/rhs_hat_down.png</file>
+    <file>images/simulator/NV14/rhs_hat_press.png</file>
     <file>images/simulator/PL18/left.png</file>
     <file>images/simulator/PL18/right.png</file>
     <file>images/simulator/PL18/top.png</file>
@@ -328,6 +354,15 @@
     <file>images/simulator/Pocket/right.png</file>
     <file>images/simulator/Pocket/top.png</file>
     <file>images/simulator/Pocket/bottom.png</file>
+    <file>images/simulator/V16/left.png</file>
+    <file>images/simulator/V16/left_pagedn.png</file>
+    <file>images/simulator/V16/left_pageup.png</file>
+    <file>images/simulator/V16/left_rtn.png</file>
+    <file>images/simulator/V16/left_sys.png</file>
+    <file>images/simulator/V16/left_tele.png</file>
+    <file>images/simulator/V16/right.png</file>
+    <file>images/simulator/V16/right_ent.png</file>
+    <file>images/simulator/V16/right_mdl.png</file>    
     <file>images/wizard/ailerons.png</file>
     <file>images/wizard/airbrakes.png</file>
     <file>images/wizard/elevons.png</file>

@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -38,7 +39,8 @@ extern const QColor colors[CPN_MAX_CURVES];
 
 //convert from mode 1 to mode generalSettings.stickMode
 //NOTICE!  =>  1..4 -> 1..4
-#define CONVERT_MODE(x)  (((x)<=4) ? modn12x3[generalSettings.stickMode][((x)-1)] : (x))
+#define CONVERT_AIRMODE(x)      (((x)<=4) ? modn12x3[generalSettings.stickMode][((x)-1)] : (x))
+#define CONVERT_SURFACEMODE(x)  (((x)<=4) ? modn12x3[4 + generalSettings.stickMode][((x)-1)] : (x))
 
 #define CURVE_BASE   7
 #define CH(x) (SRC_CH1+(x)-1-(SRC_SWC-SRC_3POS))
@@ -105,8 +107,6 @@ class GVarGroup: public QObject {
 
 namespace Helpers
 {
-  void populateGvarUseCB(QComboBox *b, unsigned int phase);
-
   void populateFileComboBox(QComboBox * b, const QSet<QString> & set, const QString & current);
   void getFileComboBoxValue(QComboBox * b, char * dest, int length);
 

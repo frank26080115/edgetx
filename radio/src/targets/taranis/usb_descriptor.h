@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _USB_DESCRIPTOR_H_
-#define _USB_DESCRIPTOR_H_
+#pragma once
 
 #if defined(RADIO_TX12) || defined(RADIO_TX12MK2)
   #define USB_NAME                     "Radiomaster TX12"
@@ -66,6 +65,14 @@
 #define USB_NAME                       "Jumper T12 MAX"
   #define USB_MANUFACTURER             'J', 'U', 'M', 'P', 'E', 'R', ' ', ' '  /* 8 bytes */
   #define USB_PRODUCT                  'T', '1', '2', ' ', 'M', 'A', 'X', ' '  /* 8 Bytes */
+#elif defined(RADIO_TPROS)
+  #define USB_NAME                     "Jumper T-Pro S"
+  #define USB_MANUFACTURER             'J', 'U', 'M', 'P', 'E', 'R', ' ', ' '  /* 8 bytes */
+  #define USB_PRODUCT                  'T', '-', 'P', 'r', 'o', ' ', 'S', ' '  /* 8 Bytes */
+#elif defined(RADIO_BUMBLEBEE)
+  #define USB_NAME                     "Jumper Bumblebee"
+  #define USB_MANUFACTURER             'J', 'U', 'M', 'P', 'E', 'R', ' ', ' '  /* 8 bytes */
+  #define USB_PRODUCT                  'B', 'u', 'm', 'b', 'l', 'e', 'b', 'e'  /* 8 Bytes */
 #elif defined(RADIO_T14)
   #define USB_NAME                     "Jumper T14"
   #define USB_MANUFACTURER             'J', 'U', 'M', 'P', 'E', 'R', ' ', ' '  /* 8 bytes */
@@ -82,10 +89,16 @@
   #define USB_NAME                     "iFlight Commando 8"
   #define USB_MANUFACTURER             'i', 'F', 'l', 'i', 'g', 'h', 't', '-'  /* 8 bytes */
   #define USB_PRODUCT                  'C', 'o', 'm', 'm', 'a', 'n', 'd', 'o'  /* 8 Bytes */
+#elif defined(RADIO_V12)
+  #define USB_NAME                     "HelloRadioSky V12"
+  #define USB_MANUFACTURER             'H', 'R', 'S', 'k', 'y', ' ', ' ', ' '  /* 8 bytes */
+  #define USB_PRODUCT                  'V', '1', '2', ' ', ' ', ' ', ' ', ' '  /* 8 Bytes */
+#elif defined(RADIO_V14)
+  #define USB_NAME                     "HelloRadioSky V14"
+  #define USB_MANUFACTURER             'H', 'R', 'S', 'k', 'y', ' ', ' ', ' '  /* 8 bytes */
+  #define USB_PRODUCT                  'V', '1', '4', ' ', ' ', ' ', ' ', ' '  /* 8 Bytes */
 #else
   #define USB_NAME                     "FrSky Taranis"
   #define USB_MANUFACTURER             'F', 'r', 'S', 'k', 'y', ' ', ' ', ' '  /* 8 bytes */
   #define USB_PRODUCT                  'T', 'a', 'r', 'a', 'n', 'i', 's', ' '  /* 8 Bytes */
 #endif
-
-#endif // _USB_DESCRIPTOR_H_

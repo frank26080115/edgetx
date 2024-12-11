@@ -19,8 +19,8 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
-#include "opentx_types.h"
+#include "edgetx.h"
+#include "edgetx_types.h"
 #include "timers.h"
 #include "switches.h"
 #include "input_mapping.h"
@@ -60,7 +60,7 @@ int32_t getSourceNumFieldValue(int16_t val, int16_t min, int16_t max)
   SourceNumVal v; v.rawValue = val;
   if (v.isSource) {
     result = getValue(v.value);
-    if (v.value >= MIXSRC_FIRST_GVAR && v.value <= MIXSRC_LAST_GVAR) {
+    if (abs(v.value) >= MIXSRC_FIRST_GVAR && v.value <= MIXSRC_LAST_GVAR) {
       // Mimic behviour of GET_GVAR_PREC1
       result = result * 10;
     } else {
@@ -417,8 +417,7 @@ getvalue_t _getValue(mixsrc_t i, bool* valid)
       else if (trimDown(tidx + 1)) return RESX;
       return 0;
     }
-    auto trim_value = getTrimValue(mixerCurrentFlightMode, i);
-    return calc1000toRESX((int16_t)8 * trim_value);
+    return 8 * getTrimValue(mixerCurrentFlightMode, i);
   }
   else if (i >= MIXSRC_FIRST_SWITCH && i <= MIXSRC_LAST_SWITCH) {
     auto sw_idx = (uint8_t)(i - MIXSRC_FIRST_SWITCH);
@@ -428,7 +427,7 @@ getvalue_t _getValue(mixsrc_t i, bool* valid)
       auto fct_idx = sw_idx - max_reg_switches;
       auto max_fct_switches = switchGetMaxFctSwitches();
       if (fct_idx < max_fct_switches) {
-	return _switch_2pos_lookup[getFSLogicalState(fct_idx)];
+        return _switch_2pos_lookup[getFSLogicalState(fct_idx)];
       }
     }
 #endif
@@ -924,7 +923,8 @@ void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
       if (mode == e_perout_mode_normal && swTog) {
         if (!mixState[i].delay)
           _swPrev = _swOn;
-        mixState[i].delay = (mixEnabled > _swOn ? md->delayUp : md->delayDown) * 10;
+        int32_t precMult = md->delayPrec ? 1 : 10;
+        mixState[i].delay = (mixEnabled > _swOn ? md->delayUp : md->delayDown) * precMult;
         mixState[i].now = mixEnabled;
         mixState[i].prev = _swPrev;
       }
@@ -1036,25 +1036,30 @@ void evalFlightModeMixes(uint8_t mode, uint8_t tick10ms)
 
       int32_t * ptr = &chans[md->destCh]; // Save calculating address several times
 
-      switch (md->mltpx) {
-        case MLTPX_REPL:
-          *ptr = dv;
-          if (mode == e_perout_mode_normal) {
-            for (int8_t m = i - 1; m >= 0 && mixAddress(m)->destCh == md->destCh; m--)
-              activeMixes[m] = false;
-          }
-          break;
-        case MLTPX_MUL:
-          // @@@2 we have to remove the weight factor of 256 in case of 100%; now we use the new base of 256
-          dv >>= 8;
-          dv *= *ptr;
-          dv >>= RESX_SHIFT;   // same as dv /= RESXl;
-          *ptr = dv;
-          break;
-        default: // MLTPX_ADD
-          *ptr += dv; //Mixer output add up to the line (dv + (dv>0 ? 100/2 : -100/2))/(100);
-          break;
-      } // endswitch md->mltpx
+      // If first mix line for a channel - ignore Multiplex setting
+      if (i == 0 || mixAddress(i - 1)->destCh != md->destCh) {
+        *ptr = dv;
+      } else {
+        switch (md->mltpx) {
+          case MLTPX_REPL:
+            *ptr = dv;
+            if (mode == e_perout_mode_normal) {
+              for (int8_t m = i - 1; m >= 0 && mixAddress(m)->destCh == md->destCh; m--)
+                activeMixes[m] = false;
+            }
+            break;
+          case MLTPX_MUL:
+            // @@@2 we have to remove the weight factor of 256 in case of 100%; now we use the new base of 256
+            dv >>= 8;
+            dv *= *ptr;
+            dv >>= RESX_SHIFT;   // same as dv /= RESXl;
+            *ptr = dv;
+            break;
+          default: // MLTPX_ADD
+            *ptr += dv; //Mixer output add up to the line (dv + (dv>0 ? 100/2 : -100/2))/(100);
+            break;
+        } // endswitch md->mltpx
+      }
 #ifdef PREVENT_ARITHMETIC_OVERFLOW
 /*
       // a lot of assumptions must be true, for this kind of check; not really worth for only 4 bytes flash savings

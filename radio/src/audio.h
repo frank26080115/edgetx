@@ -19,13 +19,12 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _AUDIO_H_
-#define _AUDIO_H_
+#pragma once
 
 #include <stddef.h>
 #include <string.h>
 #include "ff.h"
-#include "opentx_types.h"
+#include "edgetx_types.h"
 #include "dataconstants.h"
 
 /*
@@ -669,7 +668,7 @@ void playModelName();
 #define AUDIO_FLUSH()            audioQueue.flush()
 #endif
 
-#if defined(SDCARD) && defined(AUDIO)
+#if defined(AUDIO)
   extern tmr10ms_t timeAutomaticPromptsSilence;
   void playModelEvent(uint8_t category, uint8_t index, event_t event=0);
   #define PLAY_PHASE_OFF(phase)         playModelEvent(PHASE_AUDIO_CATEGORY, phase, AUDIO_EVENT_OFF)
@@ -697,5 +696,3 @@ void referenceSystemAudioFiles();
 void referenceModelAudioFiles();
 
 bool isAudioFileReferenced(uint32_t i, char * filename/*at least AUDIO_FILENAME_MAXLEN+1 long*/);
-
-#endif // _AUDIO_H_

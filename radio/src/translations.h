@@ -22,7 +22,7 @@
 #pragma once
 
 #include <limits.h>
-#include "opentx_types.h"
+#include "edgetx_types.h"
 #include "translations/untranslated.h"
 #include "audio.h"
 
@@ -325,6 +325,7 @@ extern const char STR_SF_VOLUME[];
 extern const char STR_SF_RACING_MODE[];
 extern const char STR_SF_SCREENSHOT[];
 extern const char STR_SF_LCD_TO_VIDEO[];
+extern const char STR_SF_PUSH_CUST_SWITCH[];
 extern const char STR_SF_TEST[];
 extern const char STR_TRIMS[];
 extern const char STR_MIRROR[];
@@ -417,6 +418,7 @@ extern const char* const STR_SPLASHSCREEN_DELAYS[];
 #if defined(PWR_BUTTON_PRESS)
 extern const char STR_PWR_ON_DELAY[];
 extern const char STR_PWR_OFF_DELAY[];
+extern const char STR_PWR_AUTO_OFF[];
 extern const char* const STR_PWR_OFF_DELAYS[];
 #endif
 #if defined(HAPTIC)
@@ -583,7 +585,7 @@ extern const char STR_BIND_OK[];
 extern const char STR_INTERNALRF[];
 extern const char STR_INTERNAL_MODULE[];
 extern const char STR_EXTERNAL_MODULE[];
-extern const char STR_OPENTX_UPGRADE_REQUIRED[];
+extern const char STR_EDGETX_UPGRADE_REQUIRED[];
 extern const char STR_TELEMETRY_DISABLED[];
 extern const char STR_MORE_OPTIONS_AVAILABLE[];
 extern const char STR_NO_MODULE_INFORMATION[];
@@ -725,9 +727,6 @@ extern const char STR_EXT_MULTI_SPEC[];
 extern const char STR_INT_MULTI_SPEC[];
 extern const char STR_WARNING[];
 extern const char STR_STORAGE_WARNING[];
-extern const char STR_EEPROM_CONVERTING[];
-extern const char STR_SDCARD_CONVERSION_REQUIRE[];
-extern const char STR_CONVERTING[];
 extern const char STR_THROTTLE_UPPERCASE[];
 extern const char STR_ALARMSWARN[];
 extern const char STR_SWITCHWARN[];
@@ -778,7 +777,6 @@ extern const char STR_SLIDERS[];
 extern const char STR_FLIGHT_MODE[];
 extern const char STR_INVALID_FILE[];
 extern const char STR_TIMER_SOURCE[];
-extern const char* const STR_TEXT_SIZE[];
 extern const char* const STR_SUBTRIMMODES[];
 extern const char STR_SIZE[];
 extern const char STR_SHADOW[];
@@ -827,6 +825,8 @@ extern const char STR_TEMP_CALIB[];
 extern const char STR_TIME[];
 extern const char STR_MAXBAUDRATE[];
 extern const char STR_BAUDRATE[];
+extern const char STR_CRSF_ARMING_MODE[];
+extern const char* const STR_CRSF_ARMING_MODES[];
 extern const char STR_SAMPLE_MODE[];
 extern const char* const STR_SAMPLE_MODES[];
 extern const char STR_BLUETOOTH_BAUDRATE[];
@@ -1096,6 +1096,7 @@ extern const char STR_COPY_TRIMS_TO_OFS[];
 extern const char STR_INCDEC[];
 extern const char STR_GLOBALVAR[];
 extern const char STR_MIXSOURCE[];
+extern const char STR_MIXSOURCERAW[];
 extern const char STR_CONSTANT[];
 extern const char STR_TOP_BAR[];
 extern const char STR_FLASH_ERASE[];
@@ -1276,3 +1277,6 @@ extern const char STR_WIDGET_SIZE[];
 #endif
 
 extern const char STR_MIX_SLOW_PREC[];
+extern const char STR_MIX_DELAY_PREC[];
+
+extern const char STR_DEL_DIR_NOT_EMPTY[];

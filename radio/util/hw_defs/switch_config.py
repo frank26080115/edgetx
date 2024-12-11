@@ -69,6 +69,36 @@ SWITCH_CONFIG = {
         "SG": {"default": "3POS"},
         "SH": {"default": "TOGGLE"}
     },
+    "v12": {
+        # left side
+        "SA": {"default": "3POS",   "display": [0, 0]},
+        "SB": {"default": "3POS",   "display": [0, 1]},
+        "SE": {"default": "2POS",   "display": [0, 2]},
+        # right side
+        "SC": {"default": "3POS",   "display": [1, 0]},
+        "SD": {"default": "3POS",   "display": [1, 1]},
+        "SF": {"default": "TOGGLE", "display": [1, 2]},
+    },
+    "v14": {
+        # left side
+        "SA": {"default": "3POS",   "display": [0, 0]},
+        "SB": {"default": "3POS",   "display": [0, 1]},
+        "SE": {"default": "2POS",   "display": [0, 2]},
+        # right side
+        "SC": {"default": "3POS",   "display": [1, 0]},
+        "SD": {"default": "3POS",   "display": [1, 1]},
+        "SF": {"default": "TOGGLE", "display": [1, 2]},
+    },
+    "v16": {
+        "SA": {"default": "3POS"},
+        "SB": {"default": "3POS"},
+        "SC": {"default": "3POS"},
+        "SD": {"default": "3POS"},
+        "SE": {"default": "3POS"},
+        "SF": {"default": "2POS"},
+        "SG": {"default": "3POS"},
+        "SH": {"default": "TOGGLE"}
+    },
     "mt12": {
         # left side
         "SA": { "default": "3POS",    "display": [ 0, 0 ] },
@@ -181,6 +211,28 @@ SWITCH_CONFIG = {
         "SD": {"default": "TOGGLE", "display": [1, 1]},
         "SF": {"default": "2POS",   "display": [1, 2]},
         "SH": {"default": "NONE",   "display": [1, 3]},
+    },
+    "tpros": {
+        # left side
+        "SA": {"default": "3POS",   "display": [0, 0]},
+        "SC": {"default": "TOGGLE", "display": [0, 1]},
+        "SE": {"default": "2POS",   "display": [0, 2]},
+        # right side
+        "SB": {"default": "3POS",   "display": [1, 0]},
+        "SD": {"default": "TOGGLE", "display": [1, 1]},
+        "SF": {"default": "2POS",   "display": [1, 2]},
+    },
+    "bumblebee": {
+        # left side
+        "SA": {"default": "3POS",   "display": [0, 0]},
+        "SC": {"default": "TOGGLE", "display": [0, 1]},
+        "SE": {"default": "2POS",   "display": [0, 2]},
+        "SG": {"default": "TOGGLE", "display": [0, 3]},
+        # right side
+        "SB": {"default": "3POS",   "display": [1, 0]},
+        "SD": {"default": "TOGGLE", "display": [1, 1]},
+        "SF": {"default": "2POS",   "display": [1, 2]},
+        "SH": {"default": "TOGGLE", "display": [1, 3]},
     },
     "t20": {
         # left side

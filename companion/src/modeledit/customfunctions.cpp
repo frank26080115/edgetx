@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -40,6 +41,7 @@ CustomFunctionsPanel::CustomFunctionsPanel(QWidget * parent, ModelData * model, 
   harpicId = tabModelFactory->registerItemModel(CustomFunctionData::harpicItemModel());
   repeatId = tabModelFactory->registerItemModel(CustomFunctionData::repeatItemModel());
   repeatLuaId = tabModelFactory->registerItemModel(CustomFunctionData::repeatLuaItemModel());
+  repeatSetScreenId = tabModelFactory->registerItemModel(CustomFunctionData::repeatSetScreenItemModel());
   gvarAdjustModeId = tabModelFactory->registerItemModel(CustomFunctionData::gvarAdjustModeItemModel());
 
   tabFilterFactory = new FilteredItemModelFactory();
@@ -208,6 +210,8 @@ CustomFunctionsPanel::CustomFunctionsPanel(QWidget * parent, ModelData * model, 
     fswtchRepeat[i]->setProperty("index", i);
     if (functions[i].func == FuncPlayScript || functions[i].func == FuncRGBLed)
       fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatLuaId));
+    else if (functions[i].func == FuncSetScreen && !Boards::getCapability(firmware->getBoard(), Board::HasColorLcd))
+      fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatSetScreenId));
     else
       fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatId));
     fswtchRepeat[i]->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Fixed);
@@ -353,10 +357,8 @@ void CustomFunctionsPanel::functionEdited()
     functions[index].swtch = swtch;
     functions[index].func = (AssignFunc)fswtchFunc[index]->currentData().toInt();
     functions[index].enabled = true;
-    if (functions[index].func == FuncPlayScript || functions[index].func == FuncRGBLed)
-      fswtchRepeat[index]->setModel(tabModelFactory->getItemModel(repeatLuaId));
-    else
-      fswtchRepeat[index]->setModel(tabModelFactory->getItemModel(repeatId));
+    if (functions[index].func == FuncLogs)
+      functions[index].param = 10;  // 1 sec
     refreshCustomFunction(index);
     emit modified();
     lock = false;
@@ -398,6 +400,16 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
       }
     }
     else if (func == FuncLogs) {
+      fswtchParam[i]->setDecimals(1);
+      fswtchParam[i]->setMinimum(0.1);
+      fswtchParam[i]->setMaximum(25.5);
+      fswtchParam[i]->setSingleStep(0.1);
+      if (modified)
+        cfn.param = fswtchParam[i]->value() * 10.0;
+      fswtchParam[i]->setValue(cfn.param / 10.0);
+      widgetsMask |= CUSTOM_FUNCTION_NUMERIC_PARAM;
+    }
+    else if (func >= FuncPushCustomSwitch1 && func <= FuncPushCustomSwitchLast) {
       fswtchParam[i]->setDecimals(1);
       fswtchParam[i]->setMinimum(0);
       fswtchParam[i]->setMaximum(25.5);
@@ -464,6 +476,7 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
         if (modified)
           cfn.repeatParam = fswtchRepeat[i]->currentData().toInt();
         widgetsMask |= CUSTOM_FUNCTION_REPEAT;
+        fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatId));
         fswtchRepeat[i]->setCurrentIndex(fswtchRepeat[i]->findData(cfn.repeatParam));
       }
       if (func == FuncPlayValue) {
@@ -540,14 +553,24 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
         widgetsMask |= CUSTOM_FUNCTION_SOURCE_PARAM;
       }
       else if (func == FuncSetScreen) {
-        if (modified)
+        if (modified) {
           cfn.param = (uint8_t)fswtchParam[i]->value();
+          cfn.repeatParam = fswtchRepeat[i]->currentData().toInt();
+        }
         fswtchParam[i]->setDecimals(0);
-        fswtchParam[i]->setMinimum(1);
-        if(model)
-          fswtchParam[i]->setMaximum(model->getCustomScreensCount());
-        else
-          fswtchParam[i]->setMaximum(1);
+        if (Boards::getCapability(firmware->getBoard(), Board::HasColorLcd)) {
+          fswtchParam[i]->setMinimum(1);
+          if(model)
+            fswtchParam[i]->setMaximum(model->getCustomScreensCount());
+          else
+            fswtchParam[i]->setMaximum(1);
+        } else {
+          fswtchParam[i]->setMinimum(0);
+          fswtchParam[i]->setMaximum(4);
+          widgetsMask |= CUSTOM_FUNCTION_REPEAT;
+          fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatSetScreenId));
+          fswtchRepeat[i]->setCurrentIndex(fswtchRepeat[i]->findData(cfn.repeatParam));
+        }
         fswtchParam[i]->setSingleStep(1);
         fswtchParam[i]->setValue(cfn.param);
         widgetsMask |= CUSTOM_FUNCTION_NUMERIC_PARAM;
@@ -560,6 +583,7 @@ void CustomFunctionsPanel::refreshCustomFunction(int i, bool modified)
         cfn.repeatParam = fswtchRepeat[i]->currentData().toInt();
       }
       Helpers::populateFileComboBox(fswtchParamArmT[i], scriptsSet, cfn.paramarm);
+      fswtchRepeat[i]->setModel(tabModelFactory->getItemModel(repeatLuaId));
       fswtchRepeat[i]->setCurrentIndex(fswtchRepeat[i]->findData(cfn.repeatParam));
     }
     else {
@@ -696,13 +720,14 @@ void CustomFunctionsPanel::populateFuncParamCB(QComboBox *b, uint function, unsi
   }
   else if (function >= FuncAdjustGV1 && function <= FuncAdjustGVLast) {
     switch (adjustmode) {
-      case 1:
+      case FUNC_ADJUST_GVAR_SOURCE:
+      case FUNC_ADJUST_GVAR_SOURCERAW:
         b->setModel(tabFilterFactory->getItemModel(rawSourceInputsId));
         b->setCurrentIndex(b->findData(value));
         if (b->currentIndex() < 0 && value == 0)
           b->setCurrentIndex(b->count() / 2); // '----' not in list so set to first positive value
         break;
-      case 2:
+      case FUNC_ADJUST_GVAR_GVAR:
         b->setModel(tabFilterFactory->getItemModel(rawSourceGVarsId));
         b->setCurrentIndex(b->findData(value));
         if (b->currentIndex() < 0 && value == 0)

@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -353,6 +354,16 @@ HardwarePanel::HardwarePanel(QWidget * parent, GeneralSettings & generalSettings
     txCurrentCalibration->setSuffix(txCCRng.unit);
     txCurrentCalibration->setField(generalSettings.txCurrentCalibration);
     params->append(txCurrentCalibration);
+    addParams();
+  }
+
+  if (Boards::getCapability(board, Board::LcdWidth) == 128) {
+    addSection(tr("Screen"));
+
+    addLabel(tr("Invert"));
+    AutoCheckBox *screenInvert = new AutoCheckBox(this);
+    screenInvert->setField(generalSettings.invertLCD, this);
+    params->append(screenInvert);
     addParams();
   }
 

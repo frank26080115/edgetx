@@ -23,7 +23,7 @@
 
 #include <cinttypes>
 
-#include "opentx_constants.h"
+#include "edgetx_constants.h"
 
 enum LogicalSwitchFamilies {
   LS_FAMILY_OFS,
@@ -41,6 +41,7 @@ typedef int16_t delayval_t;
 uint8_t lswFamily(uint8_t func);
 int16_t lswTimerValue(delayval_t val);
 
+bool getLSStickyState(uint8_t idx);
 void evalLogicalSwitches(bool isCurrentFlightmode=true);
 void logicalSwitchesCopyState(uint8_t src, uint8_t dst);
 void logicalSwitchesReset();
@@ -100,6 +101,7 @@ int firstSwitchInGroup(uint8_t group);
 int groupDefaultSwitch(uint8_t group);
 void setGroupSwitchState(uint8_t group, int defaultSwitch = -1);
 uint8_t getFSPhysicalState(uint8_t index);
+extern uint8_t functionSwitchFunctionState;
 
 //led_driver.cpp
 void fsLedOff(uint8_t);

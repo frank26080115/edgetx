@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -49,7 +50,7 @@ TrainerPanel::TrainerPanel(QWidget * parent, GeneralSettings & generalSettings, 
     addLabel(tr("Weight"), row, 2);
     addLabel(tr("Source"), row++, 3);
 
-    for (int i = 0; i < CPN_MAX_STICKS; i++, row++) {
+    for (int i = 0; i < stickcnt; i++, row++) {
       col = 0;
       addLabel(Boards::getInputName(i), row, col++);
 

@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -261,7 +262,7 @@ Node convert<GeneralSettings>::encode(const GeneralSettings& rhs)
     node["labelSingleSelect"] = rhs.labelSingleSelect;
     node["labelMultiMode"] = rhs.labelMultiMode;
     node["favMultiMode"] = rhs.favMultiMode;
-  } else if (fw->getCapability(LcdWidth) == 128) {
+  } else if (Boards::getCapability(board, Board::LcdWidth) == 128) {
     node["invertLCD"] = (int)rhs.invertLCD;
   }
 
@@ -279,6 +280,7 @@ Node convert<GeneralSettings>::encode(const GeneralSettings& rhs)
   node["antennaMode"] = antennaModeLut << rhs.antennaMode;
   node["pwrOnSpeed"] = rhs.pwrOnSpeed;
   node["pwrOffSpeed"] = rhs.pwrOffSpeed;
+  node["pwrOffIfInactive"] = rhs.pwrOffIfInactive; // Power off after inactivity
   node["disablePwrOnOffHaptic"] = (int)rhs.disablePwrOnOffHaptic;
 
   for (int i = 0; i < CPN_MAX_SPECIAL_FUNCTIONS; i++) {
@@ -558,6 +560,7 @@ bool convert<GeneralSettings>::decode(const Node& node, GeneralSettings& rhs)
   node["backlightColor"] >> rhs.backlightColor;
   node["pwrOnSpeed"] >> rhs.pwrOnSpeed;
   node["pwrOffSpeed"] >> rhs.pwrOffSpeed;
+  node["pwrOffIfInactive"] >> rhs.pwrOffIfInactive;   // Power off after inactivity
   node["disablePwrOnOffHaptic"] >> rhs.disablePwrOnOffHaptic;
 
   if (node["customFn"]) {

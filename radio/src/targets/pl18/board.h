@@ -19,11 +19,10 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#pragma once
 
 #include "definitions.h"
-#include "opentx_constants.h"
+#include "edgetx_constants.h"
 
 #include "board_common.h"
 #include "hal.h"
@@ -103,7 +102,7 @@ extern "C" {
 
 // Power driver
 #define SOFT_PWR_CTRL
-#define POWER_ON_DELAY               10 // 1s
+#define POWER_ON_DELAY               100 // ms
 void pwrInit();
 void extModuleInit();
 uint32_t pwrCheck();
@@ -227,5 +226,3 @@ void hapticOn(uint32_t pwmPercent);
 bool touchPanelEventOccured();
 struct TouchState touchPanelRead();
 struct TouchState getInternalTouchState();
-
-#endif // _BOARD_H_

@@ -82,9 +82,9 @@ const struct YamlIdStr enum_Functions[] = {
   {  FUNC_BACKLIGHT, "BACKLIGHT"  },
   {  FUNC_SCREENSHOT, "SCREENSHOT"  },
   {  FUNC_RACING_MODE, "RACING_MODE"  },
+  {  FUNC_SET_SCREEN, "SET_SCREEN"  },
   {  FUNC_DISABLE_AUDIO_AMP, "DISABLE_AUDIO_AMP"  },
   {  FUNC_RGB_LED, "RGB_LED"  },
-  {  FUNC_LCD_TO_VIDEO, "LCD_TO_VIDEO"  },
   {  FUNC_TEST, "TEST"  },
   {  0, NULL  }
 };
@@ -238,7 +238,7 @@ static const struct YamlNode struct_anonymous_2[] = {
   YAML_SIGNED( "val", 16 ),
   YAML_UNSIGNED( "mode", 8 ),
   YAML_UNSIGNED( "param", 8 ),
-  YAML_SIGNED( "spare", 32 ),
+  YAML_SIGNED( "val2", 32 ),
   YAML_END
 };
 static const struct YamlNode struct_anonymous_3[] = {
@@ -362,6 +362,7 @@ static const struct YamlNode struct_RadioData[] = {
   YAML_UNSIGNED( "disablePwrOnOffHaptic", 1 ),
   YAML_UNSIGNED( "invertLCD", 1 ),
   YAML_PADDING( 3 ),
+  YAML_UNSIGNED( "pwrOffIfInactive", 8 ),
   YAML_END
 };
 static const struct YamlNode struct_unsigned_8[] = {
@@ -401,9 +402,10 @@ static const struct YamlNode struct_MixData[] = {
   YAML_UNSIGNED( "carryTrim", 1 ),
   YAML_UNSIGNED( "mixWarn", 2 ),
   YAML_ENUM("mltpx", 2, enum_MixerMultiplex),
+  YAML_UNSIGNED( "delayPrec", 1 ),
   YAML_UNSIGNED( "speedPrec", 1 ),
   YAML_UNSIGNED_CUST( "flightModes", 9, r_flightModes, w_flightModes ),
-  YAML_PADDING( 2 ),
+  YAML_PADDING( 1 ),
   YAML_UNSIGNED_CUST( "weight", 11, r_sourceNumVal, w_sourceNumVal ),
   YAML_UNSIGNED_CUST( "offset", 11, r_sourceNumVal, w_sourceNumVal ),
   YAML_SIGNED_CUST( "swtch", 10, r_swtchSrc, w_swtchSrc ),
@@ -600,6 +602,10 @@ static const struct YamlNode struct_anonymous_11[] = {
 };
 static const struct YamlNode struct_anonymous_12[] = {
   YAML_UNSIGNED( "telemetryBaudrate", 3 ),
+  YAML_UNSIGNED( "crsfArmingMode", 1 ),
+  YAML_PADDING( 4 ),
+  YAML_SIGNED_CUST( "crsfArmingTrigger", 10, r_swtchSrc, w_swtchSrc ),
+  YAML_PADDING( 6 ),
   YAML_END
 };
 static const struct YamlNode struct_anonymous_13[] = {
@@ -616,7 +622,7 @@ static const struct YamlNode union_anonymous_4_elmts[] = {
   YAML_STRUCT("flysky", 56, struct_anonymous_9, NULL),
   YAML_STRUCT("afhds3", 16, struct_anonymous_10, NULL),
   YAML_STRUCT("ghost", 8, struct_anonymous_11, NULL),
-  YAML_STRUCT("crsf", 8, struct_anonymous_12, NULL),
+  YAML_STRUCT("crsf", 24, struct_anonymous_12, NULL),
   YAML_STRUCT("dsmp", 8, struct_anonymous_13, NULL),
   YAML_END
 };

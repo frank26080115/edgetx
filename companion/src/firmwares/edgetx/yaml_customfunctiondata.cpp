@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -62,6 +63,7 @@ static const YamlLookupTable customFnLut = {
   {  FuncDisableAudioAmp, "DISABLE_AUDIO_AMP"  },
   {  FuncRGBLed, "RGB_LED"  },
   {  FuncLCDtoVideo, "LCD_TO_VIDEO"  },
+  {  FuncPushCustomSwitch1, "PUSH_CUST_SWITCH"  },
 };
 
 static const YamlLookupTable trainerLut = {
@@ -98,11 +100,13 @@ static const YamlLookupTable resetLut = {
   { 2, "Tmr3" },
   { 3, "All" },
   { 4, "Tele" },
+  { 5, "Trims" },
 };
 
 static const YamlLookupTable gvarModeLut = {
   { FUNC_ADJUST_GVAR_CONSTANT, "Cst" },
   { FUNC_ADJUST_GVAR_SOURCE, "Src" },
+  { FUNC_ADJUST_GVAR_SOURCERAW, "SrcRaw" },
   { FUNC_ADJUST_GVAR_GVAR, "GVar" },
   { FUNC_ADJUST_GVAR_INCDEC, "IncDec" },
 };
@@ -121,7 +125,8 @@ Node convert<CustomFunctionData>::encode(const CustomFunctionData& rhs)
 
   int fn = rhs.func;
   int p1 = 0;
-  if(fn >= FuncOverrideCH1 && fn <= FuncOverrideCHLast) {
+
+  if (fn >= FuncOverrideCH1 && fn <= FuncOverrideCHLast) {
     p1 = fn - (int)FuncOverrideCH1;
     fn = (int)FuncOverrideCH1;
   } else if (fn >= FuncTrainer && fn <= FuncTrainerChannels) {
@@ -139,7 +144,11 @@ Node convert<CustomFunctionData>::encode(const CustomFunctionData& rhs)
   } else if (fn >= FuncBindInternalModule && fn <= FuncBindExternalModule) {
     p1 = fn - (int)FuncBindInternalModule;
     fn = (int)FuncBindInternalModule;
+  } else if (fn >= FuncPushCustomSwitch1 && fn <= FuncPushCustomSwitchLast) {
+    p1 = fn - (int)FuncPushCustomSwitch1;
+    fn = (int)FuncPushCustomSwitch1;
   }
+
   node["func"] = LookupValue(customFnLut, fn);
 
   bool add_comma = true;
@@ -198,7 +207,8 @@ Node convert<CustomFunctionData>::encode(const CustomFunctionData& rhs)
       def += std::to_string(rhs.param);
       break;
     case FUNC_ADJUST_GVAR_GVAR:
-    case FUNC_ADJUST_GVAR_SOURCE: {
+    case FUNC_ADJUST_GVAR_SOURCE:
+    case FUNC_ADJUST_GVAR_SOURCERAW: {
       def += YamlRawSourceEncode(RawSource(rhs.param));
     } break;
     }
@@ -211,6 +221,11 @@ Node convert<CustomFunctionData>::encode(const CustomFunctionData& rhs)
     def += std::to_string(rhs.param);
     break;
   case FuncSetScreen:
+    def += std::to_string(rhs.param);
+    break;
+  case FuncPushCustomSwitch1:
+    def += std::to_string(p1);
+    def += ",";
     def += std::to_string(rhs.param);
     break;
   default:
@@ -260,18 +275,18 @@ bool convert<CustomFunctionData>::decode(const Node& node,
 
   switch(rhs.func) {
   case FuncOverrideCH1: {
-      int ch=0;
-      def >> ch;
-      rhs.func = (AssignFunc)((int)rhs.func + ch);
-      def.ignore();
-      def >> rhs.param;
+    int ch=0;
+    def >> ch;
+    rhs.func = (AssignFunc)((int)rhs.func + ch);
+    def.ignore();
+    def >> rhs.param;
   } break;
   case FuncTrainer: {
-      std::string value_str;
-      getline(def, value_str, ',');
-      int value=0;
-      Node(value_str) >> trainerLut >> value;
-      rhs.func = (AssignFunc)((int)rhs.func + value);
+    std::string value_str;
+    getline(def, value_str, ',');
+    int value=0;
+    Node(value_str) >> trainerLut >> value;
+    rhs.func = (AssignFunc)((int)rhs.func + value);
   } break;
   case FuncPlaySound: {
     std::string snd;
@@ -345,7 +360,8 @@ bool convert<CustomFunctionData>::decode(const Node& node,
       def >> rhs.param;
       break;
     case FUNC_ADJUST_GVAR_GVAR:
-    case FUNC_ADJUST_GVAR_SOURCE: {
+    case FUNC_ADJUST_GVAR_SOURCE:
+    case FUNC_ADJUST_GVAR_SOURCERAW: {
       std::string src_str;
       getline(def, src_str, ',');
       RawSource src;
@@ -370,6 +386,15 @@ bool convert<CustomFunctionData>::decode(const Node& node,
     rhs.param = param;
   } break;
   case FuncSetScreen: {
+    int param = 0;
+    def >> param;
+    rhs.param = param;
+  } break;
+  case FuncPushCustomSwitch1: {
+    int sw = 0;
+    def >> sw;
+    rhs.func = (AssignFunc)((int)rhs.func + sw);
+    def.ignore();
     int param = 0;
     def >> param;
     rhs.param = param;

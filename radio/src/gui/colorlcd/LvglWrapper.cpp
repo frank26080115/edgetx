@@ -19,11 +19,11 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "hal/rotary_encoder.h"
 
 #include "LvglWrapper.h"
-#include "themes/etx_lv_theme.h"
+#include "etx_lv_theme.h"
 
 #include "view_main.h"
 

@@ -100,11 +100,6 @@ void boardInit()
   __enable_irq();
 #endif
 
-#if defined(DEBUG) && defined(AUX_SERIAL)
-  serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
-  serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
-#endif
-
   TRACE("\nPL18 board started :)");
   delay_ms(10);
   TRACE("RCC->CSR = %08x", RCC->CSR);
@@ -119,7 +114,7 @@ void boardInit()
   touchPanelInit();
   usbInit();
 
-  ws2812_init(&_led_timer, LED_STRIP_LENGTH);
+  ws2812_init(&_led_timer, LED_STRIP_LENGTH, WS2812_GRB);
   ledStripOff();
 
   uint32_t press_start = 0;
@@ -130,7 +125,7 @@ void boardInit()
   } else if (isChargerActive()) {
     while (true) {
       pwrOn();
-      uint32_t now = get_tmr10ms();
+      uint32_t now = timersGetMsTick();
       if (pwrPressed()) {
         press_end = now;
         if (press_start == 0) press_start = now;
@@ -143,7 +138,7 @@ void boardInit()
         uint32_t press_end_touch = press_end;
         if (touchPanelEventOccured()) {
           touchPanelRead();
-          press_end_touch = get_tmr10ms();
+          press_end_touch = timersGetMsTick();
         }
         press_start = 0;
         handle_battery_charge(press_end_touch);

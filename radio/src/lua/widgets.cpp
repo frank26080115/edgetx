@@ -22,11 +22,11 @@
 #include <ctype.h>
 #include <stdio.h>
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "lua_api.h"
 
 #include "widget.h"
-#include "libopenui_file.h"
+#include "lib_file.h"
 #include "view_main.h"
 
 #include "lua_widget.h"
@@ -114,7 +114,7 @@ ZoneOption *createOptionsArray(int reference, uint8_t maxOptions)
     // TRACE("limited to %d options", count);
   }
 
-  ZoneOption *options = (ZoneOption *)malloc(sizeof(ZoneOption) * (count + 1));
+  ZoneOption *options = new ZoneOption[count + 1];
   if (!options) {
     return NULL;
   }
@@ -131,84 +131,63 @@ ZoneOption *createOptionsArray(int reference, uint8_t maxOptions)
       uint8_t field = 0;
       for (lua_pushnil(lsWidgets); lua_next(lsWidgets, -2) && field < 5;
            lua_pop(lsWidgets, 1), field++) {
+        luaL_checktype(lsWidgets, -2, LUA_TNUMBER);  // key is number
         switch (field) {
           case 0:
-            luaL_checktype(lsWidgets, -2, LUA_TNUMBER);  // key is number
-            luaL_checktype(lsWidgets, -1, LUA_TSTRING);  // value is string
-            option->name = lua_tostring(lsWidgets, -1);
+            option->name = luaL_checkstring(lsWidgets, -1);
             option->displayName = nullptr;
             // TRACE("name = %s", option->name);
             break;
           case 1:
-            luaL_checktype(lsWidgets, -2, LUA_TNUMBER);  // key is number
-            luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-            option->type = (ZoneOption::Type)lua_tointeger(lsWidgets, -1);
-            // TRACE("type = %d", option->type);
-            if (option->type > ZoneOption::Color) {
-              // wrong type
-              option->type = ZoneOption::Integer;
-            }
+            option->type = (ZoneOption::Type)luaL_checkinteger(lsWidgets, -1);
+            option->deflt.unsignedValue = 0;
+            // set some sensible defaults
             if (option->type == ZoneOption::Integer) {
-              // set some sensible defaults
-              option->deflt.signedValue = 0;
               option->min.signedValue = -100;
               option->max.signedValue = 100;
             } else if (option->type == ZoneOption::Switch) {
-              // set some sensible defaults
-              option->deflt.signedValue = SWSRC_NONE;
               option->min.signedValue = SWSRC_FIRST;
               option->max.signedValue = SWSRC_LAST;
             } else if (option->type == ZoneOption::Timer) {
-              option->deflt.unsignedValue = 0;
               option->min.unsignedValue = 0;
               option->max.unsignedValue = MAX_TIMERS - 1;
             } else if (option->type == ZoneOption::TextSize) {
-              option->deflt.unsignedValue = FONT_STD_INDEX;
               option->min.unsignedValue = FONT_STD_INDEX;
               option->max.unsignedValue = FONTS_COUNT - 1;
-            } else if (option->type == ZoneOption::String) {
+            } else if (option->type == ZoneOption::String || option->type == ZoneOption::File) {
               option->deflt.stringValue[0] = 0;
+            } else if (option->type == ZoneOption::Slider) {
+              option->min.unsignedValue = 0;
+              option->max.unsignedValue = 9;
             }
             break;
           case 2:
-            luaL_checktype(lsWidgets, -2, LUA_TNUMBER);  // key is number
             if (option->type == ZoneOption::Integer || option->type == ZoneOption::Switch) {
-              luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-              option->deflt.signedValue = lua_tointeger(lsWidgets, -1);
-              // TRACE("default signed = %d", option->deflt.signedValue);
-            } else if (option->type == ZoneOption::Source ||
-                       option->type == ZoneOption::TextSize ||
-                       option->type == ZoneOption::Timer ||
-                       option->type == ZoneOption::Align) {
-              luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-              option->deflt.unsignedValue = lua_tounsigned(lsWidgets, -1);
-              // TRACE("default unsigned = %u", option->deflt.unsignedValue);
-            } else if (option->type == ZoneOption::Color) {
-              luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-              option->deflt.unsignedValue = lua_tounsigned(lsWidgets, -1);
-              // TRACE("default unsigned = %u", option->deflt.unsignedValue);
+              option->deflt.signedValue = luaL_checkinteger(lsWidgets, -1);
             } else if (option->type == ZoneOption::Bool) {
-              luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-              option->deflt.boolValue = (lua_tounsigned(lsWidgets, -1) != 0);
-              // TRACE("default bool = %d", (int)(option->deflt.boolValue));
-            } else if (option->type == ZoneOption::String) {
-              strncpy(option->deflt.stringValue, lua_tostring(lsWidgets, -1),
+              option->deflt.boolValue = (luaL_checkunsigned(lsWidgets, -1) != 0);
+            } else if (option->type == ZoneOption::String || option->type == ZoneOption::File) {
+              strncpy(option->deflt.stringValue, luaL_checkstring(lsWidgets, -1),
                       LEN_ZONE_OPTION_STRING);
-              // TRACE("default string = %s", lua_tostring(lsWidgets, -1));
+            } else {
+              option->deflt.unsignedValue = luaL_checkunsigned(lsWidgets, -1);
             }
             break;
           case 3:
-            if (option->type == ZoneOption::Integer || option->type == ZoneOption::Switch) {
-              luaL_checktype(lsWidgets, -2, LUA_TNUMBER);  // key is number
-              luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-              option->min.signedValue = lua_tointeger(lsWidgets, -1);
+            if (option->type == ZoneOption::Integer || option->type == ZoneOption::Switch || option->type == ZoneOption::Slider) {
+              option->min.signedValue = luaL_checkinteger(lsWidgets, -1);
+            } else if (option->type == ZoneOption::Choice) {
+              luaL_checktype(lsWidgets, -1, LUA_TTABLE); // value is a table
+              for (lua_pushnil(lsWidgets); lua_next(lsWidgets, -2); lua_pop(lsWidgets, 1)) {
+                option->choiceValues.push_back(luaL_checkstring(lsWidgets, -1));
+              }
+            } else if (option->type == ZoneOption::File) {
+              option->fileSelectPath = luaL_checkstring(lsWidgets, -1);
             }
             break;
           case 4:
-            if (option->type == ZoneOption::Integer || option->type == ZoneOption::Switch) {
-              luaL_checktype(lsWidgets, -2, LUA_TNUMBER);  // key is number
-              luaL_checktype(lsWidgets, -1, LUA_TNUMBER);  // value is number
-              option->max.signedValue = lua_tointeger(lsWidgets, -1);
+            if (option->type == ZoneOption::Integer || option->type == ZoneOption::Switch || option->type == ZoneOption::Slider) {
+              option->max.signedValue = luaL_checkinteger(lsWidgets, -1);
             }
             break;
         }
@@ -220,7 +199,7 @@ ZoneOption *createOptionsArray(int reference, uint8_t maxOptions)
   else
   {
     TRACE("error in theme/widget options");
-    free(options);
+    delete[] options;
     return NULL;
   }
   UNPROTECT_LUA();
@@ -232,7 +211,7 @@ void luaLoadWidgetCallback()
   TRACE("luaLoadWidgetCallback()");
   const char * name=NULL;
 
-  int widgetOptions = 0, createFunction = 0, updateFunction = 0,
+  int widgetOptions = 0, createFunction = 0, updateFunction = 0, settingsFunction = 0,
       refreshFunction = 0, backgroundFunction = 0, translateFunction = 0;
   bool lvglLayout = false;
 
@@ -267,7 +246,11 @@ void luaLoadWidgetCallback()
       translateFunction = luaL_ref(lsWidgets, LUA_REGISTRYINDEX);
       lua_pushnil(lsWidgets);
     }
-    else if (!strcasecmp(key, "uselvgl")) {
+    else if (!strcmp(key, "settings")) {
+      settingsFunction = luaL_ref(lsWidgets, LUA_REGISTRYINDEX);
+      lua_pushnil(lsWidgets);
+    }
+    else if (!strcasecmp(key, "useLvgl")) {
       lvglLayout = lua_toboolean(lsWidgets, -1);
     }
   }
@@ -278,10 +261,11 @@ void luaLoadWidgetCallback()
       LuaWidgetFactory * factory = new LuaWidgetFactory(name, options, createFunction);
       factory->updateFunction = updateFunction;
       factory->refreshFunction = refreshFunction;
-      factory->backgroundFunction = backgroundFunction;   // NOSONAR
-      factory->lvglLayout = lvglLayout;
+      factory->backgroundFunction = backgroundFunction;
       factory->translateFunction = translateFunction;
+      factory->settingsFunction = settingsFunction;
       factory->translateOptions(options);
+      factory->lvglLayout = lvglLayout;
       TRACE("Loaded Lua widget %s", name);
     }
   }

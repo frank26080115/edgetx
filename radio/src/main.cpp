@@ -23,15 +23,15 @@
 #include "hal/storage.h"
 #include "hal/abnormal_reboot.h"
 #include "hal/usb_driver.h"
-#include "opentx.h"
+#include "edgetx.h"
 
 #if defined(LIBOPENUI)
 #include "libopenui.h"
-#include "gui/colorlcd/LvglWrapper.h"
-#include "gui/colorlcd/view_main.h"
+#include "LvglWrapper.h"
+#include "view_main.h"
 #include "startup_shutdown.h"
 #include "theme_manager.h"
-#include "themes/etx_lv_theme.h"
+#include "etx_lv_theme.h"
 #endif
 
 #if defined(CLI)
@@ -68,7 +68,7 @@ void openUsbMenu()
 {
   if (_usbMenu || _usbDisabled) return;
 
-  _usbMenu = new Menu(MainWindow::instance());
+  _usbMenu = new Menu();
 
   _usbMenu->setCloseHandler([]() { _usbMenu = nullptr; });
 
@@ -283,16 +283,7 @@ void checkHatsAsKeys()
 }
 #endif
 
-#if defined(EEPROM)
-void checkEeprom()
-{
-  if (eepromIsWriting())
-    eepromWriteProcess();
-  else if (TIME_TO_WRITE())
-    storageCheck(false);
-}
-#else
-void checkEeprom()
+void checkStorageUpdate()
 {
 #if defined(RTC_BACKUP_RAM) && !defined(SIMU)
   if (TIME_TO_BACKUP_RAM()) {
@@ -306,7 +297,6 @@ void checkEeprom()
     storageCheck(false);
   }
 }
-#endif
 
 #define BAT_AVG_SAMPLES 8
 
@@ -417,7 +407,7 @@ bool handleGui(event_t event)
 #if defined(LUA)
   bool isTelemView =
       menuHandlers[menuLevel] == menuViewTelemetry &&
-      TELEMETRY_SCREEN_TYPE(s_frsky_view) == TELEMETRY_SCREEN_TYPE_SCRIPT;
+      TELEMETRY_SCREEN_TYPE(selectedTelemView) == TELEMETRY_SCREEN_TYPE_SCRIPT;
   bool isStandalone = scriptInternalData[0].reference == SCRIPT_STANDALONE;
   if ((isTelemView || isStandalone) && event) {
     luaPushEvent(event);
@@ -524,7 +514,7 @@ void perMain()
   checkSpeakerVolume();
 
   if (!usbPlugged() || (getSelectedUsbMode() == USB_UNSELECTED_MODE)) {
-    checkEeprom();
+    checkStorageUpdate();
 
 #if !defined(SIMU)       // use FreeRTOS software timer if radio firmware
     initLoggingTimer();  // initialize software timer for logging
@@ -557,7 +547,13 @@ void perMain()
 
 #if defined(RTC_BACKUP_RAM)
   if (UNEXPECTED_SHUTDOWN()) {
+#if defined(COLORLCD)
     drawFatalErrorScreen(STR_EMERGENCY_MODE);
+#else
+    lcdClear();
+    menuMainView(0);
+    lcdRefresh();
+#endif
     return;
   }
 #endif
@@ -567,7 +563,6 @@ void perMain()
     sdMount();
   }
 
-#if !defined(EEPROM)
   // In case the SD card is removed during the session
   if ((!usbPlugged() || (getSelectedUsbMode() == USB_UNSELECTED_MODE)) &&
       !SD_CARD_PRESENT() && !UNEXPECTED_SHUTDOWN()) {
@@ -577,7 +572,6 @@ void perMain()
     return;
 #endif
   }
-#endif
 
   if (usbPlugged() && getSelectedUsbMode() == USB_MASS_STORAGE_MODE) {
 #if defined(LIBOPENUI)

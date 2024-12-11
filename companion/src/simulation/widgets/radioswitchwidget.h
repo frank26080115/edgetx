@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -18,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _RADIOSWITCHWIDGET_H_
-#define _RADIOSWITCHWIDGET_H_
+#pragma once
 
 #include "radiowidget.h"
 #include "boards.h"
@@ -145,5 +145,3 @@ class RadioSwitchWidget : public RadioWidget
     quint16 m_stepSize;
 
 };
-
-#endif // _RADIOSWITCHWIDGET_H_

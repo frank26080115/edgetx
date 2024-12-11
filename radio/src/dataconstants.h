@@ -21,6 +21,8 @@
 
 #pragma once
 
+#if !defined(CFN_ONLY)
+
 #include "board.h"
 #include "storage/yaml/yaml_defs.h"
 
@@ -185,6 +187,13 @@ enum ModuleIndex {
   // only used for power control
   // and firmware updates
   SPORT_MODULE = MAX_MODULES
+};
+
+enum ArmingMode {
+  ARMING_MODE_FIRST = 0,
+  ARMING_MODE_CH5 = ARMING_MODE_FIRST,
+  ARMING_MODE_SWITCH = 1,
+  ARMING_MODE_LAST = ARMING_MODE_SWITCH,
 };
 
 enum TrainerMode {
@@ -544,8 +553,7 @@ enum MixSources {
   MIXSRC_VALUE SKIP,  // Special case to trigger source as value conversion
 };
 
-
-#define MIXSRC_LAST                 MIXSRC_LAST_CH
+#define MIXSRC_LAST                 MIXSRC_LAST_GVAR
 #define INPUTSRC_FIRST              MIXSRC_FIRST_STICK
 #define INPUTSRC_LAST               MIXSRC_LAST_TELEM
 
@@ -560,44 +568,6 @@ enum BacklightMode {
   e_backlight_mode_sticks = 2,
   e_backlight_mode_all = e_backlight_mode_keys+e_backlight_mode_sticks,
   e_backlight_mode_on
-};
-
-enum Functions {
-  FUNC_OVERRIDE_CHANNEL,
-  FUNC_TRAINER,
-  FUNC_INSTANT_TRIM,
-  FUNC_RESET,
-  FUNC_SET_TIMER,
-  FUNC_ADJUST_GVAR,
-  FUNC_VOLUME,
-  FUNC_SET_FAILSAFE,
-  FUNC_RANGECHECK,
-  FUNC_BIND,
-  FUNC_PLAY_SOUND,
-  FUNC_PLAY_TRACK,
-  FUNC_PLAY_VALUE,
-  FUNC_PLAY_SCRIPT,
-  FUNC_BACKGND_MUSIC,
-  FUNC_BACKGND_MUSIC_PAUSE,
-  FUNC_VARIO,
-  FUNC_HAPTIC,
-  FUNC_LOGS,
-  FUNC_BACKLIGHT,
-  FUNC_SCREENSHOT,
-  FUNC_RACING_MODE,
-#if defined(COLORLCD)
-  FUNC_DISABLE_TOUCH,
-  FUNC_SET_SCREEN,
-#endif
-  FUNC_DISABLE_AUDIO_AMP,
-  FUNC_RGB_LED,
-  FUNC_LCD_TO_VIDEO,
-  FUNC_TEST, // MUST remain last
-#if defined(DEBUG)
-  FUNC_MAX SKIP
-#else
-  FUNC_MAX SKIP = FUNC_TEST
-#endif
 };
 
 enum TimerModes {
@@ -630,6 +600,7 @@ enum ResetFunctionParam {
   FUNC_RESET_TIMER3,
   FUNC_RESET_FLIGHT,
   FUNC_RESET_TELEMETRY,
+  FUNC_RESET_TRIMS,
   FUNC_RESET_PARAM_FIRST_TELEM,
   FUNC_RESET_PARAM_LAST_TELEM = FUNC_RESET_PARAM_FIRST_TELEM + MAX_TELEMETRY_SENSORS,
   FUNC_RESET_PARAMS_COUNT SKIP,
@@ -639,6 +610,7 @@ enum ResetFunctionParam {
 enum AdjustGvarFunctionParam {
   FUNC_ADJUST_GVAR_CONSTANT,
   FUNC_ADJUST_GVAR_SOURCE,
+  FUNC_ADJUST_GVAR_SOURCERAW,
   FUNC_ADJUST_GVAR_GVAR,
   FUNC_ADJUST_GVAR_INCDEC,
 };
@@ -687,4 +659,49 @@ enum PPMUnit {
     PPM_PERCENT_PREC0,
     PPM_PERCENT_PREC1,
     PPM_US
+};
+
+#endif
+
+enum Functions {
+  FUNC_OVERRIDE_CHANNEL,
+  FUNC_TRAINER,
+  FUNC_INSTANT_TRIM,
+  FUNC_RESET,
+  FUNC_SET_TIMER,
+  FUNC_ADJUST_GVAR,
+  FUNC_VOLUME,
+  FUNC_SET_FAILSAFE,
+  FUNC_RANGECHECK,
+  FUNC_BIND,
+  FUNC_PLAY_SOUND,
+  FUNC_PLAY_TRACK,
+  FUNC_PLAY_VALUE,
+  FUNC_PLAY_SCRIPT,
+  FUNC_BACKGND_MUSIC,
+  FUNC_BACKGND_MUSIC_PAUSE,
+  FUNC_VARIO,
+  FUNC_HAPTIC,
+  FUNC_LOGS,
+  FUNC_BACKLIGHT,
+  FUNC_SCREENSHOT,
+  FUNC_RACING_MODE,
+#if defined(COLORLCD) || defined(CFN_ONLY)
+  FUNC_DISABLE_TOUCH,
+#endif
+  FUNC_SET_SCREEN,
+  FUNC_DISABLE_AUDIO_AMP,
+  FUNC_RGB_LED,
+#if defined(VIDEO_SWITCH) || defined(CFN_ONLY)
+  FUNC_LCD_TO_VIDEO,
+#endif
+#if defined(FUNCTION_SWITCHES) || defined(CFN_ONLY)
+  FUNC_PUSH_CUST_SWITCH,
+#endif
+  FUNC_TEST, // MUST remain last
+#if defined(DEBUG)
+  FUNC_MAX SKIP
+#else
+  FUNC_MAX SKIP = FUNC_TEST
+#endif
 };

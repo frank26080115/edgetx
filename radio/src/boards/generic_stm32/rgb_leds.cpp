@@ -22,7 +22,7 @@
 #include "stm32_pulse_driver.h"
 #include "rgb_leds.h"
 #include "hal.h"
-#include "opentx.h"
+#include "edgetx.h"
 
 #if defined(LED_STRIP_GPIO)
 
@@ -43,7 +43,11 @@ static StaticTimer_t rgbLedTimerBuffer;
 
 void rgbSetLedColor(uint8_t led, uint8_t r, uint8_t g, uint8_t b)
 {
+#if defined(SIXPOS_SWITCH_INDEX)
+  ws2812_set_color(led + 6, r, g, b);
+#else
   ws2812_set_color(led, r, g, b);
+#endif
 }
 
 void rgbLedColorApply()

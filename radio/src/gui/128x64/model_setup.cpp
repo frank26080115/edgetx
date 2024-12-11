@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "mixer_scheduler.h"
 #include "hal/adc_driver.h"
 #include "hal/switch_driver.h"
@@ -30,10 +30,8 @@
 #include "usb_joystick.h"
 #endif
 
-#if !defined(EEPROM)
 #include "storage/sdcard_common.h"
 #include "storage/modelslist.h"
-#endif
 
 #if defined(CROSSFIRE)
   #include "telemetry/crossfire.h"
@@ -121,6 +119,10 @@ enum MenuModelSetupItems {
 #if defined(CROSSFIRE) || defined(GHOST)
   ITEM_MODEL_SETUP_INTERNAL_MODULE_TYPE,
   ITEM_MODEL_SETUP_INTERNAL_MODULE_SERIALSTATUS,
+  #if defined(CROSSFIRE)
+  ITEM_MODEL_SETUP_INTERNAL_MODULE_ARMING_MODE,
+  ITEM_MODEL_SETUP_INTERNAL_MODULE_ARMING_TRIGGER,
+  #endif
 #endif
 #if defined(MULTIMODULE)
   ITEM_MODEL_SETUP_INTERNAL_MODULE_PROTOCOL,
@@ -157,6 +159,10 @@ enum MenuModelSetupItems {
 #if defined(CROSSFIRE) || defined(GHOST)
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_BAUDRATE,
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_SERIALSTATUS,
+  #if defined(CROSSFIRE)
+  ITEM_MODEL_SETUP_EXTERNAL_MODULE_ARMING_MODE,
+  ITEM_MODEL_SETUP_EXTERNAL_MODULE_ARMING_TRIGGER,
+  #endif
 #endif
 #if defined(MULTIMODULE)
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_PROTOCOL,
@@ -240,41 +246,21 @@ PACK(struct ExpandState {
   uint8_t functionSwitches:1;
 });
 
-struct ExpandState expandState;
+static struct ExpandState expandState;
 
-uint8_t PREFLIGHT_ROW(uint8_t value)
-{
-  if (expandState.preflight)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t PREFLIGHT_ROW(uint8_t value) { return expandState.preflight ? value : HIDDEN_ROW; }
 
-uint8_t THROTTLE_ROW(uint8_t value)
-{
-  if (expandState.throttle)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t THROTTLE_ROW(uint8_t value) { return expandState.throttle ? value : HIDDEN_ROW; }
 
 #if defined(FUNCTION_SWITCHES)
-uint8_t FS_ROW(uint8_t value)
-{
-  if (expandState.functionSwitches)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t FS_ROW(uint8_t value) { return expandState.functionSwitches ? value : HIDDEN_ROW; }
 
 uint8_t G1_ROW(int8_t value) { return (firstSwitchInGroup(1) >= 0) ? value : HIDDEN_ROW; }
 uint8_t G2_ROW(int8_t value) { return (firstSwitchInGroup(2) >= 0) ? value : HIDDEN_ROW; }
 uint8_t G3_ROW(int8_t value) { return (firstSwitchInGroup(3) >= 0) ? value : HIDDEN_ROW; }
 #endif
 
-uint8_t VIEWOPT_ROW(uint8_t value)
-{
-  if (expandState.viewOpt)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t VIEWOPT_ROW(uint8_t value) { return expandState.viewOpt ? value : HIDDEN_ROW; }
 
 #define MODEL_SETUP_2ND_COLUMN           (LCD_W-11*FW)
 #define MODEL_SETUP_SET_FAILSAFE_OFS     7*FW-2
@@ -290,9 +276,13 @@ uint8_t VIEWOPT_ROW(uint8_t value)
 #else
 #define IF_MODULE_BAUDRATE_ADJUST(module, xxx) (isModuleCrossfire(module) ? (uint8_t)(xxx) : HIDDEN_ROW)
 #endif
+#define IF_MODULE_ARMED(module, xxx) (CRSF_ELRS_MIN_VER(module, 4, 0) ? (uint8_t)(xxx) : HIDDEN_ROW)
+#define IF_MODULE_ARMED_TRIGGER(module, xxx) ((CRSF_ELRS_MIN_VER(module, 4, 0) && g_model.moduleData[module].crsf.crsfArmingMode) ? (uint8_t)(xxx) : HIDDEN_ROW)
 #else
 #define IF_MODULE_SYNCED(module, xxx)
 #define IF_MODULE_BAUDRATE_ADJUST(module, xxx)
+#define IF_MODULE_ARMED(module, xxx)
+#define IF_MODULE_ARMED_TRIGGER(module, xxx)
 #endif
 
 
@@ -493,6 +483,8 @@ void editTimerCountdown(int timerIdx, coord_t y, LcdFlags attr, event_t event)
     LABEL(InternalModule), \
     MODULE_TYPE_ROWS(INTERNAL_MODULE),         /* ITEM_MODEL_SETUP_INTERNAL_MODULE_TYPE */ \
     IF_MODULE_SYNCED(INTERNAL_MODULE, 0),      /* Sync rate + errors */ \
+    IF_MODULE_ARMED(INTERNAL_MODULE, 0),       /* Arming Mode */ \
+    IF_MODULE_ARMED_TRIGGER(INTERNAL_MODULE, 0),/* Arming Trigger */ \
     MULTIMODULE_TYPE_ROWS(INTERNAL_MODULE)     /* ITEM_MODEL_SETUP_INTERNAL_MODULE_PROTOCOL */ \
     MULTIMODULE_SUBTYPE_ROWS(INTERNAL_MODULE)  /* ITEM_MODEL_SETUP_INTERNAL_MODULE_SUBTYPE */ \
     MULTIMODULE_STATUS_ROWS(INTERNAL_MODULE)   /* ITEM_MODEL_SETUP_INTERNAL_MODULE_STATUS, ITEM_MODEL_SETUP_INTERNAL_MODULE_SYNCSTATUS */ \
@@ -520,6 +512,8 @@ void editTimerCountdown(int timerIdx, coord_t y, LcdFlags attr, event_t event)
     MODULE_TYPE_ROWS(EXTERNAL_MODULE),  \
     IF_MODULE_BAUDRATE_ADJUST(EXTERNAL_MODULE, 0), /* Baudrate */ \
     IF_MODULE_SYNCED(EXTERNAL_MODULE, 0),          /* Sync rate + errors */ \
+    IF_MODULE_ARMED(EXTERNAL_MODULE, 0),           /* Arming Mode */ \
+    IF_MODULE_ARMED_TRIGGER(EXTERNAL_MODULE, 0),   /* Arming TRIGGER */ \
     MULTIMODULE_TYPE_ROWS(EXTERNAL_MODULE)         /* PROTOCOL */ \
     MULTIMODULE_SUBTYPE_ROWS(EXTERNAL_MODULE)      /* SUBTYPE */  \
     MULTIMODULE_STATUS_ROWS(EXTERNAL_MODULE)  \
@@ -954,6 +948,7 @@ void menuModelSetup(event_t event)
         if (attr && menuHorizontalPosition>0) {
           s_editMode = 0;
           if (event==EVT_KEY_LONG(KEY_ENTER)) {
+            killEvents(event);
             START_NO_HIGHLIGHT();
             for (uint8_t i=0; i<MAX_FLIGHT_MODES; i++) {
               memclear(&g_model.flightModeData[i], TRIMS_ARRAY_SIZE);
@@ -1075,10 +1070,8 @@ void menuModelSetup(event_t event)
 #endif
             s_editMode = 0;
             switch (event) {
-              case EVT_KEY_BREAK(KEY_ENTER):
-                break;
-
               case EVT_KEY_LONG(KEY_ENTER):
+                killEvents(event);
                 if (menuHorizontalPosition < 0 ||
                     menuHorizontalPosition >= switchWarningsCount) {
                   START_NO_HIGHLIGHT();
@@ -1147,6 +1140,7 @@ void menuModelSetup(event_t event)
           if (menuHorizontalPosition > 0) {
             switch (event) {
               case EVT_KEY_LONG(KEY_ENTER):
+                killEvents(event);
                 if (g_model.potsWarnMode == POTS_WARN_MANUAL) {
                   SAVE_POT_POSITION(menuHorizontalPosition-1);
                   AUDIO_WARNING1();
@@ -1429,16 +1423,31 @@ void menuModelSetup(event_t event)
         lcdDrawTextIndented(y, STR_STATUS);
         lcdDrawNumber(MODEL_SETUP_2ND_COLUMN, y, 1000000 / getMixerSchedulerPeriod(), LEFT | attr);
         lcdDrawText(lcdNextPos, y, "Hz ", attr);
-        // lcdDrawNumber(lcdNextPos, y, telemetryErrors, attr);
-        // lcdDrawText(lcdNextPos + 1, y, "Err", attr);
-        // if (attr) {
-        //   s_editMode = 0;
-        //   if (event == EVT_KEY_LONG(KEY_ENTER)) {
-        //     START_NO_HIGHLIGHT();
-        //     telemetryErrors = 0;
-        //     AUDIO_WARNING1();
-        //   }
-        // }
+        break;
+#endif
+
+#if defined(CROSSFIRE)
+#if defined(HARDWARE_INTERNAL_MODULE)
+      case ITEM_MODEL_SETUP_INTERNAL_MODULE_ARMING_MODE:
+#endif
+#if defined(HARDWARE_EXTERNAL_MODULE)
+      case ITEM_MODEL_SETUP_EXTERNAL_MODULE_ARMING_MODE:
+#endif 
+        g_model.moduleData[moduleIdx].crsf.crsfArmingMode = 
+          editChoice(MODEL_SETUP_2ND_COLUMN, y, STR_CRSF_ARMING_MODE, STR_CRSF_ARMING_MODES, 
+          g_model.moduleData[moduleIdx].crsf.crsfArmingMode, ARMING_MODE_FIRST, ARMING_MODE_LAST, attr, event, INDENT_WIDTH);
+        break;
+
+#if defined(HARDWARE_INTERNAL_MODULE)
+      case ITEM_MODEL_SETUP_INTERNAL_MODULE_ARMING_TRIGGER:
+#endif
+#if defined(HARDWARE_EXTERNAL_MODULE)
+      case ITEM_MODEL_SETUP_EXTERNAL_MODULE_ARMING_TRIGGER:
+#endif
+        lcdDrawTextIndented(y, STR_SWITCH);
+        drawSwitch(MODEL_SETUP_2ND_COLUMN, y, g_model.moduleData[moduleIdx].crsf.crsfArmingTrigger, attr);
+        if(attr)
+          CHECK_INCDEC_SWITCH(event, g_model.moduleData[moduleIdx].crsf.crsfArmingTrigger, SWSRC_FIRST, SWSRC_LAST, EE_MODEL, isSwitchAvailableForArming);
         break;
 #endif
 
@@ -1822,6 +1831,7 @@ void menuModelSetup(event_t event)
                   modelHeaders[g_eeGeneral.currModel].modelId[moduleIdx] = g_model.header.modelId[moduleIdx];
                 }
                 else if (event == EVT_KEY_LONG(KEY_ENTER)) {
+                  killEvents(event);
                   uint8_t newVal = 0;
 #if defined(STORAGE_MODELSLIST)
                   newVal = modelslist.findNextUnusedModelId(moduleIdx);
@@ -1959,6 +1969,7 @@ void menuModelSetup(event_t event)
             s_editMode = 0;
             if (moduleData.failsafeMode == FAILSAFE_CUSTOM) {
               if (event == EVT_KEY_LONG(KEY_ENTER)) {
+                killEvents(event);
                 setCustomFailsafe(moduleIdx);
                 AUDIO_WARNING1();
                 SEND_FAILSAFE_NOW(moduleIdx);

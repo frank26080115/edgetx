@@ -22,6 +22,7 @@
 #include "stm32_hal.h"
 #include "stm32_hal_ll.h"
 #include "stm32_gpio.h"
+#include "stm32_ws2812.h"
 
 #include "hal/adc_driver.h"
 #include "hal/trainer_driver.h"
@@ -34,10 +35,11 @@
 #include "boards/generic_stm32/module_ports.h"
 #include "boards/generic_stm32/intmodule_heartbeat.h"
 #include "boards/generic_stm32/analog_inputs.h"
+#include "boards/generic_stm32/rgb_leds.h"
 
 #include "timers_driver.h"
 #include "dataconstants.h"
-#include "opentx_types.h"
+#include "edgetx_types.h"
 #include "globals.h"
 #include "sdcard.h"
 #include "debug.h"
@@ -46,6 +48,23 @@
 
 #if defined(FLYSKY_GIMBAL)
   #include "flysky_gimbal_driver.h"
+#endif
+
+#if defined(CSD203_SENSOR)
+  #include "csd203_sensor.h"
+#endif
+
+#if defined(LED_STRIP_GPIO)
+// Common LED driver
+extern const stm32_pulse_timer_t _led_timer;
+
+void ledStripOff()
+{
+  for (uint8_t i = 0; i < LED_STRIP_LENGTH; i++) {
+    ws2812_set_color(i, 0, 0, 0);
+  }
+  ws2812_update(&_led_timer);
+}
 #endif
 
 HardwareOptions hardwareOptions;
@@ -61,7 +80,54 @@ void boardBLInit()
 #endif
 
 #if !defined(BOOT)
-#include "opentx.h"
+#include "edgetx.h"
+
+#if defined(SIXPOS_SWITCH_INDEX)
+uint8_t lastADCState = 0;
+uint8_t sixPosState = 0;
+bool sixPosInit = false;
+bool sixPosDirty = true;
+uint16_t getSixPosAnalogValue(uint16_t adcValue)
+{
+  if (sixPosInit) {
+    uint8_t currentADCState = 0;
+    if (adcValue > 3800)
+      currentADCState = 6;
+    else if (adcValue > 3100)
+      currentADCState = 5;
+    else if (adcValue > 2300)
+      currentADCState = 4;
+    else if (adcValue > 1500)
+      currentADCState = 3;
+    else if (adcValue > 1000)
+      currentADCState = 2;
+    else if (adcValue > 400)
+      currentADCState = 1;
+    if (lastADCState != currentADCState) {
+      lastADCState = currentADCState;
+    } else if (lastADCState != 0 && lastADCState - 1 != sixPosState) {
+      sixPosState = lastADCState - 1;
+      sixPosDirty = true;
+    }
+  } else if (adcValue < 300) {
+    // Wait for nothing is pressed to start sampling, otherwise may goes into unknown state
+    sixPosInit = true;
+  }
+
+  if (sixPosDirty) {
+    for (uint8_t i = 0; i < 6; i++) {
+      if (i == sixPosState)
+        ws2812_set_color(i, SIXPOS_LED_RED, SIXPOS_LED_GREEN, SIXPOS_LED_BLUE);
+      else
+        ws2812_set_color(i, 0, 0, 0);
+    }
+    ws2812_update(&_led_timer);
+    sixPosDirty = false;
+  }
+
+  return (4096/5)*(sixPosState);
+}
+#endif
 
 void boardInit()
 {
@@ -70,52 +136,27 @@ void boardInit()
   board_set_bor_level();
 #endif
 
-  pwrInit();
-
-#if defined(FUNCTION_SWITCHES) && !defined(DEBUG_SEGGER_RTT)
-#if defined(RADIO_T15)
-#define LEDCHARGEON(x)   fsLedOff(x)
-#define LEDCHARGEOFF(x)  fsLedOn(x)
-#else
-#define LEDCHARGEON(x)   fsLedOn(x)
-#define LEDCHARGEOFF(x)  fsLedOff(x)
-#endif
+#if defined(FUNCTION_SWITCHES) && !defined(DEBUG)
   // This is needed to prevent radio from starting when usb is plugged to charge
   usbInit();
-  ledInit();
   // prime debounce state...
    usbPlugged();
    if (usbPlugged()) {
      delaysInit();
-     adcInit(&_adc_driver);
-     getADC();
-     pwrOn(); // required to get bat adc reads
-     INTERNAL_MODULE_OFF();
-     EXTERNAL_MODULE_OFF();
-     for (uint8_t i=0; i < NUM_FUNCTIONS_SWITCHES; i++)
-       LEDCHARGEOFF(i);
+ #if defined(AUDIO_MUTE_GPIO)
+     // Charging can make a buzzing noise
+     gpio_init(AUDIO_MUTE_GPIO, GPIO_OUT, GPIO_PIN_SPEED_LOW);
+     gpio_set(AUDIO_MUTE_GPIO);
+ #endif
      while (usbPlugged()) {
-       // Let it charge ...
-       getADC(); // Warning: the value read does not include VBAT calibration
-                 // Also, MCU is running which create a drop vs off
-       if (getBatteryVoltage() >= 660)
-         LEDCHARGEON(0);
-       if (getBatteryVoltage() >= 700)
-         LEDCHARGEON(1);
-       if (getBatteryVoltage() >= 740)
-         LEDCHARGEON(2);
-       if (getBatteryVoltage() >= 780)
-         LEDCHARGEON(3);
-       if (getBatteryVoltage() >= 810)
-         LEDCHARGEON(4);
-       if (getBatteryVoltage() >= 820)
-         LEDCHARGEON(5);
        delay_ms(1000);
      }
      while(1) // Wait power to drain
        pwrOff();
    }
 #endif
+
+  pwrInit();
 
   boardInitModulePorts();
 
@@ -131,11 +172,6 @@ void boardInit()
   delaysInit();
 
   __enable_irq();
-
-#if defined(DEBUG) && defined(AUX_SERIAL)
-  serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
-  serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
-#endif
 
   TRACE("\nHorus board started :)");
   TRACE("RCC->CSR = %08x", RCC->CSR);
@@ -163,8 +199,21 @@ void boardInit()
 
   timersInit();
 
+#if defined(HARDWARE_TOUCH) && !defined(SIMU)
+  touchPanelInit();
+#endif
+
+#if defined(CSD203_SENSOR)
+  initCSD203();
+#endif
+
   usbInit();
   hapticInit();
+
+#if defined(LED_STRIP_GPIO)
+  ws2812_init(&_led_timer, LED_STRIP_LENGTH, WS2812_GRB);
+  ledStripOff();
+#endif
 
 #if defined(BLUETOOTH)
   bluetoothInit(BLUETOOTH_DEFAULT_BAUDRATE, true);

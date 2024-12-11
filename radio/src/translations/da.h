@@ -121,13 +121,16 @@
 #define TR_SF_DISABLE_TOUCH            "Ikke berøringsaktiv"
 #define TR_SF_DISABLE_AUDIO_AMP        TR("Sluk audio amp", "Sluk audio amplifier")
 #define TR_SF_SET_SCREEN               "Vælg hoved skærm"
+#define TR_SF_SET_TELEMSCREEN          "Vis skærm"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "Telemetri")
+#define TR_FSW_RESET_TRIMS             "Trims"
 #define TR_FSW_RESET_TIMERS            "Tid1","Tid2","Tid3"
 
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("Alle","Flight"),TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("Alle","Flight"),TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 
 #define TR_FUNCSOUNDS                  TR("Bi1","Bip1"),TR("Bi2","Bip2"),TR("Bi3","Bi3"),TR("Adv1","Advarsel1"),TR("Adv2","Advarsel2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Sirene"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
@@ -219,7 +222,6 @@
 #define TR_VFORMULAS                   "Tillæg","Gennems.","Min","Max","Gange","Sum","Cell","Forbrug","Afstand"
 #define TR_VPREC                       "0.--","0.0 ","0.00"
 #define TR_VCELLINDEX                  "Lavest","1","2","3","4","5","6","7","8","Højst","Delta"
-#define TR_TEXT_SIZE                   "Standard","Tynd","Lille","Medium","Dobbelt"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA " (center kun)","= (symmetrisk)"
 #define TR_TIMER_DIR                   TR("Rest", "Vis rest"), TR("Gået tid", "Vis gået tid")
 #define TR_PPMUNIT                     "0.--","0.0","us"
@@ -324,7 +326,7 @@
 #define TR_SUBTYPE                     "Subtype"
 #define TR_NOFREEEXPO                  "Ingen fri expo!"
 #define TR_NOFREEMIXER                 "Ingen fri mix!"
-#define TR_SOURCE                       "Kilde"
+#define TR_SOURCE                      "Kilde"
 #define TR_WEIGHT                      "Vægt"
 #define TR_SIDE                        "Side"
 #define TR_OFFSET                       "Offset"
@@ -399,6 +401,7 @@
 #define TR_PLAY_HELLO                  "Startop lyd"
 #define TR_PWR_ON_DELAY                "Forsinkelse ved tænd"
 #define TR_PWR_OFF_DELAY               "Forsinkelse ved sluk"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("Vib. strøm til/fra","Vibrator strøm til/fra")
 #define TR_THROTTLE_WARNING            TR("Gas adv", "Gas advarsel")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Tilp-Pos", "Tilpasset position?")
@@ -658,11 +661,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "Inkompatibel"
 #define TR_WARNING                     "ADVARSEL"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "LAGER"
-#define TR_EEPROM_CONVERTING           "Konverterer EEPROM"
-#define TR_SDCARD_CONVERSION_REQUIRE   "SD kort konvertering krævet"
-#define TR_CONVERTING                  "Konvertering: "
 #define TR_THROTTLE_UPPERCASE          "GAS"
 #define TR_ALARMSWARN                  "ALARMER"
 #define TR_SWITCHWARN                  TR("KONTAKT", "KONTROL")
@@ -715,6 +714,8 @@
 #define TR_TIME                        "Tid"
 #define TR_MAXBAUDRATE                 "Max bauds"
 #define TR_BAUDRATE                    "Baudrate"
+#define TR_CRSF_ARMING_MODE            TR("Aktiver m.", "Aktiver med")
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 "Måle tilstand"
 #define TR_SAMPLE_MODES                "Normal","EnBit"
 #define TR_LOADING                     "Indlæser..."
@@ -805,7 +806,7 @@
 #define TR_INTERNALRF                  "Intern RF"
 #define TR_INTERNAL_MODULE             TR("Int. module", "Intern modul")
 #define TR_EXTERNAL_MODULE             TR("Ext. module", "Eksternt modul")
-#define TR_OPENTX_UPGRADE_REQUIRED     "OpenTX kræver opgradering"
+#define TR_EDGETX_UPGRADE_REQUIRED     "EdgeTX kræver opgradering"
 #define TR_TELEMETRY_DISABLED          "Telem. deaktiveret"
 #define TR_MORE_OPTIONS_AVAILABLE      "Flere tilvalg mulige"
 #define TR_NO_MODULE_INFORMATION       "Ingen modul information"
@@ -946,7 +947,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Kopi trim->subtrim", "Kopier trim til subtrim")
 #define TR_INCDEC                      "Øg/sænk"
 #define TR_GLOBALVAR                   TR("Global var", "Global variabel")
-#define TR_MIXSOURCE                   "Mix kilde"
+#define TR_MIXSOURCE                   "Kilde (%)"
+#define TR_MIXSOURCERAW                "Kilde (værdi)"
 #define TR_CONSTANT                    "Konstant"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "Fra","Til","Auto"
 #define TR_PREFLIGHT                   "Fly checkliste"
@@ -1307,6 +1309,7 @@
 #define TR_CREATE_NEW             "Opret"
 
 #define TR_MIX_SLOW_PREC          TR("Træg præc", "Træg op/ned præcision")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "Der findes allerede et katalog med samme navn."
 
@@ -1317,3 +1320,5 @@
 #define TR_HIGH_BATT_COLOR        "Batteri højt"
 
 #define TR_WIDGET_SIZE            "Widget størrelse"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

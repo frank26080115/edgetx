@@ -24,7 +24,7 @@
 #include "hal/switch_driver.h"
 #include "hal/module_port.h"
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "mixer_scheduler.h"
 #include "switches.h"
 
@@ -125,6 +125,10 @@ enum MenuModelSetupItems {
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_BAUDRATE,
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_SERIALSTATUS,
 #endif
+#if defined(CROSSFIRE)
+  ITEM_MODEL_SETUP_ARMING_MODE,
+  ITEM_MODEL_SETUP_EXTERNAL_MODULE_ARMING_TRIGGER,
+#endif
 #if defined (MULTIMODULE)
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_PROTOCOL,
   ITEM_MODEL_SETUP_EXTERNAL_MODULE_DSM_CLONED,
@@ -205,28 +209,13 @@ PACK(struct ExpandState {
   uint8_t viewOpt:1;
 });
 
-struct ExpandState expandState;
+static struct ExpandState expandState;
 
-uint8_t PREFLIGHT_ROW(uint8_t value)
-{
-  if (expandState.preflight)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t PREFLIGHT_ROW(uint8_t value) { return expandState.preflight ? value : HIDDEN_ROW; }
 
-uint8_t THROTTLE_ROW(uint8_t value)
-{
-  if (expandState.throttle)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t THROTTLE_ROW(uint8_t value) { return expandState.throttle ? value : HIDDEN_ROW; }
 
-uint8_t VIEWOPT_ROW(uint8_t value)
-{
-  if (expandState.viewOpt)
-    return value;
-  return HIDDEN_ROW;
-}
+static uint8_t VIEWOPT_ROW(uint8_t value) { return expandState.viewOpt ? value : HIDDEN_ROW; }
 
 void copySelection(char * dst, const char * src, uint8_t size)
 {
@@ -435,9 +424,13 @@ inline uint8_t EXTERNAL_MODULE_TYPE_ROW()
 #else
 #define IF_MODULE_BAUDRATE_ADJUST(module, xxx) (isModuleCrossfire(module) ? (uint8_t)(xxx) : HIDDEN_ROW)
 #endif
+#define IF_MODULE_ARMED(module, xxx) (CRSF_ELRS_MIN_VER(module, 4, 0) ? (uint8_t)(xxx) : HIDDEN_ROW)
+#define IF_MODULE_ARMED_TRIGGER(module, xxx) ((CRSF_ELRS_MIN_VER(module, 4, 0) && g_model.moduleData[module].crsf.crsfArmingMode) ? (uint8_t)(xxx) : HIDDEN_ROW)  
 #else
 #define IF_MODULE_SYNCED(module, xxx)
 #define IF_MODULE_BAUDRATE_ADJUST(module, xxx)
+#define IF_MODULE_ARMED(module, xxx)
+#define IF_MODULE_ARMED_TRIGGER(module, xxx)
 #endif
 
 #if defined(PXX2)
@@ -561,6 +554,8 @@ void menuModelSetup(event_t event)
       EXTERNAL_MODULE_TYPE_ROW(),                       // ITEM_MODEL_SETUP_EXTERNAL_MODULE_TYPE
       IF_MODULE_BAUDRATE_ADJUST(EXTERNAL_MODULE, 0),    // ITEM_MODEL_SETUP_EXTERNAL_MODULE_BAUDRATE
       IF_MODULE_SYNCED(EXTERNAL_MODULE, 0),             // ITEM_MODEL_SETUP_EXTERNAL_MODULE_SERIALSTATUS
+      IF_MODULE_ARMED(EXTERNAL_MODULE, 0),              // ITEM_MODEL_SETUP_ARMING_MODE
+      IF_MODULE_ARMED_TRIGGER(EXTERNAL_MODULE, 0),      // ITEM_MODEL_SETUP_ARMING_TRIGGER
       MULTIMODULE_TYPE_ROW(EXTERNAL_MODULE)             // ITEM_MODEL_SETUP_EXTERNAL_MODULE_PROTOCOL
       MULTIMODULE_DSM_CLONED_RAW(EXTERNAL_MODULE),      // ITEM_MODEL_SETUP_EXTERNAL_MODULE_DSM_CLONED
       MULTIMODULE_STATUS_ROWS(EXTERNAL_MODULE)          // ITEM_MODEL_SETUP_EXTERNAL_MODULE_STATUS + ITEM_MODEL_SETUP_EXTERNAL_MODULE_SYNCSTATUS
@@ -766,6 +761,7 @@ void menuModelSetup(event_t event)
         if (attr && menuHorizontalPosition>0) {
           s_editMode = 0;
           if (event==EVT_KEY_LONG(KEY_ENTER)) {
+            killEvents(event);
             START_NO_HIGHLIGHT();
             for (uint8_t i=0; i<MAX_FLIGHT_MODES; i++) {
               memclear(&g_model.flightModeData[i], TRIMS_ARRAY_SIZE);
@@ -877,10 +873,8 @@ void menuModelSetup(event_t event)
         if (attr) {
           s_editMode = 0;
           switch (event) {
-            case EVT_KEY_BREAK(KEY_ENTER):
-              break;
-
             case EVT_KEY_LONG(KEY_ENTER):
+              killEvents(event);
               if (menuHorizontalPosition < 0) {
                 START_NO_HIGHLIGHT();
                 getMovedSwitch();
@@ -958,6 +952,7 @@ void menuModelSetup(event_t event)
           if (menuHorizontalPosition > 0) {
             switch (event) {
               case EVT_KEY_LONG(KEY_ENTER):
+                killEvents(event);
                 if (g_model.potsWarnMode == POTS_WARN_MANUAL) {
                   SAVE_POT_POSITION(menuHorizontalPosition-1);
                   AUDIO_WARNING1();
@@ -1278,16 +1273,21 @@ void menuModelSetup(event_t event)
         lcdDrawTextIndented(y, STR_STATUS);
         lcdDrawNumber(MODEL_SETUP_2ND_COLUMN, y, 1000000 / getMixerSchedulerPeriod(), LEFT | attr);
         lcdDrawText(lcdNextPos, y, "Hz ", attr);
-        // lcdDrawNumber(lcdNextPos, y, telemetryErrors, attr);
-        // lcdDrawText(lcdNextPos + 1, y, "Err", attr);
-        // if (attr) {
-        //   s_editMode = 0;
-        //   if (event == EVT_KEY_LONG(KEY_ENTER)) {
-        //     START_NO_HIGHLIGHT();
-        //     telemetryErrors = 0;
-        //     AUDIO_WARNING1();
-        //   }
-        // }
+        break;
+#endif
+
+#if defined(CROSSFIRE)
+      case ITEM_MODEL_SETUP_ARMING_MODE:
+        g_model.moduleData[EXTERNAL_MODULE].crsf.crsfArmingMode = 
+          editChoice(MODEL_SETUP_2ND_COLUMN, y, STR_CRSF_ARMING_MODE, STR_CRSF_ARMING_MODES,
+          g_model.moduleData[EXTERNAL_MODULE].crsf.crsfArmingMode, ARMING_MODE_FIRST, ARMING_MODE_LAST, attr, event, INDENT_WIDTH);
+        break;
+
+      case ITEM_MODEL_SETUP_EXTERNAL_MODULE_ARMING_TRIGGER:
+        lcdDrawTextIndented(y, STR_SWITCH);
+        drawSwitch(MODEL_SETUP_2ND_COLUMN, y, g_model.moduleData[EXTERNAL_MODULE].crsf.crsfArmingTrigger, attr);
+        if(attr)
+          CHECK_INCDEC_SWITCH(event, g_model.moduleData[EXTERNAL_MODULE].crsf.crsfArmingTrigger, SWSRC_FIRST, SWSRC_LAST, EE_MODEL, isSwitchAvailableForArming);
         break;
 #endif
 
@@ -1657,6 +1657,7 @@ void menuModelSetup(event_t event)
             s_editMode = 0;
             if (moduleData.failsafeMode == FAILSAFE_CUSTOM) {
               if (event == EVT_KEY_LONG(KEY_ENTER)) {
+                killEvents(event);
                 setCustomFailsafe(moduleIdx);
                 AUDIO_WARNING1();
                 SEND_FAILSAFE_NOW(moduleIdx);

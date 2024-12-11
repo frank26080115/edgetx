@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 
 // For surface radio
 void drawWheel(coord_t centrex, int16_t tval)
@@ -164,7 +164,7 @@ void drawSlider(coord_t x, coord_t y, uint8_t value, uint8_t max, uint8_t attr)
 
 uint16_t editSrcVarFieldValue(coord_t x, coord_t y, const char* title, uint16_t value,
                               int16_t min, int16_t max, LcdFlags attr, event_t event,
-                              IsValueAvailable isValueAvailable, int16_t sourceMin)
+                              IsValueAvailable isValueAvailable, int16_t sourceMin, int16_t sourceMax)
 {
   if (title)
     lcdDrawTextAlignedLeft(y, title);
@@ -173,14 +173,15 @@ uint16_t editSrcVarFieldValue(coord_t x, coord_t y, const char* title, uint16_t 
   if (v.isSource) {
     drawSource(x, y, v.value, attr);
     if (attr & (~RIGHT)) {
-      value = checkIncDec(event, value, sourceMin, MIXSRC_LAST,
+      value = checkIncDec(event, value, sourceMin, sourceMax,
                 EE_MODEL|INCDEC_SOURCE|INCDEC_SOURCE_VALUE|INCDEC_SOURCE_INVERT|NO_INCDEC_MARKS, isValueAvailable);
     }
   } else {
     lcdDrawNumber(x, y, v.value, attr);
     if (attr & (~RIGHT)) {
-      value = checkIncDec(event, value, min, max,
-                EE_MODEL|INCDEC_SOURCE_VALUE|NO_INCDEC_MARKS|(sourceMin == INPUTSRC_FIRST ? INCDEC_SOURCE_NOINPUTS : 0));
+      value = checkIncDec(event, value, min, max, sourceMin, sourceMax,
+                EE_MODEL|INCDEC_SOURCE_VALUE|NO_INCDEC_MARKS|INCDEC_SKIP_VAL_CHECK_FUNC,
+                isValueAvailable);
     }
   }
   return value;
@@ -204,6 +205,7 @@ int16_t editGVarFieldValue(coord_t x, coord_t y, int16_t value, int16_t min, int
   // TRACE("editGVarFieldValue(val=%d min=%d max=%d)", value, min, max);
 
   if (modelGVEnabled() && invers && event == EVT_KEY_LONG(KEY_ENTER)) {
+    killEvents(event);
     s_editMode = !s_editMode;
     if (attr & PREC1)
       value = (GV_IS_GV_VALUE(value, min, max) ? GET_GVAR(value, min, max, mixerCurrentFlightMode)*10 : delta);
@@ -241,7 +243,6 @@ int16_t editGVarFieldValue(coord_t x, coord_t y, int16_t value, int16_t min, int
 }
 #endif
 
-#if defined(SDCARD)
 char statusLineMsg[STATUS_LINE_LENGTH];
 tmr10ms_t statusLineTime = 0;
 uint8_t statusLineHeight = 0;
@@ -270,4 +271,3 @@ void drawStatusLine()
     lcdDrawFilledRect(0, LCD_H-statusLineHeight, LCD_W, FH, SOLID);
   }
 }
-#endif

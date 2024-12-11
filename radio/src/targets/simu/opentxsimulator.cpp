@@ -20,7 +20,7 @@
  */
 
 #include "opentxsimulator.h"
-#include "opentx.h"
+#include "edgetx.h"
 #include "simulcd.h"
 #include "switches.h"
 
@@ -405,12 +405,58 @@ void OpenTxSimulator::setTrainerTimeout(uint16_t ms)
   trainerSetTimer(ms);
 }
 
-void OpenTxSimulator::sendTelemetry(const QByteArray data)
+void OpenTxSimulator::sendTelemetry(const uint8_t module, const uint8_t protocol, const QByteArray data)
 {
   //ETXS_DBG << data;
-  sportProcessTelemetryPacket(INTERNAL_MODULE,
-                              (uint8_t *)data.constData(),
-                              data.count());
+  switch (protocol) {
+  case SIMU_TELEMETRY_PROTOCOL_FRSKY_SPORT:
+    sportProcessTelemetryPacket(module,
+                                (uint8_t *)data.constData(),
+                                data.count());
+    break;
+  case SIMU_TELEMETRY_PROTOCOL_FRSKY_HUB:
+    frskyDProcessPacket(module,
+                        (uint8_t *)data.constData(),
+                        data.count());
+    break;
+  case SIMU_TELEMETRY_PROTOCOL_FRSKY_HUB_OOB:
+    // FrSky D telemetry is a stream which can span multiple
+    // packets. The telemetry parser _could_ be in the middle of a
+    // user packet when we want to inject telemetry, so we can't just
+    // call frskyDProcessPacket() with a USRPKT (at least not safely!)
+    // Instead we will bypass the telemetry stream parser and inject
+    // out of band into processHubPacket(). This way we also don't
+    // have to mess with byte stuffing and variable length packets.
+    //
+    // Note this doesn't take into account which module it's from, but
+    // that's how it works in the radio too if you have two frsky D
+    // modules running at once, so ¯\_(ツ)_/¯
+    {
+      uint8_t id = data[0];
+      uint16_t value = ((uint8_t)(data[2]) << 8) + (uint8_t)(data[1]);
+
+      processHubPacket(id, value);
+    }
+    break;
+  case SIMU_TELEMETRY_PROTOCOL_CROSSFIRE:
+    processCrossfireTelemetryFrame(module,
+                                   (uint8_t *)data.constData(),
+                                   data.count());
+    break;
+  default:
+    // Do nothing
+    break;
+  }
+}
+
+void OpenTxSimulator::sendInternalModuleTelemetry(const uint8_t protocol, const QByteArray data)
+{
+  sendTelemetry(INTERNAL_MODULE, protocol, data);
+}
+
+void OpenTxSimulator::sendExternalModuleTelemetry(const uint8_t protocol, const QByteArray data)
+{
+  sendTelemetry(EXTERNAL_MODULE, protocol, data);
 }
 
 uint8_t OpenTxSimulator::getSensorInstance(uint16_t id, uint8_t defaultValue)
@@ -558,7 +604,7 @@ void OpenTxSimulator::checkOutputsChanged()
   const static int16_t limit = 512 * 2;
   qint32 tmpVal;
   uint8_t i, idx;
-  const uint8_t phase = getFlightMode();  // opentx.cpp
+  const uint8_t phase = getFlightMode();  // edgetx.cpp
 
   for (i=0; i < chansDim; i++) {
     if (lastOutputs.chans[i] != channelOutputs[i] || m_resetOutputsData) {

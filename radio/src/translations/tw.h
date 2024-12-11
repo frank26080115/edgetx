@@ -115,17 +115,21 @@
 #define TR_SF_DISABLE_TOUCH            "禁用觸摸"
 #define TR_SF_DISABLE_AUDIO_AMP        "關閉音頻功放"
 #define TR_SF_SET_SCREEN               "選擇主屏"
+#define TR_SF_SET_TELEMSCREEN          "設置主屏"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "屏幕顯示圖傳"
 
 #define TR_FSW_RESET_TELEM             "回傳參數"
 
 #if LCD_W >= 212
-  #define TR_FSW_RESET_TIMERS          "計時器1","計時器2","計時器3"
+  #define TR_FSW_RESET_TRIMS          "Trims"
+  #define TR_FSW_RESET_TIMERS         "計時器1","計時器2","計時器3"
 #else
-  #define TR_FSW_RESET_TIMERS          "計時1","計時2","計時3"
+  #define TR_FSW_RESET_TRIMS          "Trims"
+#define TR_FSW_RESET_TIMERS           "計時1","計時2","計時3"
 #endif
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("全部","飛行"),TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("全部","飛行"),TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 
 #define TR_FUNCSOUNDS                  TR("Bp1","Beep1"),TR("Bp2","Beep2"),TR("Bp3","Beep3"),TR("Wrn1","Warn1"),TR("Wrn2","Warn2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robot"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
@@ -217,7 +221,6 @@
 #define TR_VFORMULAS                   "加","平均值","最小值","最大值","乘","總計值","單節電池","消耗量","距離"
 #define TR_VPREC                       "0.--","0.0-","0.00"
 #define TR_VCELLINDEX                  "最低值","1","2","3","4","5","6","7","8","最高值","差值"
-#define TR_TEXT_SIZE                   "標準","小","較小","中等","雙倍"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA "(中点)","=(整體)"
 #define TR_TIMER_DIR                   TR("Remain", "Show Remain"), TR("Elaps.", "Show Elapsed")
 #define TR_PPMUNIT                     "0.--","0.0","us"
@@ -394,6 +397,7 @@
 #define TR_PLAY_HELLO                  "開機語音"
 #define TR_PWR_ON_DELAY                "開機延遲"
 #define TR_PWR_OFF_DELAY               "關機延遲"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("開關機震動","開關機震動提示")
 #define TR_THROTTLE_WARNING            TR("油門狀態", "油門狀態")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("自定位置", "自定油門位置?")
@@ -658,11 +662,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "不兼容"
 #define TR_WARNING                     "警告"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "存儲"
-#define TR_EEPROM_CONVERTING           "轉換數據"
-#define TR_SDCARD_CONVERSION_REQUIRE   "需要轉換SD卡"
-#define TR_CONVERTING                  "轉換: "
 #define TR_THROTTLE_UPPERCASE          "油門"
 #define TR_ALARMSWARN                  "警告"
 #define TR_SWITCHWARN                  TR("開關", "開關位置")
@@ -715,6 +715,8 @@
 #define TR_TIME                        "時間"
 #define TR_MAXBAUDRATE                 "最大帶寬"
 #define TR_BAUDRATE                    "波特率"
+#define TR_CRSF_ARMING_MODE            "解鎖類型"
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 "採樣模式"
 #define TR_SAMPLE_MODES                "標準","OneBit"
 #define TR_LOADING                     "加載中..."
@@ -805,7 +807,7 @@
 #define TR_INTERNALRF                  "內置發射"
 #define TR_INTERNAL_MODULE             TR("內置發射", "內置發射")
 #define TR_EXTERNAL_MODULE             TR("外置發射", "外置發射")
-#define TR_OPENTX_UPGRADE_REQUIRED     "OpenTX需要升級"
+#define TR_EDGETX_UPGRADE_REQUIRED     "EdgeTX需要升級"
 #define TR_TELEMETRY_DISABLED          "禁用回傳"
 #define TR_MORE_OPTIONS_AVAILABLE      "更多可用選項"
 #define TR_NO_MODULE_INFORMATION       "無模塊信息"
@@ -946,7 +948,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("微調存為中點", "當前微調按鈕值保存到中點")
 #define TR_INCDEC                      "增減"
 #define TR_GLOBALVAR                   "全局變量"
-#define TR_MIXSOURCE                   "混控源"
+#define TR_MIXSOURCE                   "輸入源 (%)"
+#define TR_MIXSOURCERAW                "輸入源 (數值)"
 #define TR_CONSTANT                    "固定值"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "關閉","開啟","自動"
 #define TR_PREFLIGHT                   "初始檢查"
@@ -1297,6 +1300,7 @@
 #define TR_CREATE_NEW             "新建"
 
 #define TR_MIX_SLOW_PREC          TR("慢放精度", "慢放精度 上行/下行")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "已存在同名主題目錄 !"
 
@@ -1309,3 +1313,5 @@
 #define TR_HIGH_BATT_COLOR        "高電量"
 
 #define TR_WIDGET_SIZE            "小部件尺寸"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

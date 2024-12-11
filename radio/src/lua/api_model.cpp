@@ -23,16 +23,14 @@
 
 #include <ctype.h>
 #include <stdio.h>
-#include "opentx.h"
+#include "edgetx.h"
 #include "lua_api.h"
 #include "../timers.h"
 #include "model_init.h"
 #include "gvars.h"
 #include "mixes.h"
 
-#if defined(SDCARD_YAML)
 #include <storage/sdcard_yaml.h>
-#endif
 
 #if defined(MULTIMODULE)
 #include "pulses/multi.h"
@@ -97,9 +95,6 @@ static int luaModelSetInfo(lua_State *L)
     if (!strcmp(key, "name")) {
       const char * name = luaL_checkstring(L, -1);
       strncpy(g_model.header.name, name, sizeof(g_model.header.name));
-#if defined(EEPROM)
-      memcpy(modelHeaders[g_eeGeneral.currModel].name, g_model.header.name, sizeof(g_model.header.name));
-#endif
     }
     else if (!strcmp(key, "extendedLimits")) {
       g_model.extendedLimits = lua_toboolean(L, -1);
@@ -238,9 +233,6 @@ static int luaModelSetModule(lua_State *L)
       }
       else if (!strcmp(key, "modelId")) {
         g_model.header.modelId[idx] = luaL_checkinteger(L, -1);
-#if defined(EEPROM)
-        modelHeaders[g_eeGeneral.currModel].modelId[idx] = g_model.header.modelId[idx];
-#endif
       }
       else if (!strcmp(key, "firstChannel")) {
         module.channelsStart = luaL_checkinteger(L, -1);
@@ -555,9 +547,9 @@ static int luaModelSetFlightMode(lua_State * L)
         if (idx < 0 || idx >= max_trims) continue;
         int16_t val = luaL_checkinteger(L, -1);
         if (g_model.extendedTrims)
-          val = limit<int16_t>(val, TRIM_EXTENDED_MIN, TRIM_EXTENDED_MAX);
+          val = limit<int16_t>(TRIM_EXTENDED_MIN, val, TRIM_EXTENDED_MAX);
         else
-          val = limit<int16_t>(val, TRIM_MIN, TRIM_MAX);
+          val = limit<int16_t>(TRIM_MIN, val, TRIM_MAX);
         if (idx < max_trims)
           fm->trim[idx].value = val;
       }

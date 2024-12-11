@@ -25,12 +25,12 @@
 #include "hal/fatfs_diskio.h"
 #include "hal/storage.h"
 
-#include "opentx.h"
+#include "edgetx.h"
 
 #if defined(LIBOPENUI)
   #include "libopenui.h"
 #else
-  #include "libopenui/src/libopenui_file.h"
+  #include "lib_file.h"
 #endif
 
 #if FF_MAX_SS != FF_MIN_SS
@@ -348,7 +348,6 @@ bool sdListFiles(const char * path, const char * extension, const uint8_t maxlen
 
 #endif // !LIBOPENUI
 
-#if defined(SDCARD)
 const char * sdCopyFile(const char * srcPath, const char * destPath)
 {
   FIL srcFile;
@@ -435,9 +434,6 @@ const char * sdMoveFile(const char * srcFilename, const char * srcDir, const cha
   }
   return nullptr;
 }
-
-#endif // defined(SDCARD)
-
 
 #if !defined(SIMU) || defined(SIMU_DISKIO)
 uint32_t sdGetNoSectors()

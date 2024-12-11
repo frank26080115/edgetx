@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 
 extern bool displayTelemetryScreen();
 extern void displayRssiLine();
@@ -53,7 +53,7 @@ void menuViewTelemetry(event_t event)
 {
   enum NavigationDirection direction = NAVIGATION_DIRECTION_NONE;
 
-  if (event == EVT_KEY_BREAK(KEY_EXIT) && TELEMETRY_SCREEN_TYPE(s_frsky_view) != TELEMETRY_SCREEN_TYPE_SCRIPT) {
+  if (event == EVT_KEY_BREAK(KEY_EXIT) && TELEMETRY_SCREEN_TYPE(selectedTelemView) != TELEMETRY_SCREEN_TYPE_SCRIPT) {
     chainMenu(menuMainView);
   }
 #if defined(LUA)
@@ -62,9 +62,11 @@ void menuViewTelemetry(event_t event)
   }
 #endif
   else if (EVT_KEY_PREVIOUS_VIEW(event)) {
+    killEvents(event);
     decrTelemetryScreen();
   }
   else if (EVT_KEY_NEXT_VIEW(event)) {
+    killEvents(event);
     incrTelemetryScreen();
   }
   else if (event == EVT_KEY_LONG(KEY_ENTER)) {
@@ -73,12 +75,12 @@ void menuViewTelemetry(event_t event)
 
   for (int i=0; i<=TELEMETRY_SCREEN_TYPE_MAX; i++) {
     if (direction == NAVIGATION_DIRECTION_UP) {
-      if (s_frsky_view-- == 0)
-        s_frsky_view = TELEMETRY_VIEW_MAX;
+      if (selectedTelemView-- == 0)
+        selectedTelemView = TELEMETRY_VIEW_MAX;
     }
     else if (direction == NAVIGATION_DIRECTION_DOWN) {
-      if (s_frsky_view++ == TELEMETRY_VIEW_MAX)
-        s_frsky_view = 0;
+      if (selectedTelemView++ == TELEMETRY_VIEW_MAX)
+        selectedTelemView = 0;
     }
     else {
       direction = NAVIGATION_DIRECTION_DOWN;
@@ -91,6 +93,21 @@ void menuViewTelemetry(event_t event)
   drawTelemetryTopBar();
   lcdDrawText(LCD_W / 2, 3 * FH, STR_NO_TELEMETRY_SCREENS, CENTERED);
   displayRssiLine();
+}
+
+void showTelemScreen(uint8_t index)
+{
+  if (menuHandlers[menuLevel] == menuViewTelemetry || menuHandlers[menuLevel] == menuMainView) {
+    if (index == 0) {
+      chainMenu(menuMainView);
+    } else {
+      index -= 1;
+      if ((index >= 0 && index <= TELEMETRY_SCREEN_TYPE_MAX) && (TELEMETRY_SCREEN_TYPE(index) != TELEMETRY_SCREEN_TYPE_NONE)) {
+        selectedTelemView = index;
+        chainMenu(menuViewTelemetry);
+      }
+    }
+  }
 }
 
 #undef EVT_KEY_PREVIOUS_VIEW

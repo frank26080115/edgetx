@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -183,7 +184,7 @@ void MixesPanel::gm_openMix(int index)
 
   MixData mixd(model->mixData[index]);
 
-  MixerDialog *dlg = new MixerDialog(this, *model, &mixd, generalSettings, firmware, sharedItemModels);
+  MixerDialog *dlg = new MixerDialog(this, *model, &mixd, index, generalSettings, firmware, sharedItemModels);
   if(dlg->exec()) {
     model->mixData[index] = mixd;
     emit modified();

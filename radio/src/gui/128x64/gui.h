@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _GUI_H_
-#define _GUI_H_
+#pragma once
 
 #include "gui_common.h"
 #include "menus.h"
@@ -82,7 +81,7 @@ swsrc_t editSwitch(coord_t x, coord_t y, swsrc_t value, LcdFlags attr,
 
 uint16_t editSrcVarFieldValue(coord_t x, coord_t y, const char* title, uint16_t value,
                               int16_t min, int16_t max, LcdFlags attr, event_t event,
-                              IsValueAvailable isValueAvailable, int16_t sourceMin);
+                              IsValueAvailable isValueAvailable, int16_t sourceMin, int16_t sourceMax);
 
 #if defined(GVARS)
 
@@ -140,14 +139,10 @@ extern uint8_t s_copySrcCh;
 extern int8_t s_currCh;
 extern uint8_t s_maxLines;
 
-#if defined(SDCARD)
 #define STATUS_LINE_LENGTH           32
 extern char statusLineMsg[STATUS_LINE_LENGTH];
 void showStatusLine();
 void drawStatusLine();
-#else
-#define drawStatusLine()
-#endif
 
 void menuTextView(event_t event);
 void pushMenuTextView(const char *filename);
@@ -156,8 +151,6 @@ void readModelNotes();
 
 void menuChannelsView(event_t event);
 void menuChannelsViewCommon(event_t event);
-
-void repeatLastCursorMove(event_t event);
 
 #define EDIT_MODE_INIT 0
 
@@ -201,7 +194,7 @@ void showAlertBox(const char * title, const char * text, const char * action , u
 #define IS_OTHER_VIEW_DISPLAYED()      menuHandlers[0] == menuChannelsView
 
 void editCurveRef(coord_t x, coord_t y, CurveRef & curve, event_t event, LcdFlags flags,
-                  IsValueAvailable isValueAvailable, int16_t sourceMin);
+                  IsValueAvailable isValueAvailable, int16_t sourceMin, int16_t sourceMax);
 
 #if defined(FLIGHT_MODES)
 void displayFlightModes(coord_t x, coord_t y, FlightModesType value);
@@ -209,5 +202,3 @@ FlightModesType editFlightModes(coord_t x, coord_t y, event_t event, FlightModes
 #else
 #define displayFlightModes(...)
 #endif
-
-#endif // _GUI_H_

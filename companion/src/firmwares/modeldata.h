@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -313,7 +314,7 @@ class ModelData {
     bool hasExpoSiblings(const int index);
     void removeMix(const int idx);
     QString thrTraceSrcToString() const;
-    QString thrTraceSrcToString(const int index) const;
+    QString thrTraceSrcToString(const GeneralSettings * generalSettings, const int index) const;
     int thrTraceSrcCount() const;
     bool isThrTraceSrcAvailable(const GeneralSettings * generalSettings, const int index) const;
 
@@ -335,7 +336,7 @@ class ModelData {
     static AbstractStaticItemModel * funcSwitchConfigItemModel();
     static AbstractStaticItemModel * funcSwitchGroupStartSwitchModel(int switchcnt);
     static AbstractStaticItemModel * funcSwitchGroupsModel();
- 
+
     unsigned int getFuncSwitchGroup(unsigned int index) const;
     void setFuncSwitchGroup(unsigned int index, unsigned int value);
 

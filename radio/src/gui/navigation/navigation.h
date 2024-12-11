@@ -75,9 +75,13 @@ extern int8_t s_editMode; // global editmode
 #define NO_DBLKEYS                     0x80
 #define INCDEC_SOURCE_INVERT           0x100
 #define INCDEC_SOURCE_VALUE            0x200  // Field can be source or value
-#define INCDEC_SOURCE_NOINPUTS         0x400  // Do not allow Inputs in source selection
+#define INCDEC_SKIP_VAL_CHECK_FUNC     0x400  // Skip isValueAvailable function when changing value (only used for popup)
 
 int checkIncDec(event_t event, int val, int i_min, int i_max,
+                unsigned int i_flags = 0, IsValueAvailable isValueAvailable = nullptr,
+                const CheckIncDecStops &stops = stops100);
+
+int checkIncDec(event_t event, int val, int i_min, int i_max, int srcMin, int srcMax,
                 unsigned int i_flags = 0, IsValueAvailable isValueAvailable = nullptr,
                 const CheckIncDecStops &stops = stops100);
 
@@ -138,6 +142,11 @@ swsrc_t checkIncDecMovedSwitch(swsrc_t val);
 #endif
 
 void repeatLastCursorMove(event_t event);
+#if defined(NAVIGATION_9X) || defined(NAVIGATION_XLITE)
+void repeatLastCursorHorMove(event_t event);
+#else
+#define repeatLastCursorHorMove(event) repeatLastCursorMove(event)
+#endif
 
 void onSwitchLongEnterPress(const char * result);
 void onSourceLongEnterPress(const char * result);

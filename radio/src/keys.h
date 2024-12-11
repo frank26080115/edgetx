@@ -19,11 +19,10 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _KEYS_H_
-#define _KEYS_H_
+#pragma once
 
 #include <inttypes.h>
-#include "opentx_types.h"
+#include "edgetx_types.h"
 
 #include "hal/key_driver.h"
 
@@ -201,7 +200,6 @@ bool rotaryEncoderPollingCycle();
 void setHatsAsKeys(bool val);
 bool getHatsAsKeys();
 void setTransposeHatsForLUA(bool val);
-bool getTransposeHatsForLUA();
 #endif
 
 struct InactivityData
@@ -211,5 +209,3 @@ struct InactivityData
 };
 
 extern InactivityData inactivity;
-
-#endif // _KEYS_H_

@@ -122,12 +122,15 @@
 #define TR_SF_DISABLE_TOUCH            "No Touch"
 #define TR_SF_DISABLE_AUDIO_AMP        "Amp Audio Desl"
 #define TR_SF_SET_SCREEN               "Def Tela Princ"
+#define TR_SF_SET_TELEMSCREEN          "Def Tela"
+#define TR_SF_PUSH_CUST_SWITCH         "Push CS"
 #define TR_SF_LCD_TO_VIDEO             "LCD to Video"
 
 #define TR_FSW_RESET_TELEM             TR("Telm", "Telemetria")
-#define TR_FSW_RESET_TIMERS          "Tmr1","Tmr2","Tmr3"
+#define TR_FSW_RESET_TRIMS             "Trims"
+#define TR_FSW_RESET_TIMERS            "Tmr1","Tmr2","Tmr3"
 
-#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("All","Flight"),TR_FSW_RESET_TELEM
+#define TR_VFSWRESET                   TR_FSW_RESET_TIMERS,TR("All","Flight"),TR_FSW_RESET_TELEM,TR_FSW_RESET_TRIMS
 
 #define TR_FUNCSOUNDS                  TR("Bp1","Bipe1"),TR("Bp2","Bipe2"),TR("Bp3","Bipe3"),TR("Wrn1","Avis1"),TR("Wrn2","Avis2"),TR("Chee","Cheep"),TR("Rata","Ratata"),"Tick",TR("Sirn","Siren"),"Ring",TR("SciF","SciFi"),TR("Robt","Robô"),TR("Chrp","Chirp"),"Tada",TR("Crck","Crickt"),TR("Alrm","AlmClk")
 
@@ -219,7 +222,6 @@
 #define TR_VFORMULAS                   "Soma","Média","Min","Max","Multipl","Totalizar","Cell","Consumido","Distâcia"
 #define TR_VPREC                       "0.--","0.0 ","0.00"
 #define TR_VCELLINDEX                  "Menor","1","2","3","4","5","6","7","8","Maior","Delta"
-#define TR_TEXT_SIZE                   "Padrão","Minúsculo","Pequeno","Médio","Dobro"
 #define TR_SUBTRIMMODES                STR_CHAR_DELTA " (center only)","= (symmetrical)"
 #define TR_TIMER_DIR                   TR("Restan", "Restante"), TR("Passd.", "Passado")
 #define TR_PPMUNIT                     "0.--","0.0","us"
@@ -397,6 +399,7 @@
 #define TR_PLAY_HELLO                  "Som ao ligar"
 #define TR_PWR_ON_DELAY                "Delay para LIGA"
 #define TR_PWR_OFF_DELAY               "Delay para DESL"
+#define TR_PWR_AUTO_OFF                TR("Pwr Auto Off","Power Auto Off")
 #define TR_PWR_ON_OFF_HAPTIC           TR("Vibra ao LIG/DESL", "Vibrar ao Lig/Desl")
 #define TR_THROTTLE_WARNING            TR("A-Aceler.", "Pos do acelerador")
 #define TR_CUSTOM_THROTTLE_WARNING     TR("Cust-Pos", "Custom position?")
@@ -661,11 +664,7 @@
 #define TR_INT_MULTI_SPEC              "stm-opentx-noinv"
 #define TR_INCOMPATIBLE                "Incompativel"
 #define TR_WARNING                     "AVISO"
-#define TR_EEPROMWARN                  "EEPROM"
 #define TR_STORAGE_WARNING             "STORAGE"
-#define TR_EEPROM_CONVERTING           "Convertendo EEPROM"
-#define TR_SDCARD_CONVERSION_REQUIRE   "SD card conversion required"
-#define TR_CONVERTING                  "Convertendo: "
 #define TR_THROTTLE_UPPERCASE          "ACELERAD"
 #define TR_ALARMSWARN                  "ALARMS"
 #define TR_SWITCHWARN                  TR("SWITCH", "CONTROL")
@@ -718,6 +717,8 @@
 #define TR_TIME                        "Hora"
 #define TR_MAXBAUDRATE                 "Bauds Max"
 #define TR_BAUDRATE                    "Baudrate"
+#define TR_CRSF_ARMING_MODE            TR("Armar via", "Armar usando")
+#define TR_CRSF_ARMING_MODES           TR_CH"5", TR_SWITCH
 #define TR_SAMPLE_MODE                 TR("Sampling","Sample Mode")
 #define TR_SAMPLE_MODES                "Normal","OneBit"
 #define TR_LOADING                     "Carregando..."
@@ -808,7 +809,7 @@
 #define TR_INTERNALRF                  "RF Interno"
 #define TR_INTERNAL_MODULE             TR("Modulo Int.", "Modulo Interno")
 #define TR_EXTERNAL_MODULE             TR("Modulo Ext.", "Modulo Externo")
-#define TR_OPENTX_UPGRADE_REQUIRED     "OpenTX upgrade required"
+#define TR_EDGETX_UPGRADE_REQUIRED     "EdgeTX upgrade required"
 #define TR_TELEMETRY_DISABLED          "Telem. desativada"
 #define TR_MORE_OPTIONS_AVAILABLE      "More options available"
 #define TR_NO_MODULE_INFORMATION       "No module information"
@@ -949,7 +950,8 @@
 #define TR_COPY_TRIMS_TO_OFS           TR("Cpy trim->subtrim", "Copy trims to subtrim")
 #define TR_INCDEC                      "Inc/Decrement"
 #define TR_GLOBALVAR                   "Global var"
-#define TR_MIXSOURCE                   "Mixer source"
+#define TR_MIXSOURCE                   "Fonte (%)"
+#define TR_MIXSOURCERAW                "Fonte (valor)"
 #define TR_CONSTANT                    "Constant"
 #define TR_PREFLIGHT_POTSLIDER_CHECK   "DESL","LIGA","AUTO"
 #define TR_PREFLIGHT                   "pré-Checks"
@@ -1298,6 +1300,7 @@
 #define TR_CREATE_NEW             "Criar"
 
 #define TR_MIX_SLOW_PREC          TR("Prec. Lento", "Prec. mais/menos lento")
+#define TR_MIX_DELAY_PREC         TR("Delay prec", "Delay up/dn prec")
 
 #define TR_THEME_EXISTS           "Já existe um diretório de tema com o mesmo nome."
 
@@ -1308,3 +1311,5 @@
 #define TR_HIGH_BATT_COLOR        "Bateria Alta"
 
 #define TR_WIDGET_SIZE            "Tamanho do widget"
+
+#define TR_DEL_DIR_NOT_EMPTY      "Directory must be empty before deletion"

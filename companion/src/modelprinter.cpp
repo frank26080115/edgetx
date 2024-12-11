@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -153,11 +154,6 @@ QString ModelPrinter::printBoolean(const bool val, const int typ)
   }
 }
 
-QString ModelPrinter::printEEpromSize()
-{
-  return QString("%1 ").arg(getCurrentEEpromInterface()->getSize(model)) + tr("bytes");
-}
-
 QString ModelPrinter::printChannelName(int idx)
 {
   QString str = RawSource(SOURCE_TYPE_CH, idx + 1).toString(&model, &generalSettings);
@@ -237,6 +233,12 @@ QString ModelPrinter::printModule(int idx)
         }
         if (module.protocol == PULSES_GHOST) {
           str << printLabelValue(tr("Raw 12 bits"), printBoolean(module.ghost.raw12bits, BOOLEAN_YN));
+        }
+        if (module.protocol == PULSES_CROSSFIRE) {
+          str << printLabelValue(tr("Arming mode"), module.crsfArmingModeToString());
+          if (module.crsf.crsfArmingMode == ModuleData::CRSF_ARMING_MODE_SWITCH) {
+            str << printLabelValue(tr("Switch"), RawSwitch(module.crsf.crsfArmingTrigger).toString());
+          }
         }
       }
     }
@@ -415,10 +417,7 @@ QString ModelPrinter::printMixerLine(const MixData & mix, bool showMultiplex, in
   }
   str += "&nbsp;" + source;
 
-  if (mix.mltpx == MLTPX_MUL && !showMultiplex)
-    str += " " + tr("MULT!").toHtmlEscaped();
-  else
-    str += " " + tr("Weight(%1)").arg(SourceNumRef(mix.weight).toString(&model, &generalSettings)).toHtmlEscaped();
+  str += " " + tr("Weight(%1)").arg(SourceNumRef(mix.weight).toString(&model, &generalSettings)).toHtmlEscaped();
 
   QString flightModesStr = printFlightModes(mix.flightModes);
   if (!flightModesStr.isEmpty())
@@ -439,10 +438,15 @@ QString ModelPrinter::printMixerLine(const MixData & mix, bool showMultiplex, in
   if (mix.curve.value)
     str += " " + mix.curve.toString(&model, true, &generalSettings).toHtmlEscaped();
   int scale = firmware->getCapability(SlowScale);
-  if (scale == 0)
-    scale = 1;
+  if (scale == 0) scale = 1;
+  if (mix.delayPrec) {
+    scale = scale * 10;
+    str += " " + tr("Delay precision(0.00)").toHtmlEscaped();
+  }
   if (mix.delayDown || mix.delayUp)
     str += " " + tr("Delay(u%1:d%2)").arg((double)mix.delayUp / scale).arg((double)mix.delayDown / scale).toHtmlEscaped();
+  scale = firmware->getCapability(SlowScale);
+  if (scale == 0) scale = 1;
   if (mix.speedPrec) {
     scale = scale * 10;
     str += " " + tr("Slow precision(0.00)").toHtmlEscaped();

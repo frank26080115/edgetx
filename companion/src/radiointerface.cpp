@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -80,11 +81,7 @@ QStringList getSambaArgs(const QString & tcl)
 QStringList getReadEEpromCmd(const QString & filename)
 {
   QStringList result;
-  EEPROMInterface *eepromInterface = getCurrentEEpromInterface();
-  if (IS_STM32(eepromInterface->getBoard())) {
-    // impossible
-  }
-  else {
+  if (!IS_STM32(getCurrentBoard())) {
     result = getSambaArgs(QString("SERIALFLASH::Init 0\n") + "receive_file {SerialFlash AT25} \"" + filename + "\" 0x0 0x80000 0\n");
   }
   return result;
@@ -194,7 +191,7 @@ bool readSettings(const QString & filename, ProgressWidget * progress)
 
 bool readSettingsSDCard(const QString & filename, ProgressWidget * progress)
 {
-  QString radioPath = findMassstoragePath("RADIO", true);
+  QString radioPath = findMassstoragePath("RADIO", true, progress);
   qDebug() << "Searching for SD card, found" << radioPath;
   if (radioPath.isEmpty()) {
     QMessageBox::critical(progress, CPN_STR_TTL_ERROR,
@@ -296,29 +293,32 @@ bool writeSettings(const QString & filename, ProgressWidget * progress)
   return false;
 }
 
-QString findMassstoragePath(const QString & filename, bool onlyPath)
+QString findMassstoragePath(const QString & filename, bool onlyPath, ProgressWidget *progress)
 {
   QString temppath;
   QString probefile;
-  bool found = false;
+  int found = 0;
 
   QRegularExpression fstypeRe("^(v?fat|msdos|lifs)", QRegularExpression::CaseInsensitiveOption);  // Linux: "vfat"; macOS: "msdos" or "lifs"; Win: "FAT32"
 
   foreach(const QStorageInfo & si, QStorageInfo::mountedVolumes()) {
-    //qDebug() << si.rootPath() << si.name() << si.device() << si.displayName() << si.fileSystemType() << si.isReady();
-    if (!si.isReady() || !QString(si.fileSystemType()).contains(fstypeRe))
+    //qDebug() << si.rootPath() << si.name() << si.device() << si.displayName() << si.fileSystemType() << si.isReady() << si.bytesTotal() << si.blockSize();
+    if (!si.isReady() || si.isReadOnly() || !QString(si.fileSystemType()).contains(fstypeRe))
       continue;
     temppath = si.rootPath();
     probefile = temppath % "/" % filename;
     qDebug() << "Searching for" << probefile;
     if (QFile::exists(probefile)) {
-      found = true;
-      break;
+      found++;
+      qDebug() << probefile << "found";
     }
   }
 
-  if (found)
+  if (found == 1)
     return onlyPath ? temppath : probefile;
-  else
-    return QString();
+  else if (found > 1) {
+    QMessageBox::critical(progress, CPN_STR_TTL_ERROR, filename % " " % QCoreApplication::translate("RadioInterface", "found in multiple locations"));
+  }
+
+  return QString();
 }

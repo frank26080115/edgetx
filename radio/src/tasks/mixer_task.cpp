@@ -23,7 +23,7 @@
 #include "mixer_task.h"
 #include "mixer_scheduler.h"
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "switches.h"
 #include "hal/usb_driver.h"
 
@@ -122,9 +122,6 @@ constexpr uint8_t MIXER_MAX_PERIOD = MAX_REFRESH_RATE / 1000 /*ms*/;
 
 void execMixerFrequentActions()
 {
-  // SBUS trainer
-  processSbusInput();
-
 #if defined(IMU)
   gyro.wakeup();
 #endif

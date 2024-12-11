@@ -19,7 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "navigation.h"
 
 #include "hal/switch_driver.h"
@@ -56,6 +56,30 @@ void repeatLastCursorMove(event_t event)
   }
 }
 
+#if defined(NAVIGATION_9X) || defined(NAVIGATION_XLITE)
+inline bool IS_NEXT_HOR_MOVE_EVENT(event_t evt)
+{
+  return evt == EVT_KEY_FIRST(KEY_RIGHT) || evt == EVT_KEY_REPT(KEY_RIGHT) ||
+         evt == EVT_ROTARY_RIGHT;
+}
+
+inline bool IS_PREVIOUS_HOR_MOVE_EVENT(event_t evt)
+{
+  return evt == EVT_KEY_FIRST(KEY_LEFT) || evt == EVT_KEY_REPT(KEY_LEFT) ||
+         evt == EVT_ROTARY_LEFT;
+}
+
+void repeatLastCursorHorMove(event_t event)
+{
+  if (IS_PREVIOUS_HOR_MOVE_EVENT(event) || IS_NEXT_HOR_MOVE_EVENT(event)) {
+    pushEvent(event);
+  }
+  else {
+    menuHorizontalPosition = 0;
+  }
+}
+#endif
+
 void onSwitchLongEnterPress(const char * result)
 {
   if (result == STR_MENU_SWITCHES) {
@@ -78,8 +102,7 @@ void onSourceLongEnterPress(const char * result)
   if (result == STR_MENU_INPUTS) {
     checkIncDecSelection =
         getFirstAvailable(MIXSRC_FIRST_INPUT, MIXSRC_LAST_INPUT,
-                          isInputAvailable) +
-        1;
+                          isInputAvailable);
   }
 #if defined(LUA_MODEL_SCRIPTS)
   else if (result == STR_MENU_LUA) {

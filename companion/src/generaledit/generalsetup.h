@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -23,6 +24,8 @@
 
 #include "generaledit.h"
 #include "eeprominterface.h"
+
+class FilteredItemModelFactory;
 
 namespace Ui {
   class GeneralSetup;
@@ -57,7 +60,7 @@ class GeneralSetupPanel : public GeneralPanel
     void on_hapticStrength_valueChanged();
     void on_soundModeCB_currentIndexChanged(int index);
     void on_beeperlenCB_currentIndexChanged(int index);
-    void on_volume_SB_editingFinished();
+    void on_volume_SL_valueChanged();
     void on_hapticmodeCB_currentIndexChanged(int index);
     void on_hapticLengthCB_currentIndexChanged(int index);
     void on_backlightswCB_currentIndexChanged(int index);
@@ -101,10 +104,12 @@ class GeneralSetupPanel : public GeneralPanel
     void on_labelSingleSelect_CB_currentIndexChanged(int);
     void on_labelMultiMode_CB_currentIndexChanged(int);
     void on_favMultiMode_CB_currentIndexChanged(int);
-    void on_invertLCD_CB_stateChanged(int);
+
+    void on_pwrOffIfInactiveSB_editingFinished();
 
   private:
     Ui::GeneralSetup *ui;
+    FilteredItemModelFactory *panelFilteredModels;
 
     void showLabelSelectOptions();
 

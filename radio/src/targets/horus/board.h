@@ -19,13 +19,10 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _BOARD_H_
-#define _BOARD_H_
+#pragma once
 
-//#include "stm32_hal.h"
-//#include "stm32_hal_ll.h"
 #include "definitions.h"
-#include "opentx_constants.h"
+#include "edgetx_constants.h"
 
 // Defines used in board_common.h
 #define ROTARY_ENCODER_NAVIGATION
@@ -148,7 +145,7 @@ enum {
 #endif
 
 // POTS and SLIDERS default configuration
-#if defined(RADIO_TX16S) || defined(RADIO_F16)
+#if defined(RADIO_TX16S) || defined(RADIO_F16) || defined(RADIO_V16)
 #define XPOS_CALIB_DEFAULT  {0x3, 0xc, 0x15, 0x1e, 0x26}
 #endif
 
@@ -199,6 +196,10 @@ uint32_t pwrPressedDuration();
 // USB Charger
 void usbChargerInit();
 bool usbChargerLed();
+
+#if defined(RADIO_V16)
+  uint16_t getSixPosAnalogValue(uint16_t adcValue);
+#endif
 
 // Led driver
 void ledInit();
@@ -318,7 +319,7 @@ void bluetoothWriteWakeup();
 uint8_t bluetoothIsWriting();
 void bluetoothDisable();
 
-#if defined(RADIO_TX16S) || defined(RADIO_F16)
+#if defined(RADIO_TX16S) || defined(RADIO_F16) || defined(RADIO_V16)
   #define BATTERY_DIVIDER 1495
 #else
   #define BATTERY_DIVIDER 1629
@@ -344,5 +345,3 @@ void bluetoothDisable();
 #else
 #define NUM_FUNCTIONS_SWITCHES 0
 #endif
-
-#endif // _BOARD_H_

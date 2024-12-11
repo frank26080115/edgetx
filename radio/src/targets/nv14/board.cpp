@@ -111,11 +111,6 @@ void boardInit()
   // detect NV14 vs EL18
   hardwareOptions.pcbrev = boardGetPcbRev();
 
-#if defined(DEBUG) && defined(AUX_SERIAL)
-  serialSetMode(SP_AUX1, UART_MODE_DEBUG);                // indicate AUX1 is used
-  serialInit(SP_AUX1, UART_MODE_DEBUG);                   // early AUX1 init
-#endif
-
   TRACE("\n%s board started :)",
         hardwareOptions.pcbrev == PCBREV_NV14 ?
         "NV14" : "EL18");
@@ -144,7 +139,7 @@ void boardInit()
     usb_state |= usbPlugged();
     while (usb_state) {
       pwrOn();
-      uint32_t now = get_tmr10ms();
+      uint32_t now = timersGetMsTick();
       if (pwrPressed()) {
         press_end = now;
         if (press_start == 0) press_start = now;
@@ -160,7 +155,7 @@ void boardInit()
         uint32_t press_end_touch = press_end;
         if (touchPanelEventOccured()) {
           touchPanelRead();
-          press_end_touch = get_tmr10ms();
+          press_end_touch = timersGetMsTick();
         }
         press_start = 0;
         handle_battery_charge(press_end_touch);

@@ -23,7 +23,7 @@
 
 #include <ctype.h>
 #include <stdio.h>
-#include "opentx.h"
+#include "edgetx.h"
 #include "stamp.h"
 #include "lua_api.h"
 #include "api_filesystem.h"
@@ -1632,6 +1632,30 @@ static int luaPlayTone(lua_State * L)
 }
 
 /*luadoc
+@name screenshot
+
+@description Takes a screenshot, which is saved to the SCREENSHOTS folder on the radio SD card.
+
+@syntax screenshot()
+
+@return none
+
+@notes This command is currently not rate limited, so repeated frequent calls will slow down the UI and can even freeze the entire radio, so should be used with care. 
+
+@target [BW]
+@target [GS]
+@target [COLOR]
+
+@status current Introduced in 2.11
+*/
+static int luaScreenshot(lua_State * L)
+{
+  UNUSED(L);
+  writeScreenshot();
+  return 0;
+}
+
+/*luadoc
 @function playHaptic(duration, pause [, flags])
 
 Generate haptic feedback
@@ -2930,6 +2954,7 @@ LROT_BEGIN(etxlib, NULL, 0)
   LROT_FUNCENTRY( playTone, luaPlayTone )
   LROT_FUNCENTRY( playHaptic, luaPlayHaptic )
   LROT_FUNCENTRY( flushAudio, luaFlushAudio )
+  LROT_FUNCENTRY( screenshot, luaScreenshot )
 #if defined(ENABLE_LUA_POPUP_INPUT)
   LROT_FUNCENTRY( popupInput, luaPopupInput )
 #endif
@@ -2993,26 +3018,24 @@ LROT_BEGIN(etxcst, NULL, 0)
   // Constants
   LROT_NUMENTRY( FULLSCALE, RESX )
 #if defined(COLORLCD)
+  LROT_NUMENTRY( STDSIZE, FONT(STD) )
   LROT_NUMENTRY( XXLSIZE, FONT(XXL) )
   LROT_NUMENTRY( DBLSIZE, FONT(XL) )
   LROT_NUMENTRY( MIDSIZE, FONT(L) )
   LROT_NUMENTRY( SMLSIZE, FONT(XS) )
   LROT_NUMENTRY( TINSIZE, FONT(XXS) )
+  LROT_NUMENTRY( BOLD, FONT(BOLD) )
   LROT_NUMENTRY( BLINK, BLINK )
   LROT_NUMENTRY( INVERS, INVERS )
+  LROT_NUMENTRY( VCENTER, VCENTERED )
 #else
   LROT_NUMENTRY( XXLSIZE, XXLSIZE )
   LROT_NUMENTRY( DBLSIZE, DBLSIZE )
   LROT_NUMENTRY( MIDSIZE, MIDSIZE )
   LROT_NUMENTRY( SMLSIZE, SMLSIZE )
+  LROT_NUMENTRY( BOLD, BOLD )
   LROT_NUMENTRY( BLINK, BLINK )
   LROT_NUMENTRY( INVERS, INVERS )
-#endif
-#if defined(COLORLCD)
-  LROT_NUMENTRY( BOLD, FONT(BOLD) )
-  LROT_NUMENTRY( VCENTER, VCENTERED )
-#else
-  LROT_NUMENTRY( BOLD, BOLD )
 #endif
   LROT_NUMENTRY( RIGHT, RIGHT )
   LROT_NUMENTRY( LEFT, LEFT )
@@ -3076,11 +3099,16 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( FUNC_BACKLIGHT, FUNC_BACKLIGHT )
   LROT_NUMENTRY( FUNC_SCREENSHOT, FUNC_SCREENSHOT )
   LROT_NUMENTRY( FUNC_RACING_MODE, FUNC_RACING_MODE )
+#if defined(FUNCTION_SWITCHES)
+  LROT_NUMENTRY( FUNC_PUSH_CUST_SWITCH, FUNC_PUSH_CUST_SWITCH )
+#endif
+  LROT_NUMENTRY( FUNC_SET_SCREEN, FUNC_SET_SCREEN )
 #if defined(COLORLCD)
   LROT_NUMENTRY( FUNC_DISABLE_TOUCH, FUNC_DISABLE_TOUCH )
-  LROT_NUMENTRY( FUNC_SET_SCREEN, FUNC_SET_SCREEN )
 
   LROT_NUMENTRY( SHADOWED, SHADOWED )
+  // ZoneType::Integer == INPUT_TYPE_VALUE - use VALUE in widget options
+  // ZoneType::Source == INPUT_TYPE_SOURCE - use SOURCE in widget options
   LROT_NUMENTRY( COLOR, ZoneOption::Color )
   LROT_NUMENTRY( BOOL, ZoneOption::Bool )
   LROT_NUMENTRY( STRING, ZoneOption::String )
@@ -3088,6 +3116,9 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( TEXT_SIZE, ZoneOption::TextSize )
   LROT_NUMENTRY( ALIGNMENT, ZoneOption::Align )
   LROT_NUMENTRY( SWITCH, ZoneOption::Switch )
+  LROT_NUMENTRY( SLIDER, ZoneOption::Slider )
+  LROT_NUMENTRY( CHOICE, ZoneOption::Choice )
+  LROT_NUMENTRY( FILE, ZoneOption::File )
   LROT_NUMENTRY( MENU_HEADER_HEIGHT, COLOR2FLAGS(EdgeTxStyles::MENU_HEADER_HEIGHT) )
 
   // Colors gui/colorlcd/colors.h
@@ -3188,7 +3219,11 @@ LROT_BEGIN(etxcst, NULL, 0)
   LROT_NUMENTRY( PLAY_BACKGROUND, PLAY_BACKGROUND )
   LROT_NUMENTRY( TIMEHOUR, TIMEHOUR )
 #if defined(LED_STRIP_GPIO)
-  LROT_NUMENTRY( LED_STRIP_LENGTH, LED_STRIP_LENGTH )
+  #if defined(RADIO_V16)
+    LROT_NUMENTRY( LED_STRIP_LENGTH, LED_STRIP_LENGTH - 6)
+  #else
+    LROT_NUMENTRY( LED_STRIP_LENGTH, LED_STRIP_LENGTH )
+  #endif
 #endif
   LROT_NUMENTRY( UNIT_RAW, UNIT_RAW )
   LROT_NUMENTRY( UNIT_VOLTS, UNIT_VOLTS )

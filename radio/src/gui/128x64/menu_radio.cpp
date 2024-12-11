@@ -19,15 +19,13 @@
  * GNU General Public License for more details.
  */
 
-#include "opentx.h"
+#include "edgetx.h"
 
 const MenuHandler menuTabGeneral[MENU_RADIO_PAGES_COUNT] = {
 #if defined(RADIO_TOOLS)
   { menuRadioTools, nullptr },
 #endif
-#if defined(SDCARD)
   { menuRadioSdManager, nullptr },
-#endif
   { menuRadioSetup, nullptr },
   { menuRadioSpecialFunctions, radioGFEnabled },
   { menuRadioTrainer, radioTrainerEnabled },

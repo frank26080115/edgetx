@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -191,12 +192,15 @@ int Boards::getEEpromSize(Board::Type board)
     case BOARD_JUMPER_TLITE_F4:
     case BOARD_JUMPER_TPRO:
     case BOARD_JUMPER_TPROV2:
+    case BOARD_JUMPER_BUMBLEBEE:
+    case BOARD_JUMPER_TPROS:
     case BOARD_RADIOMASTER_TX12:
     case BOARD_RADIOMASTER_TX12_MK2:
     case BOARD_RADIOMASTER_T8:
     case BOARD_RADIOMASTER_ZORRO:
     case BOARD_RADIOMASTER_BOXER:
     case BOARD_RADIOMASTER_POCKET:
+    case BOARD_RADIOMASTER_MT12:
       return EESIZE_TARANIS;
     case BOARD_UNKNOWN:
       return EESIZE_MAX;
@@ -211,6 +215,7 @@ int Boards::getEEpromSize(Board::Type board)
     case BOARD_FLYSKY_EL18:
     case BOARD_FLYSKY_PL18:
     case BOARD_FATFISH_F16:
+    case BOARD_HELLORADIOSKY_V16:
       return 0;
     default:
       return 0;
@@ -246,12 +251,15 @@ int Boards::getFlashSize(Type board)
     case BOARD_JUMPER_TLITE_F4:
     case BOARD_JUMPER_TPRO:
     case BOARD_JUMPER_TPROV2:
+    case BOARD_JUMPER_TPROS:
+    case BOARD_JUMPER_BUMBLEBEE:
     case BOARD_RADIOMASTER_TX12:
     case BOARD_RADIOMASTER_TX12_MK2:
     case BOARD_RADIOMASTER_ZORRO:
     case BOARD_RADIOMASTER_BOXER:
     case BOARD_RADIOMASTER_T8:
     case BOARD_RADIOMASTER_POCKET:
+    case BOARD_RADIOMASTER_MT12:
       return FSIZE_TARANIS;
     case BOARD_HORUS_X12S:
     case BOARD_X10:
@@ -264,6 +272,7 @@ int Boards::getFlashSize(Type board)
     case BOARD_FLYSKY_EL18:
     case BOARD_FLYSKY_PL18:
     case BOARD_FATFISH_F16:
+    case BOARD_HELLORADIOSKY_V16:
       return FSIZE_HORUS;
     case BOARD_UNKNOWN:
       return FSIZE_MAX;
@@ -278,6 +287,9 @@ int Boards::getCapability(Board::Type board, Board::Capability capability)
   // TODO investigate usage of any that should be covered in BoardJson::getCapability or are no longer required
   //      some could be used when importing pre v2.10 configurations
   switch (capability) {
+    case Air:
+      return !getCapability(board, Surface);
+
     case FactoryInstalledPots:
       if (IS_TARANIS_X9(board))
         return 2;
@@ -289,7 +301,7 @@ int Boards::getCapability(Board::Type board, Board::Capability capability)
         return 8;
       else if (IS_JUMPER_TPROV2(board))
         return 6;
-      else if (IS_JUMPER_TLITE(board) || IS_JUMPER_TPROV1(board) || IS_BETAFPV_LR3PRO(board) || IS_IFLIGHT_COMMANDO8(board))
+      else if (IS_JUMPER_TLITE(board) || IS_JUMPER_TPROV1(board) || IS_BETAFPV_LR3PRO(board) || IS_IFLIGHT_COMMANDO8(board) || IS_JUMPER_BUMBLEBEE(board))
         return 4;
       else if(IS_RADIOMASTER_ZORRO(board))
         return 8;
@@ -320,8 +332,8 @@ int Boards::getCapability(Board::Type board, Board::Capability capability)
       return (IS_STM32(board) && !IS_TARANIS_X9(board));
 
     case HasLedStripGPIO:
-      // No current radio do support that feature
-      return false;
+      return (IS_RADIOMASTER_MT12(board) || IS_FLYSKY_PL18(board) ||
+              IS_HELLORADIOSKY_V16(board));
 
     case HasSDCard:
       return IS_STM32(board);
@@ -333,7 +345,42 @@ int Boards::getCapability(Board::Type board, Board::Capability capability)
       return ((IS_TARANIS_X9LITE(board) || (IS_TARANIS_XLITE(board) && !IS_TARANIS_X9LITES(board)) ||
               IS_TARANIS_X9DP_2019(board) || IS_TARANIS_X7_ACCESS(board) || IS_RADIOMASTER_ZORRO(board) ||
               IS_RADIOMASTER_TX12_MK2(board) || IS_RADIOMASTER_BOXER(board) || IS_RADIOMASTER_POCKET(board)) ||
+              IS_FAMILY_T16(board) || IS_FAMILY_HORUS(board) || 
               (getCapability(board, HasExternalModuleSupport) && (IS_TARANIS(board) && !IS_FAMILY_T12(board))));
+
+    case LcdDepth:
+      if (IS_FAMILY_HORUS_OR_T16(board))
+        return 16;
+      else if (IS_TARANIS_SMALL(board))
+        return 1;
+      else if (IS_TARANIS(board))
+        return 4;
+      else
+        return 1;
+
+    case LcdHeight:
+      if (IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board))
+        return 480;
+      else if (IS_FLYSKY_PL18(board) || IS_JUMPER_T15(board))
+        return 320;
+      else if (IS_FAMILY_HORUS_OR_T16(board))
+        return 272;
+      else
+        return 64;
+
+    case LcdWidth:
+      if (IS_FLYSKY_NV14(board) || IS_FLYSKY_EL18(board))
+        return 320;
+      else if (IS_FLYSKY_PL18(board))
+        return 480;
+      else if (IS_FAMILY_HORUS_OR_T16(board))
+        return 480;
+      else if (IS_TARANIS_SMALL(board))
+        return 128;
+      else if (IS_TARANIS(board))
+        return 212;
+      else
+        return 128;
 
     case MaxAnalogs:
       return getCapability(board, Board::Sticks) + getCapability(board, Board::Pots) + getCapability(board, Board::Sliders) +
@@ -345,6 +392,9 @@ int Boards::getCapability(Board::Type board, Board::Capability capability)
         return 400000;  //  400K and higher
       else
         return 250000;  //  less than 400K
+
+    case Surface:
+      return IS_RADIOMASTER_MT12(board);
 
     default:
       return getBoardJson(board)->getCapability(capability);
@@ -536,8 +586,12 @@ QString Boards::getBoardName(Board::Type board)
       return "Jumper T-Pro";
     case BOARD_JUMPER_TPROV2:
       return "Jumper T-Pro V2";
+    case BOARD_JUMPER_TPROS:
+      return "Jumper T-Pro S";
     case BOARD_JUMPER_T12MAX:
       return "Jumper T12 MAX";
+    case BOARD_JUMPER_BUMBLEBEE:
+      return "Jumper Bumblebee";
     case BOARD_JUMPER_T14:
       return "Jumper T14";
     case BOARD_JUMPER_T15:
@@ -550,20 +604,22 @@ QString Boards::getBoardName(Board::Type board)
       return "Jumper T20";
     case BOARD_JUMPER_T20V2:
       return "Jumper T20 V2";
-    case BOARD_RADIOMASTER_TX16S:
-      return "Radiomaster TX16S";
-    case BOARD_RADIOMASTER_TX12:
-      return "Radiomaster TX12";
-    case BOARD_RADIOMASTER_TX12_MK2:
-      return "Radiomaster TX12 Mark II";
-    case BOARD_RADIOMASTER_ZORRO:
-      return "Radiomaster Zorro";
     case BOARD_RADIOMASTER_BOXER:
       return "Radiomaster Boxer";
     case BOARD_RADIOMASTER_POCKET:
       return "Radiomaster Pocket";
+    case BOARD_RADIOMASTER_MT12:
+      return "Radiomaster MT12";
     case BOARD_RADIOMASTER_T8:
       return "Radiomaster T8";
+    case BOARD_RADIOMASTER_TX12:
+      return "Radiomaster TX12";
+    case BOARD_RADIOMASTER_TX12_MK2:
+      return "Radiomaster TX12 Mark II";
+    case BOARD_RADIOMASTER_TX16S:
+      return "Radiomaster TX16S";
+    case BOARD_RADIOMASTER_ZORRO:
+      return "Radiomaster Zorro";
     case BOARD_FLYSKY_NV14:
       return "FlySky NV14";
     case BOARD_FLYSKY_EL18:
@@ -576,6 +632,8 @@ QString Boards::getBoardName(Board::Type board)
       return "iFlight Commando 8";
     case BOARD_FATFISH_F16:
       return "Fatfish F16";
+    case BOARD_HELLORADIOSKY_V16:
+      return "HelloRadioSky V16";
     default:
       return CPN_STR_UNKNOWN_ITEM;
   }
@@ -628,6 +686,11 @@ QList<int> Boards::getSupportedInternalModules(Board::Type board)
         (int)MODULE_TYPE_FLYSKY_AFHDS3,
         (int)MODULE_TYPE_CROSSFIRE,
     });
+  } else if (IS_RADIOMASTER_MT12(board)) {
+    modules.append({
+        (int)MODULE_TYPE_CROSSFIRE,
+        (int)MODULE_TYPE_MULTIMODULE,
+    });
   } else if (IS_FAMILY_HORUS_OR_T16(board) || IS_FAMILY_T12(board) ||
              (IS_TARANIS_SMALL(board) && IS_ACCESS_RADIO(board))) {
     modules.append({
@@ -679,6 +742,7 @@ int Boards::getDefaultInternalModules(Board::Type board)
   case BOARD_BETAFPV_LR3PRO:
   case BOARD_RADIOMASTER_ZORRO:
   case BOARD_RADIOMASTER_BOXER:
+  case BOARD_RADIOMASTER_MT12:
   case BOARD_RADIOMASTER_POCKET:
   case BOARD_RADIOMASTER_TX12_MK2:
   case BOARD_IFLIGHT_COMMANDO8:
@@ -687,7 +751,10 @@ int Boards::getDefaultInternalModules(Board::Type board)
   case BOARD_JUMPER_T15:
   case BOARD_JUMPER_T20:
   case BOARD_JUMPER_T20V2:
+  case BOARD_JUMPER_TPROS:
+  case BOARD_JUMPER_BUMBLEBEE:
   case BOARD_FATFISH_F16:
+  case BOARD_HELLORADIOSKY_V16:
     return (int)MODULE_TYPE_CROSSFIRE;
 
   case BOARD_FLYSKY_NV14:
@@ -718,7 +785,7 @@ void Boards::getBattRange(Board::Type board, int& vmin, int& vmax, unsigned int&
     case BOARD_RADIOMASTER_BOXER:
     case BOARD_RADIOMASTER_POCKET:
     case BOARD_RADIOMASTER_ZORRO:
-    // case BOARD_RADIOMASTER_MT12:   // TODO
+    case BOARD_RADIOMASTER_MT12:
     case BOARD_JUMPER_T12:
     case BOARD_JUMPER_T14:
     case BOARD_JUMPER_TPRO:
@@ -775,6 +842,7 @@ int Boards::getDefaultExternalModuleSize(Board::Type board)
 
   if (IS_TARANIS_X9LITE(board)    ||
       IS_RADIOMASTER_ZORRO(board) ||
+      IS_RADIOMASTER_MT12(board) ||
       IS_RADIOMASTER_POCKET(board) ||
       IS_JUMPER_TLITE(board)      ||
       IS_JUMPER_TPRO(board)       ||
@@ -898,6 +966,11 @@ int Boards::getInputTagOffset(QString tag, Board::Type board)
   return getBoardJson(board)->getInputTagOffset(tag);
 }
 
+int Boards::getInputThrottleIndex(Board::Type board)
+{
+  return getBoardJson(board)->getInputThrottleIndex();
+}
+
 int Boards::getInputTypeOffset(Board::AnalogInputType type, Board::Type board)
 {
   return getBoardJson(board)->getInputTypeOffset(type);
@@ -916,6 +989,16 @@ QString Boards::getInputYamlName(int index, int ylt, Board::Type board)
 int Boards::getInputsCalibrated(Board::Type board)
 {
   return getBoardJson(board)->getInputsCalibrated();
+}
+
+Board::KeyInfo Boards::getKeyInfo(int index, Board::Type board)
+{
+  return getBoardJson(board)->getKeyInfo(index);
+}
+
+int Boards::getKeyIndex(QString key, Board::Type board)
+{
+  return getBoardJson(board)->getKeyIndex(key);
 }
 
 Board::SwitchInfo Boards::getSwitchInfo(int index, Board::Type board)
@@ -941,6 +1024,11 @@ QString Boards::getSwitchTag(int index, Board::Type board)
 int Boards::getSwitchTagNum(int index, Board::Type board)
 {
   return getBoardJson(board)->getSwitchTagNum(index);
+}
+
+int Boards::getSwitchTypeOffset(Board::SwitchType type, Board::Type board)
+{
+  return getBoardJson(board)->getSwitchTypeOffset(type);
 }
 
 int Boards::getSwitchYamlIndex(QString val, int ylt, Board::Type board)
@@ -1006,4 +1094,19 @@ bool Boards::isSwitchFlex(int index, Board::Type board)
 bool Boards::isSwitchFunc(int index, Board::Type board)
 {
   return getBoardJson(board)->isSwitchFunc(index);
+}
+
+QString Boards::getRadioTypeString(Board::Type board)
+{
+  return getCapability(board == Board::BOARD_UNKNOWN ? getCurrentBoard() : board, Board::Air) ? tr("Flight") : tr("Drive");
+}
+
+bool Boards::isAir(Board::Type board)
+{
+  return getCapability(board == Board::BOARD_UNKNOWN ? getCurrentBoard() : board, Board::Air);
+}
+
+bool Boards::isSurface(Board::Type board)
+{
+  return getCapability(board == Board::BOARD_UNKNOWN ? getCurrentBoard() : board, Board::Surface);
 }

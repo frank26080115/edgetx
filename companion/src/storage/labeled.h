@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -45,11 +46,6 @@ class LabelsStorageFormat : public StorageFormat
     virtual bool writeFile(const QByteArray & fileData, const QString & fileName) = 0;
     virtual bool getFileList(std::list<std::string>& filelist) = 0;
     virtual bool deleteFile(const QString & fileName) = 0;
-
-    virtual bool loadBin(RadioData & radioData);
-    virtual bool writeBin(const RadioData & radioData);
-    virtual bool loadYaml(RadioData & radioData);
-    virtual bool writeYaml(const RadioData & radioData);
 
     StorageType probeFormat();
 };

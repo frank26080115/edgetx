@@ -24,7 +24,7 @@
 #include "stm32_hal_ll.h"
 #endif
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "mixer_scheduler.h"
 #include "hal/module_driver.h"
 #include "hal/module_port.h"
@@ -41,6 +41,10 @@
 #endif
 
 #define MIN_FRAME_LEN 3
+
+#define MODULE_ALIVE_TIMEOUT  50                      // if the module has sent a valid frame within 500ms it is declared alive
+static tmr10ms_t lastAlive[NUM_MODULES];              // last time stamp module sent CRSF frames
+static bool moduleAlive[NUM_MODULES];                 // module alive status
 
 uint8_t createCrossfireBindFrame(uint8_t moduleIdx, uint8_t * frame)
 {
@@ -89,11 +93,21 @@ uint8_t createCrossfireModelIDFrame(uint8_t moduleIdx, uint8_t * frame)
 }
 
 // Range for pulses (channels output) is [-1024:+1024]
-uint8_t createCrossfireChannelsFrame(uint8_t * frame, int16_t * pulses)
+uint8_t createCrossfireChannelsFrame(uint8_t moduleIdx, uint8_t * frame, int16_t * pulses)
 {
+  //
+  // sends channel data and also communicates commanded armed status in arming mode Switch.
+  // frame len 24 -> arming mode CH5: module will use channel 5
+  // frame len 25 -> arming mode Switch: send commanded armed status in extra byte after channel data
+  // 
+  ModuleData *md = &g_model.moduleData[moduleIdx];
+
+  uint8_t armingMode = md->crsf.crsfArmingMode; // 0 = Channel mode, 1 = Switch mode
+  uint8_t lenAdjust = (armingMode == ARMING_MODE_SWITCH) ? 1 : 0;
+
   uint8_t * buf = frame;
   *buf++ = MODULE_ADDRESS;
-  *buf++ = 24; // 1(ID) + 22 + 1(CRC)
+  *buf++ = 24 + lenAdjust;      // 1(ID) + 22(channel data) + (+1 extra byte if Switch mode) + 1(CRC)
   uint8_t * crc_start = buf;
   *buf++ = CHANNELS_ID;
   uint32_t bits = 0;
@@ -108,7 +122,14 @@ uint8_t createCrossfireChannelsFrame(uint8_t * frame, int16_t * pulses)
       bitsavailable -= 8;
     }
   }
-  *buf++ = crc8(crc_start, 23);
+  
+  if (armingMode == ARMING_MODE_SWITCH) {
+    swsrc_t sw =  md->crsf.crsfArmingTrigger;
+
+    *buf++ = (sw != SWSRC_NONE) && getSwitch(sw, 0);  // commanded armed status in Switch mode
+  }
+  
+  *buf++ = crc8(crc_start, 23 + lenAdjust);
   return buf - frame;
 }
 
@@ -125,7 +146,35 @@ static void setupPulsesCrossfire(uint8_t module, uint8_t*& p_buf,
   } else
 #endif
   {
+    //
+    // An ELRS module stores the RF parameters in a model specific way using the
+    // modelID as index. If the module resets after it was initally initialized the modelID 
+    // needs to be resent as otherwise the module assumes modelID 0 which leads to the
+    // module using the stored RF parameters for the model with modelID 0. This is not only
+    // annoying but also potentially dangerous as a receiver will no longer re-connect.
+    //
+    // Reasons for a module resetting might be:
+    // - power surge
+    // - internal non-recoverable error
+    // - after flashing in WiFi mode
+    // - putting the module in WiFi mode and exiting WiFi mode (LUA script)
+    // 
+    // This logic takes care of sending the modelID again after a module comes back to 
+    // live after a module reset
+    // 
+    if(moduleState[module].counter != CRSF_FRAME_MODELID ) {            // skip the reset check logic if first init
+      if((get_tmr10ms() - lastAlive[module]) > MODULE_ALIVE_TIMEOUT) {  // check if module has recently sent CRSF frames 
+        moduleAlive[module] = false;                                    // no, declare it as dead  
+      } else {
+        if(moduleAlive[module] == false) {                              // if the module was dead and came back to live, e.g. reset
+          moduleAlive[module] = true;                                   // declare the module as alive
+          moduleState[module].counter = CRSF_FRAME_MODELID;             // and send it the modelID again 
+        }
+      }
+    }
+
     if (moduleState[module].counter == CRSF_FRAME_MODELID) {
+      TRACE("[XF] ModelID %d", g_model.header.modelId[module]);
       p_buf += createCrossfireModelIDFrame(module, p_buf);
       moduleState[module].counter = CRSF_FRAME_MODELID_SENT;
     } else if (moduleState[module].counter == CRSF_FRAME_MODELID_SENT && crossfireModuleStatus[module].queryCompleted == false) {
@@ -135,7 +184,7 @@ static void setupPulsesCrossfire(uint8_t module, uint8_t*& p_buf,
       moduleState[module].mode = MODULE_MODE_NORMAL;
     } else {
       /* TODO: nChannels */
-      p_buf += createCrossfireChannelsFrame(p_buf, channels);
+      p_buf += createCrossfireChannelsFrame(module, p_buf, channels);
     }
   }
 }
@@ -223,6 +272,7 @@ static uint8_t* _processFrames(void* ctx, uint8_t* buf, uint8_t& len)
 #endif
       auto mod_st = (etx_module_state_t*)ctx;
       auto module = modulePortGetModule(mod_st);
+      lastAlive[module] = get_tmr10ms();                              // valid frame received, note timestamp
       processCrossfireTelemetryFrame(module, p_buf, pkt_len);
     }
 

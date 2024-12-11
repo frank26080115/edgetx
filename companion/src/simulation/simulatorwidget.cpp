@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -105,6 +106,12 @@ SimulatorWidget::SimulatorWidget(QWidget * parent, SimulatorInterface * simulato
     case Board::BOARD_JUMPER_TPROV2:
       radioUiWidget = new SimulatedUIWidgetJumperTPRO(simulator, this);
       break;
+    case Board::BOARD_JUMPER_TPROS:
+      radioUiWidget = new SimulatedUIWidgetJumperTPROS(simulator, this);
+      break;
+    case Board::BOARD_JUMPER_BUMBLEBEE:
+      radioUiWidget = new SimulatedUIWidgetJumperBumblebee(simulator, this);
+      break;
     case Board::BOARD_JUMPER_T12MAX:
       radioUiWidget = new SimulatedUIWidgetJumperT12max(simulator, this);
       break;
@@ -134,6 +141,9 @@ SimulatorWidget::SimulatorWidget(QWidget * parent, SimulatorInterface * simulato
     case Board::BOARD_RADIOMASTER_BOXER:
       radioUiWidget = new SimulatedUIWidgetBoxer(simulator, this);
       break;
+    case Board::BOARD_RADIOMASTER_MT12:
+      radioUiWidget = new SimulatedUIWidgetMT12(simulator, this);
+      break;
     case Board::BOARD_RADIOMASTER_T8:
       radioUiWidget = new SimulatedUIWidgetT8(simulator, this);
       break;
@@ -154,6 +164,9 @@ SimulatorWidget::SimulatorWidget(QWidget * parent, SimulatorInterface * simulato
       break;
     case Board::BOARD_FLYSKY_PL18:
       radioUiWidget = new SimulatedUIWidgetPL18(simulator, this);
+      break;
+    case Board::BOARD_HELLORADIOSKY_V16:
+      radioUiWidget = new SimulatedUIWidgetV16(simulator, this);
       break;
     default:
       radioUiWidget = new SimulatedUIWidget9X(simulator, this);
@@ -303,8 +316,10 @@ bool SimulatorWidget::setStartupData(const QByteArray & dataSource, bool fromFil
   }
   // Assume a byte array of radio data was passed, load it.
   else if (!dataSource.isEmpty()) {
-    ret = firmware->getEEpromInterface()->load(simuData, (uint8_t *)dataSource.constData(), Boards::getEEpromSize(m_board));
-    startupData = dataSource;  // save the data for start()
+    //ret = firmware->getEEpromInterface()->load(simuData, (uint8_t *)dataSource.constData(), Boards::getEEpromSize(m_board));
+    //startupData = dataSource;  // save the data for start()
+    error = tr("Unable to handle byte array.");
+    ret = 0;
   }
   // we're :-(
   else {
@@ -339,11 +354,11 @@ bool SimulatorWidget::setRadioData(RadioData * radioData)
   if (ret) {
     if (!hasSdCard) {
       startupData.fill(0, Boards::getEEpromSize(m_board));
-      if (firmware->getEEpromInterface()->save(
-              (uint8_t *)startupData.data(), *radioData, 0,
-              firmware->getCapability(SimulatorVariant)) <= 0) {
+      //if (firmware->getEEpromInterface()->save(
+      //        (uint8_t *)startupData.data(), *radioData, 0,
+      //        firmware->getCapability(SimulatorVariant)) <= 0) {
         ret = false;
-      }
+      //}
     } else {
       ret = saveRadioData(radioData, radioDataPath);
     }
@@ -439,13 +454,14 @@ bool SimulatorWidget::saveTempData()
             fh.close();
         }
 
-        if (!firmware->getEEpromInterface()->load(radioData, (uint8_t *)startupData.constData(), Boards::getEEpromSize(m_board))) {
-          error = tr("Error saving data: could not get data from simulator interface.");
-        }
-        else {
-          radioData.fixModelFilenames();
-          ret = true;
-        }
+        qDebug() << "ERROR: WE DO NOT WANT TO BE HERE";
+//        if (!firmware->getEEpromInterface()->load(radioData, (uint8_t *)startupData.constData(), Boards::getEEpromSize(m_board))) {
+//          error = tr("Error saving data: could not get data from simulator interface.");
+//        }
+//        else {
+//          radioData.fixModelFilenames();
+//          ret = true;
+//        }
       }
     }
     else {
@@ -829,7 +845,7 @@ void SimulatorWidget::onSimulatorError(const QString & error)
 
 void SimulatorWidget::onPhaseChanged(qint32 phase, const QString & name)
 {
-  setWindowTitle(windowName + tr(" - Flight Mode %1 (#%2)").arg(name).arg(phase));
+  setWindowTitle(windowName + QString(" - %1 %2 (#%3)").arg(Boards::getCapability(m_board, Board::Air) ? tr("Flight Mode") : tr("Drive Mode")).arg(name).arg(phase));
 }
 
 void SimulatorWidget::onRadioWidgetValueChange(const RadioWidget::RadioWidgetType type, int index, int value)

@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -161,7 +162,7 @@ RawSource YamlRawSourceDecode(const std::string& src_str)
 
   } else if ((val_len == 2 &&
               val[0] == 'S' &&
-              val[1] >= 'A' && val[1] <= 'Z') ||
+              val[1] >= 'A' && val[1] <= 'S') ||  // ST used for surface steering
              (val_len == 3 && (
               (val[0] == 'F' && val[1] == 'L') ||
               (val[0] == 'S' && val[1] == 'W')) &&

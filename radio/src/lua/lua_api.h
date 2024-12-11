@@ -34,7 +34,7 @@ extern "C" {
 }
 
 #include "dataconstants.h"
-#include "opentx_types.h"
+#include "edgetx_types.h"
 
 #ifndef LUA_SCRIPT_LOAD_MODE
   // Can force loading of binary (.luac) or plain-text (.lua) versions of scripts specifically, and control
@@ -100,6 +100,8 @@ void luaEmptyEventBuffer();
 
 #define lua_registerlib(L, name, tab)  (luaL_newmetatable(L, name), luaL_setfuncs(L, tab, 0), lua_setglobal(L, name))
 
+// Must match first two entries in ZoneOpton::Type enum
+// TODO: should be cleaned up
 enum luaScriptInputType {
   INPUT_TYPE_FIRST = 0,
   INPUT_TYPE_VALUE = INPUT_TYPE_FIRST,
@@ -167,6 +169,9 @@ enum InterpreterState {
   INTERPRETER_LOADING,
   INTERPRETER_START_RUNNING,
   INTERPRETER_RUNNING,
+#if defined(COLORLCD)
+  INTERPRETER_PAUSED,
+#endif
   INTERPRETER_PANIC = 255
 };
 
@@ -248,6 +253,8 @@ struct LuaMemTracer {
 
 void * tracer_alloc(void * ud, void * ptr, size_t osize, size_t nsize);
 
+void l_pushtableint(lua_State* ls, const char * key, int value);
+void l_pushtablebool(lua_State* ls, const char * key, bool value);
 
 #else  // defined(LUA)
 

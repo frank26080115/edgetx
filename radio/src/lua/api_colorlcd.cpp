@@ -24,7 +24,7 @@
 #include <cctype>
 #include <cstdio>
 
-#include "opentx.h"
+#include "edgetx.h"
 #include "libopenui.h"
 #include "widget.h"
 
@@ -34,37 +34,8 @@
 
 #define BITMAP_METATABLE "BITMAP*"
 
-constexpr coord_t INVERT_BOX_MARGIN = 2;
-constexpr int8_t text_horizontal_offset[7] = {-2,-1,-2,-2,-2,-2,-2};
-constexpr int8_t text_vertical_offset[7] = {0,0,0,0,0,-1,7};
-
 BitmapBuffer* luaLcdBuffer  = nullptr;
 LuaWidget *runningFS = nullptr;
-
-static int8_t getTextHorizontalOffset(LcdFlags flags)
-{
-  // no need to adjust if not right aligned
-  if (!(flags & RIGHT)) {
-      return 0;
-  }
-  const uint8_t font_index = FONT_INDEX(flags);
-  if (font_index >= sizeof(text_horizontal_offset)) {
-    return 0;
-  }
-  return 0;//text_horizontal_offset[font_index];
-}
-
-static int8_t getTextVerticalOffset(LcdFlags flags)
-{
-  const uint8_t font_index = FONT_INDEX(flags);
-  if (font_index >= sizeof(text_vertical_offset)) {
-    return 0;
-  }
-  int vcenter = 0;
-  if (flags & VCENTERED)
-    vcenter = 0.5 * getFontHeight(flags & 0xFFFF);
-  return text_vertical_offset[font_index] - vcenter;
-}
 
 /*luadoc
 @function lcd.refresh()
@@ -210,10 +181,6 @@ static void drawString(lua_State *L, const char * s, LcdFlags flags)
   int x = luaL_checkinteger(L, 1);
   int y = luaL_checkinteger(L, 2);
 
-  // apply text offsets, needed to align 2.4.x to 2.3.x font baselines
-  x += getTextHorizontalOffset(flags);
-  y += getTextVerticalOffset(flags);
-
   bool invers = flags & INVERS;
   if (flags & BLINK)
     invers = invers && !BLINK_ON_PHASE;
@@ -230,6 +197,7 @@ static void drawString(lua_State *L, const char * s, LcdFlags flags)
     flags = (flags & 0xFFFF) | invColor;
     
     // Draw color box
+    constexpr coord_t INVERT_BOX_MARGIN = 2;
     int height = getFontHeight(flags & 0xFFFF) + 2 * INVERT_BOX_MARGIN;
     int width = getTextWidth(s, 0, flags);
     int ix = x - INVERT_BOX_MARGIN;
@@ -291,7 +259,7 @@ static int luaLcdSizeText(lua_State *L)
   const char * s = luaL_checkstring(L, 1);
   LcdFlags flags = luaL_optunsigned(L, 2, 0);
   lua_pushinteger(L, getTextWidth(s, 0, flags));
-  lua_pushinteger(L, getFontHeight(flags & 0xFFFF) + getTextVerticalOffset(flags & ~VCENTERED));
+  lua_pushinteger(L, getFontHeight(flags & 0xFFFF));
   return 2;
 }
 
@@ -308,7 +276,9 @@ Draw text inside rectangle (x,y,w,h) with line breaks
 
 @param flags (optional) please see [Lcd functions overview](../lcd-functions-less-than-greater-than-luadoc-begin-lcd/lcd_functions-overview.html) for drawing flags and colors, and [Appendix](../../part_vii_-_appendix/fonts.md) for available characters in each font set. RIGHT, CENTER and VCENTER are not implemented.
 
-@status current Introduced in 2.5.0
+@retval x,y (integers) point where text drawing ended
+
+@status current Introduced in 2.5.0, return x,y added in 2.11.0
 */
 static int luaLcdDrawTextLines(lua_State *L)
 {
@@ -319,6 +289,7 @@ static int luaLcdDrawTextLines(lua_State *L)
   int y = luaL_checkinteger(L, 2);
   int w = luaL_checkinteger(L, 3);
   int h = luaL_checkinteger(L, 4);
+  point_t maxP = {0,0};
   const char * s = luaL_checkstring(L, 5);
   LcdFlags flags = luaL_optunsigned(L, 6, 0);
   
@@ -347,8 +318,14 @@ static int luaLcdDrawTextLines(lua_State *L)
     flags = (flags & 0xFFFF) | colorToRGB(flags);
   }
   
-  luaLcdBuffer->drawTextLines(x, y, w, h, s, flags);
-  return 0;
+  maxP = luaLcdBuffer->drawTextLines(x, y, w, h, s, flags);
+  if (!invers && flags & SHADOWED) {
+    maxP.x++;
+    maxP.y++;
+  }
+  lua_pushinteger(L, maxP.x);
+  lua_pushinteger(L, maxP.y);
+  return 2;
 }
 
 /*luadoc
@@ -1401,11 +1378,8 @@ Exit full screen widget mode.
 */
 static int luaLcdExitFullScreen(lua_State *L)
 {
-  if (runningFS) {
-    auto rfs = runningFS;
-    runningFS = nullptr;
-    rfs->setFullscreen(false);
-  }
+  if (runningFS)
+    runningFS->closeFullscreen();
   return 0;
 }
 

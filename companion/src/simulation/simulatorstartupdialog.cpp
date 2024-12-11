@@ -1,7 +1,8 @@
 /*
- * Copyright (C) OpenTX
+ * Copyright (C) EdgeTX
  *
  * Based on code named
+ *   opentx - https://github.com/opentx/opentx
  *   th9x - http://code.google.com/p/th9x
  *   er9x - http://code.google.com/p/er9x
  *   gruvin9x - http://code.google.com/p/gruvin9x
@@ -303,7 +304,7 @@ void SimulatorStartupDialog::onRadioTypeChanged(int index)
 
 void SimulatorStartupDialog::onDataFileSelect(bool)
 {
-  QString filter = EEPROM_FILES_FILTER % tr("All files (*.*)");
+  QString filter = SIMU_FILES_FILTER;
   QString file = QFileDialog::getSaveFileName(this, tr("Select a data file"), ui->dataFile->text(),
                                               filter, NULL, QFileDialog::DontConfirmOverwrite);
   if (!file.isEmpty()) {

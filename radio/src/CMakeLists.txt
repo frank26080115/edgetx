@@ -57,12 +57,7 @@ option(BOOTLOADER "Include Bootloader" ON)
 option(FWDRIVE "Attach also firmware drive with USB" OFF)
 option(DISABLE_MCUCHECK "Disable MCU check at start" OFF)
 option(LUA_MIXER "Enable LUA mixer/model scripts support" ON)
-
-if(PCB STREQUAL X9D+ AND PCBREV STREQUAL 2019)
-  option(USBJ_EX "Enable USB Joystick Extension" OFF)
-else()
-  option(USBJ_EX "Enable USB Joystick Extension" ON)
-endif()
+option(USBJ_EX "Enable USB Joystick Extension" ON)
 
 # since we reset all default CMAKE compiler flags for firmware builds, provide an alternate way for user to specify additional flags.
 set(FIRMWARE_C_FLAGS "" CACHE STRING "Additional flags for firmware target c compiler (note: all CMAKE_C_FLAGS[_*] are ignored for firmware/bootloader).")
@@ -77,11 +72,6 @@ set(FATFS_DIR ${THIRDPARTY_DIR}/FatFs)
 set(RADIO_BIN_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR})
 
 configure_file(stamp.h.in stamp.h @ONLY)
-
-set(EEPROM_VARIANT  0)
-set(GVARS_VARIANT   1)
-set(FRSKY_VARIANT   2)
-set(3POS_VARIANT    4)
 
 if(PCB STREQUAL X12S OR PCB STREQUAL X10)
   include(targets/horus/CMakeLists.txt)
@@ -156,7 +146,6 @@ include(gui/CMakeLists.txt)
 set(SRC ${SRC} storage/storage_common.cpp)
 set(SRC ${SRC} storage/sdcard_common.cpp)
 set(SRC ${SRC} storage/sdcard_yaml.cpp)
-add_definitions(-DSDCARD_YAML)
 include(storage/yaml/CMakeLists.txt)
 if(STORAGE_MODELSLIST)
   set(SRC ${SRC} storage/modelslist.cpp)
@@ -202,7 +191,6 @@ endif()
 if(GVARS)
   add_definitions(-DGVARS)
   set(SRC ${SRC} gvars.cpp)
-  math(EXPR EEPROM_VARIANT ${EEPROM_VARIANT}+${GVARS_VARIANT})
 endif()
 
 if(FAI STREQUAL YES)
@@ -247,11 +235,7 @@ if(SIMU_DISKIO)
   add_definitions(-DSIMU_DISKIO)
 endif()
 
-if(SDCARD)
-  add_definitions(-DSDCARD)
-  set(SRC ${SRC} sdcard.cpp rtc.cpp logs.cpp thirdparty/libopenui/src/libopenui_file.cpp)
-  set(FIRMWARE_SRC ${FIRMWARE_SRC})
-endif()
+set(SRC ${SRC} sdcard.cpp rtc.cpp logs.cpp lib_file.cpp)
 
 if(BLUETOOTH)
   add_definitions(-DBLUETOOTH)
@@ -297,12 +281,14 @@ if(TRACE_AUDIO)
 endif()
 
 if(DEBUG STREQUAL RTT)
+  set(DEBUG ON)
   set(DEBUG_SEGGER_RTT ON)
   add_definitions(-DDEBUG_SEGGER_RTT)
   set(SRC ${SRC} ${THIRDPARTY_DIR}/Segger_RTT/RTT/SEGGER_RTT.c)
 endif()
 
 if(DEBUG STREQUAL RTT_NO_USB)
+  set(DEBUG ON)
   set(DEBUG_SEGGER_RTT ON)
   add_definitions(-DDEBUG_SEGGER_RTT)
   add_definitions(-DDEBUG_DISABLE_USB)
@@ -323,10 +309,6 @@ endif()
 
 if(IMU_LSM6DS33)
     add_definitions(-DIMU_LSM6DS33)
-endif()
-
-if(EEPROM_VARIANT_NEEDED)
-  add_definitions(-DEEPROM_VARIANT=${EEPROM_VARIANT})
 endif()
 
 if(TEST_BUILD_WARNING)
@@ -397,7 +379,7 @@ endif()
 
 set(SRC
   ${SRC}
-  opentx.cpp
+  edgetx.cpp
   functions.cpp
   strhelpers.cpp
   switches.cpp
@@ -425,6 +407,7 @@ if(GUI)
     keys.cpp
     maths.cpp
     translations.cpp
+    cfn_sort.cpp
     gui/gui_common.cpp
     )
   foreach(FILE ${GUI_SRC})
@@ -546,6 +529,7 @@ add_dependencies(firmware ${RADIO_DEPENDENCIES})
 set_target_properties(firmware PROPERTIES EXCLUDE_FROM_ALL TRUE)
 
 if(DEBUG)
+  target_compile_definitions(board PRIVATE -DDEBUG)
   target_compile_definitions(firmware PRIVATE -DDEBUG)
   target_compile_definitions(stm32_drivers_w_dbg_fw PRIVATE -DDEBUG)
 endif()

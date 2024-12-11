@@ -19,8 +19,7 @@
  * GNU General Public License for more details.
  */
 
-#ifndef _GUI_H_
-#define _GUI_H_
+#pragma once
 
 #include "gui_common.h"
 #include "lcd.h"
@@ -33,7 +32,6 @@
 #define HEADER_LINE                    0
 #define HEADER_LINE_COLUMNS
 
-#define DEFAULT_SCROLLBAR_X            (LCD_W-1)
 #define NUM_BODY_LINES                 (LCD_LINES-1)
 #define TEXT_VIEWER_LINES              NUM_BODY_LINES
 #define MENU_HEADER_HEIGHT             FH
@@ -93,7 +91,7 @@ swsrc_t editSwitch(coord_t x, coord_t y, swsrc_t value, LcdFlags attr,
 
 uint16_t editSrcVarFieldValue(coord_t x, coord_t y, const char* title, uint16_t value,
                               int16_t min, int16_t max, LcdFlags attr, event_t event,
-                              IsValueAvailable isValueAvailable, int16_t sourceMin);
+                              IsValueAvailable isValueAvailable, int16_t sourceMin, int16_t sourceMax);
 
 #if defined(GVARS)
 void drawGVarValue(coord_t x, coord_t y, uint8_t gvar, gvar_t value,
@@ -122,7 +120,7 @@ int16_t editGVarFieldValue(coord_t x, coord_t y, int16_t value, int16_t min,
 #endif
 
 void editCurveRef(coord_t x, coord_t y, CurveRef & curve, event_t event, LcdFlags flags,
-                  IsValueAvailable isValueAvailable, int16_t sourceMin);
+                  IsValueAvailable isValueAvailable, int16_t sourceMin, int16_t sourceMax);
 
 extern uint8_t editNameCursorPos;
 
@@ -170,10 +168,7 @@ void readModelNotes();
 
 void menuChannelsView(event_t event);
 
-void repeatLastCursorMove(event_t event);
-
-#define POS_HORZ_INIT(posVert)         ((COLATTR(posVert) & NAVIGATION_LINE_BY_LINE) ? -1 : 0)
-#define EDIT_MODE_INIT                 0 // TODO enum
+#define EDIT_MODE_INIT                 0
 
 void onSwitchLongEnterPress(const char *result);
 void onSourceLongEnterPress(const char *result);
@@ -195,5 +190,3 @@ FlightModesType editFlightModes(coord_t x, coord_t y, event_t event, FlightModes
 #define IS_MAIN_VIEW_DISPLAYED()       menuHandlers[0] == menuMainView
 #define IS_TELEMETRY_VIEW_DISPLAYED()  menuHandlers[0] == menuViewTelemetry
 #define IS_OTHER_VIEW_DISPLAYED()      (menuHandlers[0] == menuMainViewChannelsMonitor || menuHandlers[0] == menuChannelsView)
-
-#endif // _GUI_H_
